@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Trophy, ListOrdered, Search, TrendingUp, FileText, Hash } from "lucide-react";
+import { Trophy, ListOrdered, Search, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/site/page-header";
 import { getMeritList } from "@/lib/data";
 import { TOPPERS, RESULT_TREND } from "@/content/results";
@@ -25,7 +25,7 @@ export default async function ResultsHub() {
       />
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           {[
             {
               icon: Search,
@@ -33,20 +33,6 @@ export default async function ResultsHub() {
               body: "Subject-wise card by roll number — printable, shareable, published on result day.",
               href: "/results/lookup",
               cta: "Check a result",
-            },
-            {
-              icon: FileText,
-              title: "Report Card",
-              body: "Detailed annual report card by exam roll number or report-card code. 1st Year & 2nd Year, all programmes.",
-              href: "/results/report-card",
-              cta: "View report card",
-            },
-            {
-              icon: Hash,
-              title: "Exam Roll Numbers",
-              body: "Find your exam roll number slip — published when the exam branch opens the session.",
-              href: "/results/roll-numbers",
-              cta: "Find my roll number",
             },
             {
               icon: ListOrdered,

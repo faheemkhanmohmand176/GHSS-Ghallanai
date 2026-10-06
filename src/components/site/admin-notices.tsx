@@ -59,7 +59,6 @@ export default function AdminNotices({ initial }: { initial: Notice[] }) {
 
   return (
     <AdminChrome>
-      <div className="p-4 sm:p-6 lg:p-8">
       <AdminDemoBanner />
       <AdminTitle
         title="Notices"
@@ -160,7 +159,6 @@ export default function AdminNotices({ initial }: { initial: Notice[] }) {
             </ul>
           </CardContent>
         </Card>
-      </div>
       </div>
     </AdminChrome>
   );

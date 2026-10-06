@@ -35,7 +35,6 @@ export default function AdminResults() {
 
   return (
     <AdminChrome>
-      <div className="p-4 sm:p-6 lg:p-8">
       <AdminDemoBanner />
       <AdminTitle
         title="Results publishing"
@@ -126,7 +125,6 @@ export default function AdminResults() {
             </CardContent>
           </Card>
         </div>
-      </div>
       </div>
     </AdminChrome>
   );

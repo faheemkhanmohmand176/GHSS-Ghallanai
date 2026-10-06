@@ -154,9 +154,9 @@ export const ADMISSION_DATES = [
 
 export const ADMISSION_STEPS = [
   { step: 1, title: "Check Eligibility", body: "See the requirements per programme — matric subjects and minimum marks — before you prepare documents.", href: "/admissions/eligibility" },
-  { step: 2, title: "Read the Rules", body: "Read the admission policy modeled on HED KPK — quotas, age limits, merit calculation, documents required.", href: "/admissions/rules" },
-  { step: 3, title: "Apply Online (4 steps)", body: "Create account → verify board → personal info → choose programme & quota. Submit and get your tracking token.", href: "/admissions/apply" },
-  { step: 4, title: "Track Application", body: "Enter your tracking token to follow your status in real time — received → fee paid → review → shortlisted → admitted.", href: "/admissions/track" },
+  { step: 2, title: "Prepare Documents", body: "Photograph, B-form, matric result card, domicile — the full checklist is on the admissions page.", href: "/admissions#documents" },
+  { step: 3, title: "Apply Online", body: "Complete the five-step application on this website. Your progress is saved as you go.", href: "/admissions/apply" },
+  { step: 4, title: "Track Status", body: "Your application number lets you follow the process: received, reviewed, shortlisted, merit list.", href: "/admissions#tracking" },
 ] as const;
 
 /** Fee structure — SAMPLE values, verify with the office (Master Plan §6.4, PGC pattern) */

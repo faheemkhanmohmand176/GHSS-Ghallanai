@@ -13,25 +13,23 @@ bun install        # or: npm install
 bun run dev        # or: npm run dev
 ```
 
-Open http://localhost:3000. The site runs in **DEMO MODE** — real pages, real interactions, SAMPLE data. Everything works out of the box: apply form, result lookup, report card, exam roll numbers, notices, portals, admin dashboard.
+Open http://localhost:3000. The site runs in **DEMO MODE** — real pages, real interactions, SAMPLE data. Everything works out of the box: apply form, result lookup, notices, portals.
 
-**Try it:** open `/login` → click *Admin dashboard* → explore all 12 admin tabs (Overview, Students, Teachers, Admissions, Results, Attendance, Fees, Merit List, Timetable, Exam Roll Numbers, Announcements, Users). Open `/results/roll-numbers` → search `Muhammad Hamza Khan` in 1st Year. Open `/results/report-card` → roll `100000` or code `GHSS-2026-001`.
+**Try it:** open `/login` → click *Admin dashboard* → publish a notice → check the home ticker. Open `/results/lookup` → roll number `GH-12-101` → year 2026 → Pre-Medical.
 
 ## Go LIVE with Supabase (the safe path)
 
 1. **Create a free project** at [supabase.com](https://supabase.com) (free tier: 500MB DB, 50K monthly active users — far beyond a school's scale).
 2. Open **SQL Editor** and run, in order:
-   - `supabase/migrations/0001_schema.sql` — 21 tables, enums, triggers, audit machinery
-   - `supabase/migrations/0002_rls.sql` — **row-level security on every table** + storage policies
-   - `supabase/migrations/0003_admin_extension.sql` — admin extension tables (fees, exam rolls, timetables, merit publications, achievements, attendance stats, notifications, exam seating)
-   - `supabase/migrations/0004_admin_rls.sql` — RLS policies for the admin extension tables
-   - `supabase/seed/seed.sql` — notices, news, faculty, FAQs, results, merit list
+   - `supabase/migrations/0001_schema.sql` — 20 tables, enums, triggers, audit machinery. **Idempotent** — safe to re-run.
+   - `supabase/migrations/0002_rls.sql` — **row-level security on every table** + storage policies. **Idempotent** — uses `drop policy if exists` before every create, so safe to re-run.
+   - `supabase/seed/seed.sql` — notices, news, faculty, FAQs, results, merit list. **Idempotent** — uses deterministic UUIDs and `on conflict do nothing`, so safe to re-run.
+
+   > All three SQL files are safe to run repeatedly — no "already exists" errors.
 3. Copy `.env.example` → `.env.local` and fill:
    ```
    NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-   SUPABASE_SERVICE_ROLE_KEY=eyJ...   # optional, server-side only
-   NEXT_PUBLIC_SITE_URL=https://yourdomain
    ```
    The site automatically switches from demo content to live database content.
 4. Create the first admin: in Supabase → Authentication → Add user (email + password), then in SQL Editor:
@@ -40,9 +38,9 @@ Open http://localhost:3000. The site runs in **DEMO MODE** — real pages, real 
      select id from auth.users where email = 'your@email.com'
    );
    ```
-5. Sign in at `/login` — you now have the live admin dashboard with role-based access control.
+5. Sign in at `/login` — you now have the live admin dashboard.
 
-**The service-role key** is used only in trusted route handlers (admissions/apply, feedback) where RLS would otherwise block anonymous INSERTs. All admin reads/writes go through the SSR client with the user's session — RLS enforces role checks at the database layer.
+**The service-role key is optional** and only needed if you want the API routes to write with elevated rights; by default they use the anon key + RLS policies exactly as designed (§11.3 defence in depth).
 
 ## Deploy to Vercel (free)
 
@@ -64,13 +62,13 @@ npm run build        # verify locally first
 | Home | `/` | Hero, notice ticker, odometer stats, programmes, voices, CTA (ISR 60s) |
 | About | `/about`, `/about/principal`, `/about/faculty` | Timeline, vision/mission, Urdu message, printable directory |
 | Academics | `/academics` + 4 microsites | ICS, Pre-Medical, Pre-Engineering, Arts — subjects, eligibility, careers |
-| Admissions | `/admissions/*` | Journey, dates, eligibility, fees, 20-question FAQ, **5-step apply form** with draft autosave |
-| Results | `/results/*` | **Roll-number lookup**, **report card** (by code or roll), **exam roll numbers**, merit lists, toppers wall, 5-year trend |
+| Admissions | `/admissions/*` | Journey, dates, eligibility, fees, 21-question FAQ, **6-step apply form** (1st & 2nd year) with draft autosave · mirrors HED KPK OCAS structure |
+| Results | `/results/*` | **Roll-number lookup**, merit lists, toppers wall, 5-year trend |
 | Notices | `/notices` | Lean notice board (replaces Campus Life fluff) |
 | Urdu | `/ur/*` | 5 key pages in Nastaliq (RTL) |
 | Student portal | `/portal/student` | Timetable, assignments, attendance, results, library |
 | Teacher portal | `/portal/teacher` | One-tap attendance, assignment creation, gradebook + CSV |
-| Admin | `/admin` | **12 premium tabs**: Overview, Settings, Students, Teachers, Admissions, Results, Attendance, Timetable, Exam Roll Numbers, Merit List, Fees, Announcements, Users |
+| Admin | `/admin` | Notices, admissions queue, results pipeline, users & roles |
 | PWA | manifest + `/sw.js` + `/offline` | Installable, offline shell, stale-while-revalidate, push-ready |
 
 ### Performance (built for Mohmand's networks)
@@ -84,13 +82,9 @@ npm run build        # verify locally first
 ### Security (§11.3)
 
 - **RLS on every table** — anonymous visitors read only *published* content; students only their own rows; teachers only their assigned classes; admins explicit and audit-logged.
-- **`@supabase/ssr` middleware** refreshes auth session cookies on every request and injects `x-path` for routing helpers.
-- **Real admin guard** (`src/lib/auth.ts`): `requireAdmin()` throws to `/login` for unauthenticated or non-admin visitors.
-- **Role-based post-login redirect**: admin → `/admin`, teacher → `/portal/teacher`, student → `/portal/student`.
-- Zod validation + per-IP rate limiting on public endpoints (`/api/admissions/apply`, `/api/results/lookup`, `/api/feedback`).
-- Bot blocking in middleware (sqlmap, nikto, etc.).
+- Zod validation + per-IP rate limiting on all three public endpoints (`/api/admissions/apply`, `/api/results/lookup`, `/api/feedback`).
 - Security headers (CSP, frame-ancestors, nosniff, referrer policy) in `next.config.ts`.
-- Immutable `audit_log` written by trigger on administrative mutations across 19 tables.
+- Immutable `audit_log` written by trigger on administrative mutations.
 - Guardian media-consent flag honoured by design (`students.media_consent`).
 
 ## Replace the SAMPLE content
@@ -105,34 +99,25 @@ Everything marked **SAMPLE** (stats, faculty, timeline, toppers, demo results, W
 ```
 src/
   app/
-    (public)/          # marketing site — 22 routes + /ur + /offline
+    (public)/          # marketing site — 20 routes + /ur + /offline
     portal/            # student & teacher workspaces (guarded)
-    admin/             # SaaS control room — 12 premium tabs (guarded)
+    admin/             # SaaS control room (guarded)
     login/             # Supabase auth + demo entry
-    api/               # rate-limited public endpoints
+    api/               # 3 rate-limited public endpoints
     manifest.ts sitemap.ts robots.ts
-    middleware.ts       # session refresh + bot blocking
   components/site/     # design-system components (header, hero, forms…)
   components/ui/       # shadcn/ui primitives (Green & Gold tokens)
-  components/admin/    # premium admin shell + StatCard + charts + tabs
   content/             # all editorial content + demo data
   fonts/               # self-hosted variable fonts
-  lib/
-    supabase.ts        # SSR-aware browser + server + service clients
-    auth.ts            # requireAdmin / requireUser / getSessionUser
-    data.ts            # server-side read layer (Supabase → demo fallback)
+  lib/                 # data layer, supabase clients, theme, fonts
 supabase/
-  migrations/
-    0001_schema.sql            # 21 core tables + audit + triggers
-    0002_rls.sql                # RLS on every core table
-    0003_admin_extension.sql   # 14 new tables for the premium admin dashboard
-    0004_admin_rls.sql          # RLS for every admin extension table
+  migrations/          # 0001_schema.sql · 0002_rls.sql
   seed/seed.sql
 ```
 
 ## Tech stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui · `@supabase/ssr` · Supabase (Postgres + Auth + Storage + RLS) · hand-rolled service worker · pure SVG charts (zero chart dependencies) · zero paid dependencies at launch scale.
+Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · shadcn/ui · Supabase (Postgres + Auth + Storage + RLS) · hand-rolled service worker · zero paid dependencies at launch scale.
 
 ---
 

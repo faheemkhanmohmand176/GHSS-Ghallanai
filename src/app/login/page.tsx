@@ -62,14 +62,8 @@ export default function LoginPage() {
       const sb = getSupabaseBrowser();
       const { error: authError } = await sb.auth.signInWithPassword({ email, password });
       if (authError) throw new Error(authError.message);
-      // After sign-in, fetch the profile to route by role
-      const { data: profileData } = await sb
-        .from("profiles")
-        .select("role")
-        .single();
-      const role = (profileData?.role as string) ?? "student";
-      const dest = role === "admin" ? "/admin" : role === "teacher" ? "/portal/teacher" : "/portal/student";
-      router.push(dest);
+      // Role routing happens in /portal after profile load
+      router.push("/portal/student");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed.");
     } finally {

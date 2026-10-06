@@ -11,17 +11,26 @@ import { WhatsAppIcon } from "@/components/site/whatsapp";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Admissions — How to Apply",
+  title: "Admissions — How to Apply (1st & 2nd Year)",
   description:
-    "The four-step admission journey at GHSS Ghallanai: check eligibility, prepare documents, apply online, track status. Key dates for the 2026-27 session included.",
+    "Apply for admission to GHSS Ghallanai — both 1st-year (Part-I after matric) and 2nd-year (Part-II transfer) applications are accepted. The four-step journey: check eligibility, prepare documents, apply online, track status. Key dates for the 2026-27 session included. Form structure mirrors the HED KPK OCAS portal.",
 };
 
-const DOCUMENTS = [
+const DOCUMENTS_FIRST_YEAR = [
   { doc: "Two passport-size photographs", note: "Recent, plain background" },
-  { doc: "B-form (CRC) photocopy", note: "Or CNIC if 18+ at the time of applying" },
-  { doc: "Matric result card / DMC", note: "Or the school's provisional result certificate if the board card is pending" },
-  { doc: "Domicile photocopy", note: "Mohmand District preferred; not a barrier for other districts" },
+  { doc: "B-form (CRC) / own CNIC photocopy", note: "CNIC required if 18+ at the time of applying" },
+  { doc: "Father / guardian CNIC photocopy", note: "Required by HED admission policy" },
+  { doc: "Matric result card / DMC", note: "Attested photocopy; provisional certificate accepted if board card is pending" },
+  { doc: "Domicile certificate (own / father)", note: "Per HED KPK admission policy" },
+  { doc: "Character certificate", note: "From the institution last attended; or signed by a gazetted officer if private candidate" },
   { doc: "Concession / scholarship proof", note: "Only if applying for a merit or need-based concession" },
+];
+
+const DOCUMENTS_SECOND_YEAR = [
+  ...DOCUMENTS_FIRST_YEAR,
+  { doc: "1st-year (Part-I) detail mark certificate (DMC)", note: "From the issuing board" },
+  { doc: "Board registration certificate (1st year)", note: "Proves board registration is active" },
+  { doc: "Migration affidavit on Rs.50 stamp paper", note: "Undertaking to obtain NOC/migration certificate from the previous college before enrolment" },
 ];
 
 export default function AdmissionsPage() {
@@ -29,8 +38,8 @@ export default function AdmissionsPage() {
     <>
       <PageHeader
         kicker={`Admissions ${SITE.session}`}
-        title={<>Four steps from <span className="text-gold">matric</span> to first year</>}
-        lead="The admission journey is engineered around the parent's decision sequence — understand, prepare, apply, track. Applications for the coming session are open now."
+        title={<>Four steps from <span className="text-gold">matric</span> to first / second year</>}
+        lead="The admission journey is engineered around the parent's decision sequence — understand, prepare, apply, track. Applications for both 1st-year (Part-I after matric) and 2nd-year (Part-II transfer) admission in ICS, Pre-Medical, Pre-Engineering and Arts are open now. The form mirrors the HED KPK Online College Admission System (OCAS) so applicants see familiar fields."
         breadcrumbs={[{ name: "Admissions", href: "/admissions" }]}
       />
 
@@ -105,13 +114,28 @@ export default function AdmissionsPage() {
             <SectionHeading
               kicker="Documents"
               title="What to have ready before you apply"
-              lead="Gather these before starting the online form — the upload step asks for the first four. Families preferring paper can collect the same form from the school office."
+              lead="Gather these before starting the online form — the upload step asks for all required documents. The list mirrors the HED KPK admission policy. 2nd-year (Part-II) applicants must additionally attach their 1st-year records and migration affidavit. Families preferring paper can collect the same form from the school office."
             />
-            <ul id="documents" className="space-y-3">
-              {DOCUMENTS.map((d, i) => (
+            <h3 className="mb-3 mt-2 text-small font-bold uppercase tracking-wide text-muted-foreground">1st year (Part-I) applicants</h3>
+            <ul id="documents-1" className="space-y-3">
+              {DOCUMENTS_FIRST_YEAR.map((d, i) => (
                 <Reveal as="li" key={d.doc} delay={i * 60}>
                   <div className="flex gap-3 rounded-xl border border-border bg-card p-4">
                     <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+                    <div>
+                      <p className="text-small font-bold">{d.doc}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{d.note}</p>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </ul>
+            <h3 className="mb-3 mt-6 text-small font-bold uppercase tracking-wide text-muted-foreground">2nd year (Part-II transfer applicants) — additional documents</h3>
+            <ul id="documents-2" className="space-y-3">
+              {DOCUMENTS_SECOND_YEAR.slice(DOCUMENTS_FIRST_YEAR.length).map((d, i) => (
+                <Reveal as="li" key={d.doc} delay={i * 60}>
+                  <div className="flex gap-3 rounded-xl border border-gold/40 bg-gold-soft/20 p-4 dark:bg-gold-soft/10">
+                    <FileText className="mt-0.5 h-5 w-5 shrink-0 text-gold-strong dark:text-gold" aria-hidden />
                     <div>
                       <p className="text-small font-bold">{d.doc}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">{d.note}</p>

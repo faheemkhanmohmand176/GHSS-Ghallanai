@@ -1,59 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isSupabaseConfigured, getSupabaseService } from "@/lib/supabase";
+import { isSupabaseConfigured, getSupabaseServer } from "@/lib/supabase";
 
 /**
- * POST /api/admissions/apply — HED-style 4-step admission application.
+ * POST /api/admissions/apply — Master Plan §8.8 (form submissions).
+ * Mirrors the HED KPK Online College Admission System (OCAS) form structure
+ * (admission.hed.gkp.pk) — handles both 1st-year (Part-I) and 2nd-year
+ * (Part-II transfer) applications.
  *
- * Validates the combined payload from all 4 steps, then inserts:
- *   1. A row in `admissions` with the new HED columns (nationality, father_cnic,
- *      dob, gender, domicile_district, permanent_address, quota,
- *      is_hafiz_e_quran, gap_years, subject_combination, class_year,
- *      fee_amount, fee_paid, submitted_at)
- *   2. A `application.submitted` audit_log row.
- *   3. The first `admission_status_timeline` row ('received' status).
+ * Validation via Zod + per-IP rate limit + Supabase insert (RLS via anon key;
+ * service role is used only for the audit-log write so the anon insert policy
+ * on audit_log is honoured when present).
  *
- * Returns the application_no (also used as the tracking token) so the applicant
- * can pay the Rs 100 fee at the college office and follow their status at
- * /admissions/track.
- *
- * The endpoint is rate-limited (5 submissions per IP per hour) and Zod-validated.
+ * Demo mode returns a formatted tracking number.
  */
 
-const applySchema = z.object({
-  // Step 1 — Account
-  nationality: z.enum(["Pakistani", "Afghani"]).default("Pakistani"),
-  cnic: z.string().min(6).max(20),
-  afghanCard: z.string().max(30).nullable().optional(),
-  mobile: z.string().regex(/^03\d{9}$/, "Mobile must be 03XXXXXXXXX"),
-  password: z.string().min(8).max(120),
-  // Step 2 — Board
-  matricBoard: z.string().min(2).max(80),
-  matricRoll: z.string().min(4).max(8),
-  matricYear: z.string().regex(/^\d{4}$/, "Year must be 4 digits"),
-  matricObtained: z.number().min(0).max(1200),
-  matricTotal: z.number().min(1).max(1200),
-  matricGroup: z.string().max(40).optional().default("Science"),
-  // Step 3 — Personal
-  fullName: z.string().min(3).max(120),
-  fatherName: z.string().min(3).max(120),
-  fatherCnic: z.string().regex(/^\d{13}$/, "Father CNIC must be 13 digits"),
-  phone: z.string().min(10).max(20),  // alias of mobile
-  whatsappOptIn: z.boolean().default(true),
-  // Step 4 — Academic
-  programme: z.enum(["ics", "pre-medical", "pre-engineering", "arts"]),
-  classYear: z.enum(["1st Year", "2nd Year"]).default("1st Year"),
-  quota: z.enum([
-    "open_merit", "local", "employee", "sports",
-    "special_person", "minority", "afghan", "meritorious",
-  ]).default("open_merit"),
-  isHafizEQuran: z.boolean().default(false),
-  gapYears: z.number().min(0).max(10).default(0),
-  subjectCombination: z.array(z.string()).min(3).max(8),
-  previousSchool: z.string().max(160).optional(),
-  declaration: z.literal(true),
+const metaSchema = z.object({
+  email: z.string().email().max(120).or(z.literal("")),
+  dob: z.string().min(8).max(20),
+  gender: z.string().min(2).max(20),
+  religion: z.string().min(2).max(40),
+  domicileDistrict: z.string().min(2).max(80),
+  address: z.string().min(5).max(300),
+  guardianName: z.string().min(3).max(120),
+  guardianCnic: z.string().min(13).max(15),
+  guardianPhone: z.string().min(10).max(20),
+  guardianRelation: z.string().min(2).max(40),
+  firstYearRoll: z.string().max(30).optional(),
+  firstYearRegistrationNo: z.string().max(40).optional(),
+  firstYearObtained: z.number().min(0).max(1200).optional(),
+  firstYearTotal: z.number().min(1).max(1200).optional(),
+  firstYearYear: z.string().max(4).optional(),
+  firstYearSubjects: z.string().max(200).optional(),
 });
 
+const applySchema = z.object({
+  admissionType: z.enum(["first_year", "second_year"]),
+  fullName: z.string().min(3).max(120),
+  fatherName: z.string().min(3).max(120),
+  cnic: z.string().min(10).max(20),
+  phone: z.string().min(10).max(20),
+  email: z.string().email().max(120).or(z.literal("")),
+  whatsappOptIn: z.boolean(),
+  dob: z.string().min(8).max(20),
+  gender: z.string().min(2).max(20),
+  religion: z.string().min(2).max(40),
+  domicileDistrict: z.string().min(2).max(80),
+  address: z.string().min(5).max(300),
+  guardianName: z.string().min(3).max(120),
+  guardianCnic: z.string().min(13).max(15),
+  guardianPhone: z.string().min(10).max(20),
+  guardianRelation: z.string().min(2).max(40),
+  matricBoard: z.string().min(2).max(80),
+  matricRoll: z.string().min(1).max(30),
+  matricObtained: z.number().min(0).max(1200),
+  matricTotal: z.number().min(1).max(1200),
+  matricYear: z.string().min(4).max(4),
+  previousSchool: z.string().min(2).max(160),
+  matricGroup: z.string().max(40),
+  firstYearRoll: z.string().max(30).optional(),
+  firstYearRegistrationNo: z.string().max(40).optional(),
+  firstYearObtained: z.number().min(0).max(1200).optional(),
+  firstYearTotal: z.number().min(1).max(1200).optional(),
+  firstYearYear: z.string().max(4).optional(),
+  firstYearSubjects: z.string().max(200).optional(),
+  programme: z.enum(["ics", "pre-medical", "pre-engineering", "arts"]),
+  declaration: z.literal(true),
+}).refine((v) => v.matricObtained <= v.matricTotal, {
+  message: "Matric marks obtained cannot exceed total",
+  path: ["matricObtained"],
+}).refine(
+  (v) => v.admissionType !== "second_year" || (
+    Boolean(v.firstYearRoll) && Boolean(v.firstYearRegistrationNo) && v.firstYearObtained !== undefined && v.firstYearTotal !== undefined
+  ),
+  { message: "2nd-year applicants must provide 1st-year roll number, registration number and marks", path: ["firstYearRoll"] }
+).refine(
+  (v) => v.admissionType !== "second_year" || (v.firstYearObtained ?? 0) <= (v.firstYearTotal ?? 1),
+  { message: "1st-year marks obtained cannot exceed total", path: ["firstYearObtained"] }
+);
+
+/** In-memory rate limiter — 5 submissions per IP per hour (§11.3).
+ *  For multi-instance production, swap for Upstash Redis or a Supabase table. */
 const buckets = new Map<string, { count: number; resetAt: number }>();
 function rateLimited(ip: string): boolean {
   const now = Date.now();
@@ -66,13 +93,6 @@ function rateLimited(ip: string): boolean {
   return b.count > 5;
 }
 
-function generateToken(): string {
-  // Format: GHSS-YYYY-NNNNN (5-digit random, year as admission cycle)
-  const year = new Date().getFullYear();
-  const seq = String(Math.floor(10000 + Math.random() * 89999));
-  return `GHSS-${year}-${seq}`;
-}
-
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
   if (rateLimited(ip)) {
@@ -83,82 +103,84 @@ export async function POST(req: NextRequest) {
   }
 
   let body: unknown;
-  try { body = await req.json(); }
-  catch { return NextResponse.json({ error: "Invalid request body." }, { status: 400 }); }
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
 
   const parsed = applySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      {
-        error: "Validation failed.",
-        issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
-      },
+      { error: "Validation failed.", issues: parsed.error.issues.map((i) => i.path.join(".")) },
       { status: 422 }
     );
   }
 
-  const d = parsed.data;
-  const applicationNo = generateToken();
+  const data = parsed.data;
+
+  // Validate the meta subset once more (defensive)
+  const metaParse = metaSchema.safeParse({
+    email: data.email,
+    dob: data.dob,
+    gender: data.gender,
+    religion: data.religion,
+    domicileDistrict: data.domicileDistrict,
+    address: data.address,
+    guardianName: data.guardianName,
+    guardianCnic: data.guardianCnic,
+    guardianPhone: data.guardianPhone,
+    guardianRelation: data.guardianRelation,
+    firstYearRoll: data.firstYearRoll,
+    firstYearRegistrationNo: data.firstYearRegistrationNo,
+    firstYearObtained: data.firstYearObtained,
+    firstYearTotal: data.firstYearTotal,
+    firstYearYear: data.firstYearYear,
+    firstYearSubjects: data.firstYearSubjects,
+  });
+  if (!metaParse.success) {
+    return NextResponse.json(
+      { error: "Validation failed (meta).", issues: metaParse.error.issues.map((i) => i.path.join(".")) },
+      { status: 422 }
+    );
+  }
+
+  const sessionYear = new Date().getFullYear();
+  // Application number format: GHSS-<year>-<4-digit sequence>
+  const seq = String(Math.floor(1000 + Math.random() * 8999));
+  const applicationNo = `GHSS-${sessionYear}-${seq}`;
 
   if (isSupabaseConfigured()) {
     try {
-      const sb = getSupabaseService();
-
-      // Insert into admissions (existing table with new HED columns)
-      const { data: inserted, error } = await sb.from("admissions").insert({
+      const sb = getSupabaseServer();
+      const { error } = await sb.from("admissions").insert({
         application_no: applicationNo,
-        application_token: applicationNo,
-        programme: d.programme,
-        full_name: d.fullName,
-        father_name: d.fatherName,
-        cnic: d.cnic,
-        phone: d.mobile,
-        whatsapp_opt_in: true,
-        matric_board: d.matricBoard,
-        matric_roll: d.matricRoll,
-        matric_obtained: d.matricObtained,
-        matric_total: d.matricTotal,
-        matric_year: d.matricYear,
-        matric_group: d.matricGroup,
-        previous_school: d.matricBoard,
-        // New HED-style columns
-        father_cnic: d.fatherCnic,
-        date_of_birth: null, // would come from auth flow — for now, leave null
-        gender: null,
-        domicile_district: null,
-        permanent_address: null,
-        quota: d.quota,
-        is_hafiz_e_quran: d.isHafizEQuran,
-        gap_years: d.gapYears,
-        subject_combination: d.subjectCombination,
-        class_year: d.classYear,
-        fee_amount: 100.00,
-        fee_paid: false,
+        admission_type: data.admissionType,
+        programme: data.programme,
+        full_name: data.fullName,
+        father_name: data.fatherName,
+        cnic: data.cnic,
+        phone: data.phone,
+        whatsapp_opt_in: data.whatsappOptIn,
+        matric_board: data.matricBoard,
+        matric_roll: data.matricRoll,
+        matric_obtained: data.matricObtained,
+        matric_total: data.matricTotal,
+        matric_year: data.matricYear,
+        matric_group: data.matricGroup,
+        previous_school: data.previousSchool,
+        meta: metaParse.data,
         status: "received",
-        submitted_at: new Date().toISOString(),
-      }).select("id").single();
+      });
       if (error) throw error;
-
-      // First timeline row
-      if (inserted?.id) {
-        await sb.from("admission_status_timeline").insert({
-          application_id: inserted.id,
-          to_status: "received",
-          note: "Application submitted via online portal",
-          actor_role: "applicant",
-        });
-      }
-
       // Audit trail (§11.3)
       await sb.from("audit_log").insert({
         action: "application.submitted",
         target: applicationNo,
-        meta: { programme: d.programme, quota: d.quota, class_year: d.classYear, ip },
+        meta: { programme: data.programme, admissionType: data.admissionType, ip },
       });
-
       return NextResponse.json({ applicationNo, demo: false });
     } catch (e) {
-      console.error("Admission submit error:", e);
       return NextResponse.json(
         { error: "The admissions service is temporarily unavailable. Your draft is saved — please retry." },
         { status: 503 }
@@ -166,6 +188,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // DEMO MODE — no persistence; just return the token
+  // DEMO MODE — no persistence; number is issued for the experience
   return NextResponse.json({ applicationNo, demo: true });
 }

@@ -1,5 +1,4 @@
-import { isSupabaseConfigured } from "@/lib/supabase";
-import { getSupabaseServer } from "@/lib/supabase-server";
+import { isSupabaseConfigured, getSupabaseServer } from "@/lib/supabase";
 import { NOTICES, NEWS, type Notice, type NewsPost } from "@/content/news";
 import { FACULTY, type FacultyMember as AboutFaculty } from "@/content/about";
 import { BOARD_RESULTS, MERIT_LIST, type BoardResult, type MeritRow } from "@/content/results";
@@ -14,7 +13,7 @@ import { BOARD_RESULTS, MERIT_LIST, type BoardResult, type MeritRow } from "@/co
 export async function getNotices(limit?: number): Promise<Notice[]> {
   if (isSupabaseConfigured()) {
     try {
-      const sb = await getSupabaseServer();
+      const sb = getSupabaseServer();
       let q = sb
         .from("notices")
         .select("id, title, body, category, date, pinned")
@@ -36,7 +35,7 @@ export async function getNotices(limit?: number): Promise<Notice[]> {
 export async function getNews(limit?: number): Promise<NewsPost[]> {
   if (isSupabaseConfigured()) {
     try {
-      const sb = await getSupabaseServer();
+      const sb = getSupabaseServer();
       let q = sb.from("news_posts").select("*").order("date", { ascending: false });
       if (limit) q = q.limit(limit);
       const { data, error } = await q;
@@ -52,7 +51,7 @@ export async function getNews(limit?: number): Promise<NewsPost[]> {
 export async function getNewsBySlug(slug: string): Promise<NewsPost | null> {
   if (isSupabaseConfigured()) {
     try {
-      const sb = await getSupabaseServer();
+      const sb = getSupabaseServer();
       const { data } = await sb.from("news_posts").select("*").eq("slug", slug).single();
       if (data) return data as NewsPost;
     } catch {
@@ -65,7 +64,7 @@ export async function getNewsBySlug(slug: string): Promise<NewsPost | null> {
 export async function getFaculty(): Promise<AboutFaculty[]> {
   if (isSupabaseConfigured()) {
     try {
-      const sb = await getSupabaseServer();
+      const sb = getSupabaseServer();
       const { data, error } = await sb
         .from("faculty")
         .select("*")
@@ -85,7 +84,7 @@ export async function lookupResult(
 ): Promise<BoardResult | null> {
   if (isSupabaseConfigured()) {
     try {
-      const sb = await getSupabaseServer();
+      const sb = getSupabaseServer();
       const { data } = await sb
         .from("board_results")
         .select("*")
@@ -111,7 +110,7 @@ export async function lookupResult(
 export async function getMeritList(): Promise<MeritRow[]> {
   if (isSupabaseConfigured()) {
     try {
-      const sb = await getSupabaseServer();
+      const sb = getSupabaseServer();
       const { data, error } = await sb.from("merit_lists").select("*").order("merit_no");
       if (!error && data && data.length > 0) return data as MeritRow[];
     } catch {

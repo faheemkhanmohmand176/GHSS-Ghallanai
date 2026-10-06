@@ -48,7 +48,6 @@ export default function AdminAdmissions() {
 
   return (
     <AdminChrome>
-      <div className="p-4 sm:p-6 lg:p-8">
       <AdminDemoBanner />
       <AdminTitle
         title="Admissions review queue"
@@ -209,7 +208,6 @@ export default function AdminAdmissions() {
             </ol>
           </CardContent>
         </Card>
-      </div>
       </div>
     </AdminChrome>
   );

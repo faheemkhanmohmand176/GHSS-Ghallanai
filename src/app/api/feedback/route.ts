@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { isSupabaseConfigured, getSupabaseService } from "@/lib/supabase";
+import { isSupabaseConfigured, getSupabaseServer } from "@/lib/supabase";
 
 const schema = z.object({
   name: z.string().min(2).max(120),
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   if (isSupabaseConfigured()) {
     try {
-      const sb = getSupabaseService();
+      const sb = getSupabaseServer();
       const { error } = await sb.from("feedback").insert({
         reference,
         name: parsed.data.name,

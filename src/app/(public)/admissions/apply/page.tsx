@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/site/page-header";
-import { ApplyWizard } from "@/components/site/apply-wizard";
+import { ApplyForm } from "@/components/site/apply-form";
 
 export const metadata: Metadata = {
-  title: "Apply Online — HED-Style 4-Step Admission Portal",
+  title: "Apply Online — Six-Step Application (1st & 2nd Year)",
   description:
-    "Apply online for admission to GHSS Ghallanai (1st Year & 2nd Year). Four guided steps: Create Account → Board Verification → Personal Information → Academic & Programme. Each step saves automatically. Issues a tracking token on submission.",
+    "Apply online for admission to GHSS Ghallanai in six guided steps. Choose 1st-year (Part-I) or 2nd-year (Part-II transfer) admission. The form mirrors the HED KPK OCAS portal structure. Progress saves automatically — one bus ride of connectivity is enough. Issues an application tracking number on submission.",
 };
 
 export default function ApplyPage() {
@@ -13,15 +13,15 @@ export default function ApplyPage() {
     <>
       <PageHeader
         kicker="Admissions · Apply"
-        title={<>The four-step <span className="text-gold">admission portal</span></>}
-        lead="Modeled on the HED KPK online admission system. Create your account, verify your matric board details, complete your personal information, then choose your programme, quota and subjects — fifteen minutes end-to-end. Each step saves as you go, so an interrupted connection loses nothing."
+        title={<>The six-step <span className="text-gold">application</span></>}
+        lead="Fifteen minutes, on the phone in your hand. Choose 1st year (Part-I after matric) or 2nd year (Part-II transfer) and the form adjusts itself. Each step saves as you complete it, so an interrupted connection loses nothing. Need help? WhatsApp the school mid-form and someone will walk you through it."
         breadcrumbs={[
           { name: "Admissions", href: "/admissions" },
           { name: "Apply Online", href: "/admissions/apply" },
         ]}
       />
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:py-16">
-        <ApplyWizard />
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
+        <ApplyForm />
       </section>
     </>
   );

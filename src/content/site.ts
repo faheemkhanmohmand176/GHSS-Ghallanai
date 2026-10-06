@@ -56,12 +56,10 @@ export const NAV = [
     href: "/admissions",
     children: [
       { label: "How Admissions Work", href: "/admissions", desc: "The four-step journey and key dates" },
-      { label: "Admission Rules", href: "/admissions/rules", desc: "HED-style policy: quotas, age, merit, documents" },
       { label: "Eligibility", href: "/admissions/eligibility", desc: "Requirements per programme" },
       { label: "Fee Structure", href: "/admissions/fees", desc: "Fees, scholarships and concessions" },
-      { label: "Apply Online", href: "/admissions/apply", desc: "4-step HED-style online application" },
-      { label: "Track Application", href: "/admissions/track", desc: "Check your application status by token" },
       { label: "FAQ", href: "/admissions/faq", desc: "Twenty answered questions" },
+      { label: "Apply Online", href: "/admissions/apply", desc: "Five-step online application" },
     ],
   },
   {
@@ -69,8 +67,6 @@ export const NAV = [
     href: "/results",
     children: [
       { label: "Result Lookup", href: "/results/lookup", desc: "Subject-wise result by roll number" },
-      { label: "Report Card", href: "/results/report-card", desc: "Detailed report card by exam roll number or code" },
-      { label: "Exam Roll Numbers", href: "/results/roll-numbers", desc: "Find your exam roll number slip" },
       { label: "Merit Lists", href: "/results/merit-list", desc: "Published, versioned merit lists" },
       { label: "Toppers", href: "/results/toppers", desc: "Our position holders and their stories" },
     ],

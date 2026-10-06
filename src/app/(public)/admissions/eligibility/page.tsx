@@ -87,6 +87,36 @@ export default function EligibilityPage() {
           </Reveal>
         </div>
 
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <Reveal>
+            <div className="flex gap-3 rounded-xl border border-border bg-card p-5">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+              <div>
+                <h2 className="text-small font-bold">2nd-year (Part-II) transfer applicants</h2>
+                <p className="mt-1 text-small text-muted-foreground">
+                  In addition to the matric requirements above, a 2nd-year transfer applicant must
+                  submit the 1st-year DMC, the board registration certificate, and a migration
+                  affidavit. The online form collects these in the academic history step and the
+                  documents step automatically when 2nd year is selected.
+                </p>
+              </div>
+            </div>
+          </Reveal>
+          <Reveal delay={60}>
+            <div className="flex gap-3 rounded-xl border border-border bg-card p-5">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-gold-strong dark:text-gold" aria-hidden />
+              <div>
+                <h2 className="text-small font-bold">Stream continuity rule</h2>
+                <p className="mt-1 text-small text-muted-foreground">
+                  2nd-year applicants must continue in the same programme they studied in 1st
+                  year (e.g. an ICS 1st-year student cannot switch to Pre-Medical for 2nd year).
+                  The admissions committee will verify with the board before enrolment.
+                </p>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+
         <div className="mt-10 flex flex-col gap-2 sm:flex-row">
           <Button asChild className="h-11 rounded-full px-6 font-semibold">
             <Link href="/admissions/apply">Proceed to the Application</Link>

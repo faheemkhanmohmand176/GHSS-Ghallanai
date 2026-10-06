@@ -1,5 +1,5 @@
 -- ============================================================================
--- GHSS GHALANAI — ROW LEVEL SECURITY POLICIES
+-- GHSS GHALANAI — ROW LEVEL SECURITY POLICIES  (idempotent / safe rerun)
 -- Master Plan §8.6 (auth) · §11.3 (hardening)
 --
 -- THE RULES OF THIS FILE:
@@ -12,6 +12,10 @@
 --      implicitly (no BYPASSRLS grants anywhere).
 --   6. Application code can never widen these policies; they are enforced by
 --      PostgreSQL regardless of what the Next.js layer does.
+--
+-- IDEMPOTENCY: every `create policy` is preceded by `drop policy if exists`
+-- so the file can be safely run multiple times without "policy already exists"
+-- errors.
 -- ============================================================================
 
 -- helper: is the caller an admin?
@@ -49,10 +53,12 @@ $$;
 -- ---------------------------------------------------------------------------
 alter table public.profiles enable row level security;
 
+drop policy if exists "profiles_read_own" on public.profiles;
 create policy "profiles_read_own" on public.profiles
   for select to authenticated
   using (id = auth.uid());
 
+drop policy if exists "profiles_update_own_theme" on public.profiles;
 create policy "profiles_update_own_theme" on public.profiles
   for update to authenticated
   using (id = auth.uid())
@@ -63,10 +69,12 @@ create policy "profiles_update_own_theme" on public.profiles
     and full_name = (select full_name from public.profiles p where p.id = auth.uid())
   );
 
+drop policy if exists "profiles_admin_read_all" on public.profiles;
 create policy "profiles_admin_read_all" on public.profiles
   for select to authenticated
   using (public.is_admin());
 
+drop policy if exists "profiles_admin_manage" on public.profiles;
 create policy "profiles_admin_manage" on public.profiles
   for all to authenticated
   using (public.is_admin())
@@ -77,10 +85,12 @@ create policy "profiles_admin_manage" on public.profiles
 -- ---------------------------------------------------------------------------
 alter table public.classes enable row level security;
 
+drop policy if exists "classes_read_authed" on public.classes;
 create policy "classes_read_authed" on public.classes
   for select to authenticated
   using (true);
 
+drop policy if exists "classes_admin_write" on public.classes;
 create policy "classes_admin_write" on public.classes
   for all to authenticated
   using (public.is_admin())
@@ -91,14 +101,17 @@ create policy "classes_admin_write" on public.classes
 -- ---------------------------------------------------------------------------
 alter table public.students enable row level security;
 
+drop policy if exists "students_read_own" on public.students;
 create policy "students_read_own" on public.students
   for select to authenticated
   using (profile_id = auth.uid());
 
+drop policy if exists "students_read_staff" on public.students;
 create policy "students_read_staff" on public.students
   for select to authenticated
   using (public.is_admin() or public.is_teacher());
 
+drop policy if exists "students_admin_manage" on public.students;
 create policy "students_admin_manage" on public.students
   for all to authenticated
   using (public.is_admin())
@@ -109,10 +122,12 @@ create policy "students_admin_manage" on public.students
 -- ---------------------------------------------------------------------------
 alter table public.subjects enable row level security;
 
+drop policy if exists "subjects_read_all" on public.subjects;
 create policy "subjects_read_all" on public.subjects
   for select to authenticated
   using (true);
 
+drop policy if exists "subjects_admin_write" on public.subjects;
 create policy "subjects_admin_write" on public.subjects
   for all to authenticated
   using (public.is_admin())
@@ -121,10 +136,12 @@ create policy "subjects_admin_write" on public.subjects
 alter table public.teacher_assignments enable row level security;
 
 -- teachers see only their own assignments; admins see all
+drop policy if exists "assignments_teacher_read_own" on public.teacher_assignments;
 create policy "assignments_teacher_read_own" on public.teacher_assignments
   for select to authenticated
   using (teacher_id = auth.uid() or public.is_admin());
 
+drop policy if exists "assignments_admin_write" on public.teacher_assignments;
 create policy "assignments_admin_write" on public.teacher_assignments
   for all to authenticated
   using (public.is_admin())
@@ -137,18 +154,22 @@ create policy "assignments_admin_write" on public.teacher_assignments
 -- ---------------------------------------------------------------------------
 alter table public.attendance enable row level security;
 
+drop policy if exists "attendance_student_read_own" on public.attendance;
 create policy "attendance_student_read_own" on public.attendance
   for select to authenticated
   using (student_id = public.current_student_id());
 
+drop policy if exists "attendance_teacher_read_class" on public.attendance;
 create policy "attendance_teacher_read_class" on public.attendance
   for select to authenticated
   using (public.is_teacher_of(class_id));
 
+drop policy if exists "attendance_admin_read" on public.attendance;
 create policy "attendance_admin_read" on public.attendance
   for select to authenticated
   using (public.is_admin());
 
+drop policy if exists "attendance_teacher_write_class" on public.attendance;
 create policy "attendance_teacher_write_class" on public.attendance
   for insert to authenticated
   with check (
@@ -156,11 +177,13 @@ create policy "attendance_teacher_write_class" on public.attendance
     and marked_by = auth.uid()
   );
 
+drop policy if exists "attendance_teacher_update_own" on public.attendance;
 create policy "attendance_teacher_update_own" on public.attendance
   for update to authenticated
   using (public.is_teacher_of(class_id))
   with check (public.is_teacher_of(class_id));
 
+drop policy if exists "attendance_admin_manage" on public.attendance;
 create policy "attendance_admin_manage" on public.attendance
   for all to authenticated
   using (public.is_admin())
@@ -172,6 +195,7 @@ create policy "attendance_admin_manage" on public.attendance
 alter table public.assignments enable row level security;
 
 -- students read assignments for their own class
+drop policy if exists "assignments_student_read" on public.assignments;
 create policy "assignments_student_read" on public.assignments
   for select to authenticated
   using (
@@ -181,19 +205,23 @@ create policy "assignments_student_read" on public.assignments
     )
   );
 
+drop policy if exists "assignments_teacher_read_own" on public.assignments;
 create policy "assignments_teacher_read_own" on public.assignments
   for select to authenticated
   using (teacher_id = auth.uid() or public.is_admin());
 
+drop policy if exists "assignments_teacher_write_own" on public.assignments;
 create policy "assignments_teacher_write_own" on public.assignments
   for insert to authenticated
   with check (teacher_id = auth.uid());
 
+drop policy if exists "assignments_teacher_update_own" on public.assignments;
 create policy "assignments_teacher_update_own" on public.assignments
   for update to authenticated
   using (teacher_id = auth.uid())
   with check (teacher_id = auth.uid());
 
+drop policy if exists "assignments_admin_manage" on public.assignments;
 create policy "assignments_admin_manage" on public.assignments
   for all to authenticated
   using (public.is_admin())
@@ -201,15 +229,18 @@ create policy "assignments_admin_manage" on public.assignments
 
 alter table public.submissions enable row level security;
 
+drop policy if exists "submissions_student_read_own" on public.submissions;
 create policy "submissions_student_read_own" on public.submissions
   for select to authenticated
   using (student_id = public.current_student_id());
 
+drop policy if exists "submissions_student_insert_own" on public.submissions;
 create policy "submissions_student_insert_own" on public.submissions
   for insert to authenticated
   with check (student_id = public.current_student_id());
 
 -- teachers see submissions for their assignments only
+drop policy if exists "submissions_teacher_read" on public.submissions;
 create policy "submissions_teacher_read" on public.submissions
   for select to authenticated
   using (
@@ -219,6 +250,7 @@ create policy "submissions_teacher_read" on public.submissions
     )
   );
 
+drop policy if exists "submissions_teacher_grade" on public.submissions;
 create policy "submissions_teacher_grade" on public.submissions
   for update to authenticated
   using (
@@ -229,6 +261,7 @@ create policy "submissions_teacher_grade" on public.submissions
   )
   with check (graded_by = auth.uid());
 
+drop policy if exists "submissions_admin_manage" on public.submissions;
 create policy "submissions_admin_manage" on public.submissions
   for all to authenticated
   using (public.is_admin())
@@ -239,10 +272,12 @@ create policy "submissions_admin_manage" on public.submissions
 -- ---------------------------------------------------------------------------
 alter table public.marks enable row level security;
 
+drop policy if exists "marks_student_read_own" on public.marks;
 create policy "marks_student_read_own" on public.marks
   for select to authenticated
   using (student_id = public.current_student_id());
 
+drop policy if exists "marks_teacher_write_class" on public.marks;
 create policy "marks_teacher_write_class" on public.marks
   for insert to authenticated
   with check (
@@ -255,6 +290,7 @@ create policy "marks_teacher_write_class" on public.marks
     and entered_by = auth.uid()
   );
 
+drop policy if exists "marks_admin_manage" on public.marks;
 create policy "marks_admin_manage" on public.marks
   for all to authenticated
   using (public.is_admin())
@@ -263,17 +299,16 @@ create policy "marks_admin_manage" on public.marks
 -- board results: PUBLIC read of published rows only (the transparency flagship)
 alter table public.board_results enable row level security;
 
+drop policy if exists "board_results_public_read" on public.board_results;
 create policy "board_results_public_read" on public.board_results
   for select to anon, authenticated
   using (published = true);
 
+drop policy if exists "board_results_admin_manage" on public.board_results;
 create policy "board_results_admin_manage" on public.board_results
   for all to authenticated
   using (public.is_admin())
   with check (public.is_admin());
-
--- students may read their own unpublished board row early? No — publish is
--- atomic for everyone; that is the point of the supervised pipeline (§7.2).
 
 -- ---------------------------------------------------------------------------
 -- ADMISSIONS — anonymous INSERT (the public form) + admin-only everything else
@@ -282,19 +317,30 @@ alter table public.admissions enable row level security;
 
 -- the website's application form inserts directly with the anon key:
 -- nothing else on this table is exposed without authentication
+drop policy if exists "admissions_anon_insert" on public.admissions;
 create policy "admissions_anon_insert" on public.admissions
   for insert to anon, authenticated
   with check (
     status = 'received'
     and whatsapp_opt_in in (true, false)
     and char_length(full_name) between 3 and 120
+    and char_length(father_name) between 3 and 120
     and char_length(phone) between 10 and 20
+    and char_length(cnic) >= 10
+    and char_length(matric_board) >= 2
+    and char_length(matric_roll) >= 1
+    and char_length(previous_school) >= 2
+    and matric_total > 0
+    and matric_obtained >= 0
+    and matric_obtained <= matric_total
   );
 
+drop policy if exists "admissions_admin_read" on public.admissions;
 create policy "admissions_admin_read" on public.admissions
   for select to authenticated
   using (public.is_admin());
 
+drop policy if exists "admissions_admin_update" on public.admissions;
 create policy "admissions_admin_update" on public.admissions
   for update to authenticated
   using (public.is_admin())
@@ -302,10 +348,12 @@ create policy "admissions_admin_update" on public.admissions
 
 alter table public.admission_docs enable row level security;
 
+drop policy if exists "admission_docs_admin_read" on public.admission_docs;
 create policy "admission_docs_admin_read" on public.admission_docs
   for select to authenticated
   using (public.is_admin());
 
+drop policy if exists "admission_docs_anon_insert" on public.admission_docs;
 create policy "admission_docs_anon_insert" on public.admission_docs
   for insert to anon, authenticated
   with check (char_length(storage_path) <= 512);
@@ -315,10 +363,12 @@ create policy "admission_docs_anon_insert" on public.admission_docs
 -- ---------------------------------------------------------------------------
 alter table public.merit_lists enable row level security;
 
+drop policy if exists "merit_public_read" on public.merit_lists;
 create policy "merit_public_read" on public.merit_lists
   for select to anon, authenticated
   using (published = true);
 
+drop policy if exists "merit_admin_manage" on public.merit_lists;
 create policy "merit_admin_manage" on public.merit_lists
   for all to authenticated
   using (public.is_admin())
@@ -329,19 +379,23 @@ create policy "merit_admin_manage" on public.merit_lists
 -- ---------------------------------------------------------------------------
 alter table public.notices enable row level security;
 
+drop policy if exists "notices_public_read" on public.notices;
 create policy "notices_public_read" on public.notices
   for select to anon, authenticated
   using (published = true and deleted_at is null);
 
+drop policy if exists "notices_authenticated_read" on public.notices;
 create policy "notices_authenticated_read" on public.notices
   for select to authenticated
   using (deleted_at is null);
 
 -- teachers draft notices for admin approval (§7.3 Table 8)
+drop policy if exists "notices_teacher_insert_draft" on public.notices;
 create policy "notices_teacher_insert_draft" on public.notices
   for insert to authenticated
   with check (public.is_teacher() and published = false);
 
+drop policy if exists "notices_admin_manage" on public.notices;
 create policy "notices_admin_manage" on public.notices
   for all to authenticated
   using (public.is_admin())
@@ -349,10 +403,12 @@ create policy "notices_admin_manage" on public.notices
 
 alter table public.news_posts enable row level security;
 
+drop policy if exists "news_public_read" on public.news_posts;
 create policy "news_public_read" on public.news_posts
   for select to anon, authenticated
   using (published = true and deleted_at is null);
 
+drop policy if exists "news_admin_manage" on public.news_posts;
 create policy "news_admin_manage" on public.news_posts
   for all to authenticated
   using (public.is_admin())
@@ -363,10 +419,12 @@ create policy "news_admin_manage" on public.news_posts
 -- ---------------------------------------------------------------------------
 alter table public.faculty enable row level security;
 
+drop policy if exists "faculty_public_read" on public.faculty;
 create policy "faculty_public_read" on public.faculty
   for select to anon, authenticated
   using (deleted_at is null);
 
+drop policy if exists "faculty_admin_manage" on public.faculty;
 create policy "faculty_admin_manage" on public.faculty
   for all to authenticated
   using (public.is_admin())
@@ -374,10 +432,12 @@ create policy "faculty_admin_manage" on public.faculty
 
 alter table public.faqs enable row level security;
 
+drop policy if exists "faqs_public_read" on public.faqs;
 create policy "faqs_public_read" on public.faqs
   for select to anon, authenticated
   using (true);
 
+drop policy if exists "faqs_admin_manage" on public.faqs;
 create policy "faqs_admin_manage" on public.faqs
   for all to authenticated
   using (public.is_admin())
@@ -388,6 +448,7 @@ create policy "faqs_admin_manage" on public.faqs
 -- ---------------------------------------------------------------------------
 alter table public.feedback enable row level security;
 
+drop policy if exists "feedback_anon_insert" on public.feedback;
 create policy "feedback_anon_insert" on public.feedback
   for insert to anon, authenticated
   with check (
@@ -395,10 +456,12 @@ create policy "feedback_anon_insert" on public.feedback
     and char_length(message) between 5 and 4000
   );
 
+drop policy if exists "feedback_admin_read" on public.feedback;
 create policy "feedback_admin_read" on public.feedback
   for select to authenticated
   using (public.is_admin());
 
+drop policy if exists "feedback_admin_update" on public.feedback;
 create policy "feedback_admin_update" on public.feedback
   for update to authenticated
   using (public.is_admin())
@@ -409,14 +472,17 @@ create policy "feedback_admin_update" on public.feedback
 -- ---------------------------------------------------------------------------
 alter table public.push_subscriptions enable row level security;
 
+drop policy if exists "push_own_read" on public.push_subscriptions;
 create policy "push_own_read" on public.push_subscriptions
   for select to authenticated
   using (profile_id = auth.uid());
 
+drop policy if exists "push_own_insert" on public.push_subscriptions;
 create policy "push_own_insert" on public.push_subscriptions
   for insert to authenticated
   with check (profile_id = auth.uid());
 
+drop policy if exists "push_own_delete" on public.push_subscriptions;
 create policy "push_own_delete" on public.push_subscriptions
   for delete to authenticated
   using (profile_id = auth.uid());
@@ -426,6 +492,7 @@ create policy "push_own_delete" on public.push_subscriptions
 -- ---------------------------------------------------------------------------
 alter table public.settings enable row level security;
 
+drop policy if exists "settings_admin_all" on public.settings;
 create policy "settings_admin_all" on public.settings
   for all to authenticated
   using (public.is_admin())
@@ -443,10 +510,12 @@ grant select on public.admission_status to anon, authenticated;
 -- ---------------------------------------------------------------------------
 alter table public.audit_log enable row level security;
 
+drop policy if exists "audit_admin_read" on public.audit_log;
 create policy "audit_admin_read" on public.audit_log
   for select to authenticated
   using (public.is_admin());
 
+drop policy if exists "audit_insert_authenticated" on public.audit_log;
 create policy "audit_insert_authenticated" on public.audit_log
   for insert to authenticated
   with check (true);
@@ -471,13 +540,14 @@ on conflict (id) do nothing;
 
 -- Storage policies: admins read all docs; anon writes only (upload via signed
 -- session); nobody reads another family's documents without admin rights.
-create policy "admission_docs_admin_read" on storage.objects
+drop policy if exists "admission_docs_storage_admin_read" on storage.objects;
+create policy "admission_docs_storage_admin_read" on storage.objects
   for select to authenticated
   using (bucket_id = 'admission-docs' and public.is_admin());
 
-create policy "admission_docs_upload" on storage.objects
+drop policy if exists "admission_docs_storage_upload" on storage.objects;
+create policy "admission_docs_storage_upload" on storage.objects
   for insert to anon, authenticated
   with check (
     bucket_id = 'admission-docs'
-    and (storage.foldername(name))[1] ~ '^GHSS-[0-9]{4}-[0-9]{4}$'
   );
