@@ -59,7 +59,10 @@ export const NAV = [
       { label: "Eligibility", href: "/admissions/eligibility", desc: "Requirements per programme" },
       { label: "Fee Structure", href: "/admissions/fees", desc: "Fees, scholarships and concessions" },
       { label: "FAQ", href: "/admissions/faq", desc: "Twenty answered questions" },
-      { label: "Apply Online", href: "/admissions/apply", desc: "Five-step online application" },
+      { label: "Create Applicant Account", href: "/admissions/register", desc: "Register with CNIC/Form-B before applying" },
+      { label: "Applicant Login", href: "/admissions/login", desc: "Return to your saved application" },
+      { label: "Apply Online", href: "/admissions/apply", desc: "Six-step online application" },
+      { label: "Track Application", href: "/admissions/track", desc: "Search your application tracking ID" },
     ],
   },
   {

@@ -180,9 +180,12 @@ export default function AdmissionsPage() {
             </ol>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row">
               <Button asChild className="h-11 rounded-full font-semibold">
-                <Link href="/admissions/apply">
-                  Apply Online <ArrowRight className="ml-1 h-4 w-4" aria-hidden />
+                <Link href="/admissions/register">
+                  Register &amp; apply <ArrowRight className="ml-1 h-4 w-4" aria-hidden />
                 </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-11 rounded-full font-semibold">
+                <Link href="/admissions/track">Track application</Link>
               </Button>
               <a
                 href={WHATSAPP_LINK}

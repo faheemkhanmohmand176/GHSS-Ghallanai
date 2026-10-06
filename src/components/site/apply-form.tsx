@@ -343,6 +343,9 @@ export function ApplyForm() {
       if (!res.ok) throw new Error(result.error ?? "Submission failed");
       setReceipt({ applicationNo: result.applicationNo, demo: Boolean(result.demo) });
       try {
+        const existing = JSON.parse(localStorage.getItem("ghss-demo-applications") ?? "[]");
+        existing.push({ applicationNo: result.applicationNo, ...data, createdAt: new Date().toISOString() });
+        localStorage.setItem("ghss-demo-applications", JSON.stringify(existing.slice(-10)));
         localStorage.removeItem(DRAFT_KEY);
       } catch {
         /* ignore */
