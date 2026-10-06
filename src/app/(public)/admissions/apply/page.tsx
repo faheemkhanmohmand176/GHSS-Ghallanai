@@ -3,9 +3,9 @@ import { PageHeader } from "@/components/site/page-header";
 import { ApplyForm } from "@/components/site/apply-form";
 
 export const metadata: Metadata = {
-  title: "Apply Online — Six-Step Application (1st & 2nd Year)",
+  title: "Apply Online — Six-Step Application (1st & 2nd Year) · HED-aligned",
   description:
-    "Apply online for admission to GHSS Ghallanai in six guided steps. Choose 1st-year (Part-I) or 2nd-year (Part-II transfer) admission. The form mirrors the HED KPK OCAS portal structure. Progress saves automatically — one bus ride of connectivity is enough. Issues an application tracking number on submission.",
+    "Apply online for admission to GHSS Ghallanai in six guided steps. Choose 1st-year (Part-I) or 2nd-year (Part-II transfer) admission. The form mirrors the HED KPK OCAS portal structure (admission.hed.gkp.pk). Progress saves automatically — one bus ride of connectivity is enough. Issues an application tracking number on submission.",
 };
 
 export default function ApplyPage() {
@@ -14,7 +14,7 @@ export default function ApplyPage() {
       <PageHeader
         kicker="Admissions · Apply"
         title={<>The six-step <span className="text-gold">application</span></>}
-        lead="Fifteen minutes, on the phone in your hand. Choose 1st year (Part-I after matric) or 2nd year (Part-II transfer) and the form adjusts itself. Each step saves as you complete it, so an interrupted connection loses nothing. Need help? WhatsApp the school mid-form and someone will walk you through it."
+        lead="Fifteen minutes, on the phone in your hand. Choose 1st year (Part-I after matric) or 2nd year (Part-II transfer) and the form adjusts itself. The structure mirrors the HED KPK Online College Admission System (OCAS): admission type, matric academic record, personal details (with domicile cascade), programme selection, documents, and review with declaration. A pre-submit confirm dialog warns you that personal info locks after submission — exactly like HED."
         breadcrumbs={[
           { name: "Admissions", href: "/admissions" },
           { name: "Apply Online", href: "/admissions/apply" },

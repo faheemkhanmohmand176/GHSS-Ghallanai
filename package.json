@@ -27,6 +27,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.60.0",
     "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7",
     "zod": "^4.0.2"
   },
   "devDependencies": {
@@ -40,5 +41,5 @@
     "tw-animate-css": "^1.3.5",
     "typescript": "^5"
   },
-  "description": "Government Higher Secondary School Ghallanai \u2014 website, portals and PWA (Digital Campus Programme)"
+  "description": "Government Higher Secondary School Ghallanai — website, portals and PWA (Digital Campus Programme)"
 }

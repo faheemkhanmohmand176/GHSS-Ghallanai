@@ -4,6 +4,13 @@ The complete website + PWA for **Government Higher Secondary School Ghallanai**,
 
 **Scope note:** the Alumni Network and Campus Life (gallery/societies/events) modules were removed at the school's request. Everything else follows the plan.
 
+**October 2026 update:** The admission form (`/admissions/apply`) has been rewritten to **mirror the HED KPK Online College Admission System (OCAS)** at `admission.hed.gkp.pk`. The new six-step flow captures every field that the HED portal collects: admission type & shift, matric academic record (board verification style with study group, session, passing year, marks), HED-aligned personal details (DOB year/month/day cascade, blood group, mother's name & CNIC, full domicile cascade: province → district → tehsil → union council, photo upload, Hafiz-e-Quran flag), programme selection, document upload (per admission type), and a review step with declaration + information-lock acknowledgement (mirroring HED's "information cannot be changed after submit" warning). See `src/content/hed-data.ts` for the captured HED dropdown options and `supabase/migrations/0005_hed_aligned_fields.sql` for the new schema columns.
+
+**October 2026 update (round 2):** Added the **BISE board verification "FETCH DATA" feature** — exactly mirrors the HED OCAS behaviour where the applicant enters their matric roll number and the system auto-fills their marks, name, father's name, DOB, school name, and domicile from the BISE board record. This is implemented as:
+- New API route: `src/app/api/admissions/verify-board/route.ts` — proxies to HED's `fetch_board_exam_result.php` endpoint (captured live from admission.hed.gkp.pk on 2026-10-06) when `HED_PROXY_ENABLED=true`, otherwise returns realistic demo data.
+- Updated `apply-form.tsx` Step 1 (matric academic record) — adds a "FETCH DATA" button next to the roll number field that calls the verify-board endpoint and auto-fills the form.
+- See `docs/bise_api_findings.md` for the full reverse-engineering report (HED's PHP proxy endpoint spec, BISE Peshawar's public cloud.bisep.edu.pk endpoint, all 32+ board IDs captured, etc.).
+
 ---
 
 ## Quick start (2 minutes, no accounts needed)
@@ -22,9 +29,10 @@ Open http://localhost:3000. The site runs in **DEMO MODE** — real pages, real 
 1. **Create a free project** at [supabase.com](https://supabase.com) (free tier: 500MB DB, 50K monthly active users — far beyond a school's scale).
 2. Open **SQL Editor** and run, in order:
    - `supabase/migrations/0001_schema.sql` — 20 tables, enums, triggers, audit machinery. **Idempotent** — safe to re-run.
-   - `supabase/migrations/0002_rls.sql` — **row-level security on every table** + storage policies. **Idempotent** — uses `drop policy if exists` before every create, so safe to re-run.
+   - `supabase/migrations/0002_rls.sql` — **row-level security on every table** + storage policies. **Idempotent** — uses `drop policy if exists` before every create, so safe to re-run. (October 2026 rewrite: tightened `admissions_anon_insert` to validate programme/admission_type enums and 2nd-year meta; fixed over-permissive `audit_log` INSERT policy that let any authenticated user fabricate audit entries; tightened `admission_docs_anon_insert` to require valid path structure and doc_type enum; prefixed storage policy names with `ghss_` to avoid Supabase collisions; made `grant select on admission_status` idempotent via DO blocks.)
    - `supabase/migrations/0003_admission_tracking.sql` — applicant accounts and status history. **Idempotent**.
    - `supabase/migrations/0004_admission_completion.sql` — registration contact fields and document types used by the first-/second-year upload flow. **Idempotent**.
+   - `supabase/migrations/0005_hed_aligned_fields.sql` — **NEW**: HED-aligned columns on `admissions` and `admission_accounts` tables (DOB, gender, blood group, mother info, father CNIC/mobile, domicile tehsil + union council, hafiz_quran, shift, board_verification_data, etc.) plus the `admission_tracking_view` for the public tracking page. **Idempotent** — uses `add column if not exists`.
    - `supabase/seed/seed.sql` — notices, news, faculty, FAQs, results, merit list. **Idempotent** — uses deterministic UUIDs and `on conflict do nothing`, so safe to re-run.
 
    > All migration and seed SQL files are safe to run repeatedly — no "already exists" errors.

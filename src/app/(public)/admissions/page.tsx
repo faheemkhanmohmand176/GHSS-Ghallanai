@@ -11,9 +11,9 @@ import { WhatsAppIcon } from "@/components/site/whatsapp";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Admissions — How to Apply (1st & 2nd Year)",
+  title: "Admissions — How to Apply (1st & 2nd Year) · HED-aligned",
   description:
-    "Apply for admission to GHSS Ghallanai — both 1st-year (Part-I after matric) and 2nd-year (Part-II transfer) applications are accepted. The four-step journey: check eligibility, prepare documents, apply online, track status. Key dates for the 2026-27 session included. Form structure mirrors the HED KPK OCAS portal.",
+    "Apply for admission to GHSS Ghallanai — both 1st-year (Part-I after matric) and 2nd-year (Part-II transfer) applications are accepted. The six-step form mirrors the HED KPK Online College Admission System (OCAS) at admission.hed.gkp.pk: admission type, matric academic record (board verification style), personal details (with domicile cascade), programme selection, documents, and review with declaration. Tracking ID issued on submission.",
 };
 
 const DOCUMENTS_FIRST_YEAR = [
