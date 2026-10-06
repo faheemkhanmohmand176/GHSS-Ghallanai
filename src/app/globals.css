@@ -1,0 +1,355 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Dark variant bound to the data-theme attribute (Green & Gold system, §5.3) */
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+/* ============================================================
+   GHSS GHALANAI — GREEN & GOLD DESIGN SYSTEM
+   Per Master Plan §5 (Table 6): dual bright/dark themes via
+   data-theme attribute. Green = institutional, Gold = honour.
+   Neutrals are green-tinted, never pure grey.
+   ============================================================ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: var(--font-playfair), Georgia, "Times New Roman", serif;
+  --font-urdu: var(--font-nastaliq), "Noto Nastaliq Urdu", serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* Green & Gold custom tokens (Map to Tailwind utilities: bg-gold, text-gold…) */
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-strong: var(--gold-strong);
+  --color-primary-strong: var(--primary-strong);
+  --color-surface-raised: var(--surface-raised);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ---------- BRIGHT THEME (daylight / print) ---------- */
+:root,
+[data-theme="bright"] {
+  --radius: 0.625rem;
+  --background: #fafdf7;
+  --foreground: #1a2e22;
+  --card: #ffffff;
+  --card-foreground: #1a2e22;
+  --popover: #ffffff;
+  --popover-foreground: #1a2e22;
+  --primary: #14532d;
+  --primary-foreground: #fafdf7;
+  --secondary: #f0f7f1;
+  --secondary-foreground: #14532d;
+  --muted: #f0f7f1;
+  --muted-foreground: #5b6b5f;
+  --accent: #f0f7f1;
+  --accent-foreground: #14532d;
+  --destructive: #b91c1c;
+  --destructive-foreground: #fafdf7;
+  --border: #d7e5d9;
+  --input: #d7e5d9;
+  --ring: #b8860b;
+  --chart-1: #14532d;
+  --chart-2: #b8860b;
+  --chart-3: #2b8659;
+  --chart-4: #7fbf9b;
+  --chart-5: #d4a017;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1a2e22;
+  --sidebar-primary: #14532d;
+  --sidebar-primary-foreground: #fafdf7;
+  --sidebar-accent: #f0f7f1;
+  --sidebar-accent-foreground: #14532d;
+  --sidebar-border: #d7e5d9;
+  --sidebar-ring: #b8860b;
+  /* Green & Gold system tokens */
+  --gold: #b8860b;
+  --gold-strong: #8a6508;
+  --gold-soft: #f5e6c4;
+  --primary-strong: #0e3b20;
+  --surface-raised: #f0f7f1;
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+}
+
+/* ---------- DARK THEME (night / OLED battery) ---------- */
+[data-theme="dark"] {
+  --background: #0b1f14;
+  --foreground: #e8f5ec;
+  --card: #12291b;
+  --card-foreground: #e8f5ec;
+  --popover: #12291b;
+  --popover-foreground: #e8f5ec;
+  --primary: #4ade80;
+  --primary-foreground: #0b1f14;
+  --secondary: #1a3526;
+  --secondary-foreground: #4ade80;
+  --muted: #1a3526;
+  --muted-foreground: #93a89a;
+  --accent: #1a3526;
+  --accent-foreground: #e8f5ec;
+  --destructive: #f87171;
+  --destructive-foreground: #0b1f14;
+  --border: #24402e;
+  --input: #24402e;
+  --ring: #e9c46a;
+  --chart-1: #4ade80;
+  --chart-2: #e9c46a;
+  --chart-3: #22c55e;
+  --chart-4: #86efac;
+  --chart-5: #d4a017;
+  --sidebar: #12291b;
+  --sidebar-foreground: #e8f5ec;
+  --sidebar-primary: #4ade80;
+  --sidebar-primary-foreground: #0b1f14;
+  --sidebar-accent: #1a3526;
+  --sidebar-accent-foreground: #e8f5ec;
+  --sidebar-border: #24402e;
+  --sidebar-ring: #e9c46a;
+  --gold: #e9c46a;
+  --gold-strong: #f5d78a;
+  --gold-soft: #3a2f14;
+  --primary-strong: #22c55e;
+  --surface-raised: #1a3526;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--gold) 30%, transparent);
+  }
+  /* WCAG 2.2: visible gold focus ring, ≥2px, ≥3:1 contrast */
+  :focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+/* ============================================================
+   TYPE SCALE — Master Plan §5.4 (Table 7)
+   Playfair Display (display/H1) · Inter (UI/body) · Nastaliq (Urdu)
+   ============================================================ */
+@layer utilities {
+  .font-display { font-family: var(--font-playfair), Georgia, serif; }
+  .font-urdu { font-family: var(--font-nastaliq), "Noto Nastaliq Urdu", serif; }
+
+  .text-display {
+    font-family: var(--font-playfair), Georgia, serif;
+    font-weight: 900;
+    font-size: clamp(2.75rem, 6vw, 4.5rem);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+  }
+  .text-h1 {
+    font-family: var(--font-playfair), Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(2.125rem, 4.5vw, 3rem);
+    line-height: 1.15;
+  }
+  .text-h2 {
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.22;
+    letter-spacing: -0.01em;
+  }
+  .text-h3 {
+    font-weight: 600;
+    font-size: clamp(1.1875rem, 2.2vw, 1.5rem);
+    line-height: 1.3;
+  }
+  .text-lead {
+    font-size: clamp(1.0625rem, 1.6vw, 1.1875rem);
+    line-height: 1.65;
+  }
+  .text-small { font-size: 0.875rem; line-height: 1.5; }
+  .text-num {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    line-height: 1;
+  }
+  .kicker {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  /* Gold underline flourish for H1 */
+  .gold-underline {
+    position: relative;
+    display: inline-block;
+  }
+  .gold-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -0.35em;
+    width: 3.5rem;
+    height: 0.25rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--gold), color-mix(in srgb, var(--gold) 45%, transparent));
+  }
+  /* Urdu typography track (§5.4) */
+  .urdu { direction: rtl; text-align: right; }
+  .urdu-display {
+    font-family: var(--font-nastaliq), "Noto Nastaliq Urdu", serif;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3.4vw, 2.5rem);
+    line-height: 2;
+  }
+  .urdu-body {
+    font-family: var(--font-nastaliq), "Noto Nastaliq Urdu", serif;
+    font-size: 1.125rem;
+    line-height: 2.2;
+  }
+  .measure { max-width: 68ch; }
+}
+
+/* ============================================================
+   MOTION TOKENS — §5.6: durations 150/250/400ms,
+   easing cubic-bezier(0.22,1,0.36,1), reduced-motion collapse
+   ============================================================ */
+:root {
+  --dur-feedback: 150ms;
+  --dur-reveal: 250ms;
+  --dur-page: 400ms;
+  --ease-house: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity var(--dur-reveal) var(--ease-house),
+    transform var(--dur-reveal) var(--ease-house);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* Notice ticker marquee (pauses on hover, honors reduced motion) */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.ticker-track {
+  animation: ticker-scroll 30s linear infinite;
+}
+.ticker-track:hover,
+.ticker-track:focus-within {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; flex-wrap: wrap; }
+}
+
+/* Subtle hero sheen for the primary CTA (hero only) */
+@keyframes sheen {
+  0%, 92%, 100% { transform: translateX(-120%) skewX(-18deg); }
+  46%, 54% { transform: translateX(240%) skewX(-18deg); }
+}
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  animation: sheen 6s var(--ease-house) infinite;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { .sheen::after { display: none; } }
+
+/* Card lift on hover (§5.6) */
+.card-lift {
+  transition: transform var(--dur-feedback) var(--ease-house),
+    box-shadow var(--dur-feedback) var(--ease-house),
+    border-color var(--dur-feedback) var(--ease-house);
+}
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--primary) 24%, transparent);
+}
+.card-lift:focus-visible {
+  border-color: var(--gold);
+}
+
+/* Print stylesheet — faculty wall poster, result cards (§6.2/§6.5) */
+@media print {
+  header, footer, .no-print, nav.sheet-nav { display: none !important; }
+  body { background: #fff; color: #000; font-size: 12pt; }
+  .card, .print-card { box-shadow: none !important; border: 1px solid #999; }
+  a { color: #000; text-decoration: none; }
+}
+
+/* Custom scrollbar for long lists */
+.scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+.scroll-thin::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+
+/* Sticky footer discipline */
+.app-shell { min-height: 100svh; display: flex; flex-direction: column; }
+.app-main { flex: 1 1 auto; }
