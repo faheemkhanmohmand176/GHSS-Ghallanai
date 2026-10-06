@@ -23,9 +23,11 @@ Open http://localhost:3000. The site runs in **DEMO MODE** — real pages, real 
 2. Open **SQL Editor** and run, in order:
    - `supabase/migrations/0001_schema.sql` — 20 tables, enums, triggers, audit machinery. **Idempotent** — safe to re-run.
    - `supabase/migrations/0002_rls.sql` — **row-level security on every table** + storage policies. **Idempotent** — uses `drop policy if exists` before every create, so safe to re-run.
+   - `supabase/migrations/0003_admission_tracking.sql` — applicant accounts and status history. **Idempotent**.
+   - `supabase/migrations/0004_admission_completion.sql` — registration contact fields and document types used by the first-/second-year upload flow. **Idempotent**.
    - `supabase/seed/seed.sql` — notices, news, faculty, FAQs, results, merit list. **Idempotent** — uses deterministic UUIDs and `on conflict do nothing`, so safe to re-run.
 
-   > All three SQL files are safe to run repeatedly — no "already exists" errors.
+   > All migration and seed SQL files are safe to run repeatedly — no "already exists" errors.
 3. Copy `.env.example` → `.env.local` and fill:
    ```
    NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co

@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
   if (isSupabaseConfigured()) {
     try {
       const sb = getSupabaseServer();
-      const { error } = await sb.from("admissions").insert({
+      const admissionPayload = {
         application_no: applicationNo,
         admission_type: data.admissionType,
         programme: data.programme,
@@ -171,15 +171,23 @@ export async function POST(req: NextRequest) {
         previous_school: data.previousSchool,
         meta: metaParse.data,
         status: "received",
-      });
-      if (error) throw error;
+      };
+      let applicationId: string | null = null;
+      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        const { data: inserted, error } = await sb.from("admissions").insert(admissionPayload).select("id").single();
+        if (error) throw error;
+        applicationId = inserted?.id ?? null;
+      } else {
+        const { error } = await sb.from("admissions").insert(admissionPayload);
+        if (error) throw error;
+      }
       // Audit trail (§11.3)
       await sb.from("audit_log").insert({
         action: "application.submitted",
         target: applicationNo,
         meta: { programme: data.programme, admissionType: data.admissionType, ip },
       });
-      return NextResponse.json({ applicationNo, demo: false });
+      return NextResponse.json({ applicationNo, applicationId, demo: false });
     } catch (e) {
       return NextResponse.json(
         { error: "The admissions service is temporarily unavailable. Your draft is saved — please retry." },

@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { WhatsAppIcon } from "@/components/site/whatsapp";
 import { WHATSAPP_LINK } from "@/content/site";
+import { getSupabaseBrowser, isSupabaseConfigured } from "@/lib/supabase";
 
 /**
  * FIVE-STEP ADMISSION APPLICATION — Master Plan §7.1.
@@ -341,6 +342,23 @@ export function ApplyForm() {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error ?? "Submission failed");
+      if (isSupabaseConfigured() && result.applicationId) {
+        const sb = getSupabaseBrowser();
+        const uploaded: { doc_type: string; storage_path: string }[] = [];
+        for (const doc of docFields) {
+          const file = docs[doc.id];
+          if (!file) continue;
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+          const storagePath = `${result.applicationNo}/${doc.id}-${crypto.randomUUID()}-${safeName}`;
+          const upload = await sb.storage.from("admission-docs").upload(storagePath, file, { contentType: file.type || undefined, upsert: false });
+          if (upload.error) throw new Error(`Could not upload ${doc.label}. Keep ${result.applicationNo} and contact the office.`);
+          uploaded.push({ doc_type: doc.id, storage_path: storagePath });
+        }
+        if (uploaded.length) {
+          const { error: docError } = await sb.from("admission_docs").insert(uploaded.map((doc) => ({ ...doc, admission_id: result.applicationId })));
+          if (docError) throw new Error(`Application saved, but document records could not be completed. Keep ${result.applicationNo} and contact the office.`);
+        }
+      }
       setReceipt({ applicationNo: result.applicationNo, demo: Boolean(result.demo) });
       try {
         const existing = JSON.parse(localStorage.getItem("ghss-demo-applications") ?? "[]");
