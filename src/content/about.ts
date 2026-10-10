@@ -44,11 +44,9 @@ export const PRINCIPAL_MESSAGE = {
   message: [
     "Assalam-o-Alaikum. On behalf of the students, teachers and staff of Government Higher Secondary School Ghallanai, I welcome you to our school and to this website.",
     "For the young people of Mohmand District, these two years of intermediate education decide the direction of an entire life. Our duty is plain: classrooms that teach with discipline and care, laboratories where science is practised rather than memorised, a computer laboratory where the district's next engineers write their first program, and a faculty that knows every serious student by name.",
-    "This website carries that same duty online. Families can now check admissions, fees and results from a phone in their hand, in English and in Urdu, without standing in a queue or waiting for office hours. That is how a public institution should serve its people in this century.",
+    "This website is part of the same duty. Families can now check admissions, fees and results from a phone in their hand, without standing in a queue or waiting for office hours. That is how a public institution should serve its people in this century.",
     "I invite you to visit us in Ghallanai, to meet our teachers, and to see the standard of work our students produce. Your trust is the foundation on which this school is built.",
   ],
-  messageUrdu:
-    "السلام علیکم۔ محکمہ تعلیم کے تحت قائم حکومتی ہائر سیکنڈری سکول غلانئی میں آپ کو خوش آمدید۔ محسن ضلع کے نوجوانوں کے لیے انٹرمیڈیٹ کے یہ دو سال پوری زندگی کا رخ طے کر دیتے ہیں۔ ہمارا فرض واضح ہے: نظم و ضبط اور شفقت سے پڑھانے والے کمرے جماعت، سائنس کی عملی لیبارٹریاں، اور ایسے اساتذہ جو ہر سنجیدہ طالب علم کو نام سے جانتے ہوں۔ یہ ویب سائٹ وہی فرض آن لائن ادا کرتی ہے — گھر بیٹھے موبائل فون سے داخلے، فیس اور نتائج کی معلومات، اردو اور انگریزی میں۔ کسی قطار میں لگنے یا آفس کے اوقات کا انتظار نہیں۔",
 } as const;
 
 export const VISION_MISSION = {

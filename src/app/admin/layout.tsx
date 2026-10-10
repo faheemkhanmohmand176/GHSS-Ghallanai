@@ -1,20 +1,17 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/auth-server";
 
-/** Admin guard — role-gated shell (§8.6). Demo cookie or Supabase admin session. */
+/**
+ * Admin shell — role-gated (§8.6, Babi Khel security model).
+ *
+ * LIVE MODE (Supabase configured): every /admin/* render verifies the JWT
+ * from the auth cookie AND the profiles.role = 'admin' row. Anything less
+ * redirects to /admin/login. RLS re-enforces every write in the database,
+ * so even a bypassed UI gate cannot mutate data.
+ *
+ * DEMO MODE: the console stays open with a DEMO banner (safe unzip & run).
+ * The sign-in screen lives at /admin/login outside this gated layout.
+ */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const jar = await cookies();
-  const demoRole = jar.get("ghss-demo-role")?.value;
-  const configured = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-
-  if (!configured && !demoRole) {
-    redirect("/login");
-  }
-  if (configured && !demoRole) {
-    // LIVE mode: verify the Supabase session's profile.role === 'admin' here.
-  }
-
+  await requireAdmin();
   return <>{children}</>;
 }

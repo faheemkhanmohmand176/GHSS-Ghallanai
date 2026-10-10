@@ -78,9 +78,6 @@ export default function AdminNotices({ initial }: { initial: Notice[] }) {
               <div className="space-y-1.5">
                 <Label htmlFor="n-title" className="text-small font-semibold">Title *</Label>
                 <Input id="n-title" value={title} onChange={(e) => setTitle(e.target.value)} className="h-11" placeholder="e.g. Send-up exam schedule announced" />
-                <p className="urdu-body text-right text-xs text-muted-foreground" dir="rtl" lang="ur">
-                  عنوان لکھیں
-                </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
@@ -97,7 +94,7 @@ export default function AdminNotices({ initial }: { initial: Notice[] }) {
                 <label className="flex items-center justify-between gap-3 rounded-xl border border-border bg-secondary/40 p-3.5">
                   <span className="text-small font-semibold">
                     Pin to top
-                    <span className="mt-0.5 block text-xs text-muted-foreground" dir="rtl" lang="ur">اوپر لگائیں</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">Show this notice at the top of the board</span>
                   </span>
                   <Switch checked={pinned} onCheckedChange={setPinned} aria-label="Pin notice" />
                 </label>

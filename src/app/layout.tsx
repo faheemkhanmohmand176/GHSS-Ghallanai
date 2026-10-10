@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { inter, playfair, nastaliq } from "@/lib/fonts";
+import { inter, playfair } from "@/lib/fonts";
 import { themeInitScript } from "@/lib/theme";
 import { SITE } from "@/content/site";
 import { Toaster } from "@/components/ui/toaster";
@@ -63,7 +63,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body
-        className={`${inter.variable} ${playfair.variable} ${nastaliq.variable} font-sans`}
+        className={`${inter.variable} ${playfair.variable} font-sans`}
       >
         {children}
         <Toaster />

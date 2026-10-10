@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   title: "Fee Structure & Concessions",
   description:
     "The official fee table of GHSS Ghallanai — admission fee, laboratory and sports funds, board fees as notified, plus merit and need-based concessions. No hidden charges.",
-  alternates: { languages: { ur: "/ur/admissions/fees" } },
 };
 
 export default function FeesPage() {

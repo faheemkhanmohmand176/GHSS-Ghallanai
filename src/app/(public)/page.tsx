@@ -1,26 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, GraduationCap, Landmark, ShieldCheck, Trophy } from "lucide-react";
+import { ArrowRight, Landmark, GraduationCap, Trophy } from "lucide-react";
 import { PROGRAMMES } from "@/content/programmes";
-import { getNews, getNotices } from "@/lib/data";
-import { PROGRAMMES as PROG } from "@/content/programmes";
+import {
+  getNews, getNotices, getTeachers, getAchievements, getSchoolSettings,
+} from "@/lib/data";
 import { TESTIMONIALS } from "@/content/news";
 import { SITE, formatDate } from "@/content/site";
+import { getTodayQuote } from "@/content/demo-content";
 import { ProgrammeCard } from "@/components/site/programme-card";
 import { StatBand } from "@/components/site/stat-band";
-import { CtaBand } from "@/components/site/cta-band";
 import { SectionHeading } from "@/components/site/section-heading";
 import { Reveal } from "@/components/site/reveal";
 import { Button } from "@/components/ui/button";
 import { JsonLdSchool } from "@/components/site/json-ld";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { HeroTypewriter } from "@/components/site/hero-typewriter";
+import { SubjectsMarquee } from "@/components/site/subjects-marquee";
+import { CampusBanner } from "@/components/site/campus-banner";
+import { WordOfDay } from "@/components/site/word-of-day";
+import { DailyQuote } from "@/components/site/daily-quote";
+import { TeachersStrip, AchievementsStrip } from "@/components/site/strips";
+import { AboutPreview } from "@/components/site/about-preview";
+import { AdmissionCta } from "@/components/site/admission-cta";
+import { ListenButton } from "@/components/site/tts-player";
+import { NoticePoll } from "@/components/site/notice-poll";
+import type { Notice } from "@/content/news";
 
 export const revalidate = 60; // ISR 60s — notices/news reflect admin within a minute (§8.3)
 
@@ -28,7 +32,6 @@ export const metadata: Metadata = {
   title: `${SITE.fullName} — Admissions ${SITE.session}, Results & Programmes`,
   description:
     "Apply online, check results by roll number, and explore ICS, Pre-Medical, Pre-Engineering and Arts at Mohmand District's government higher secondary school in Ghallanai, Khyber Pakhtunkhwa.",
-  alternates: { languages: { ur: "/ur" } },
 };
 
 const WHY_US = [
@@ -49,14 +52,57 @@ const WHY_US = [
   },
 ];
 
+function NoticeCard({ n, i }: { n: Notice; i: number }) {
+  return (
+    <Reveal delay={i * 60} className="h-full">
+      <article className="card-lift flex h-full flex-col rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="rounded-full bg-secondary px-2.5 py-1 font-semibold text-primary">{n.category}</span>
+            <time dateTime={n.date}>{formatDate(n.date)}</time>
+          </p>
+          <div className="flex items-center gap-1.5">
+            {n.pinned && (
+              <span className="rounded-full bg-gold-soft px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-gold-strong dark:text-gold">
+                Pinned
+              </span>
+            )}
+            {n.is_urgent && (
+              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider text-destructive">
+                Urgent
+              </span>
+            )}
+          </div>
+        </div>
+        <h3 className="mt-3 text-small font-bold leading-snug">{n.title}</h3>
+        <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground line-clamp-3">{n.body}</p>
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+          <ListenButton title={n.title} text={`${n.title}. ${n.body}`} />
+          <Link href="/notices" className="text-xs font-bold text-primary hover:underline underline-offset-4">
+            Read →
+          </Link>
+        </div>
+      </article>
+    </Reveal>
+  );
+}
+
 export default async function HomePage() {
-  const [news, notices] = await Promise.all([getNews(3), getNotices(4)]);
+  const [news, notices, teachers, achievements, settings] = await Promise.all([
+    getNews(3),
+    getNotices(4),
+    getTeachers(4),
+    getAchievements(3),
+    getSchoolSettings(),
+  ]);
+  const quote = getTodayQuote();
+  const pollNotice = notices.find((n) => n.is_poll && n.poll_options?.length);
 
   return (
     <>
       <JsonLdSchool />
 
-      {/* ============ HERO — poster-first (low bandwidth §11.1) ============ */}
+      {/* ============ HERO — typewriter headline (Babi Khel) ============ */}
       <section className="relative overflow-hidden bg-primary-strong dark:bg-[#0a1810]">
         {/* Crest watermark */}
         <svg
@@ -80,15 +126,12 @@ export default async function HomePage() {
           <p className="kicker !text-gold">
             {SITE.district} · {SITE.province}
           </p>
-          {/* Headline with gold accent word (§5.6 hero entrance, CSS-driven) */}
+          {/* Typewriter headline — full sentence kept for SEO */}
           <h1 className="mt-3 max-w-3xl text-display text-[#FAFDF7]">
             The district&apos;s gateway to{" "}
-            <span className="relative inline-block text-gold">
-              university
-              <span
-                aria-hidden
-                className="absolute -bottom-2 left-0 h-2 w-full origin-left rounded-full bg-gold/50 md:scale-x-100"
-                style={{ transform: "scaleX(0.98)" }}
+            <span className="text-gold">
+              <HeroTypewriter
+                phrases={["university.", "medicine.", "engineering.", "computer science.", "the civil service."]}
               />
             </span>
           </h1>
@@ -97,14 +140,14 @@ export default async function HomePage() {
             One government school in Ghallanai that treats every family&apos;s question as
             worth answering, on any phone, on any network.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg" className="sheen relative h-12 overflow-hidden rounded-full bg-gold px-8 text-base font-bold text-[#1A2E22] hover:bg-gold-strong">
+          <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            <Button asChild size="lg" className="button-press sheen relative h-12 overflow-hidden rounded-full bg-gold px-8 text-base font-bold text-[#1A2E22] hover:bg-gold-strong sm:min-w-56">
               <Link href="/admissions/apply">
                 Apply Now
                 <ArrowRight className="ml-1 h-5 w-5" aria-hidden />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="h-12 rounded-full border-[#E8F5EC]/35 bg-transparent px-8 text-base font-semibold text-[#E8F5EC] hover:bg-[#E8F5EC]/10 hover:text-white">
+            <Button asChild size="lg" variant="outline" className="button-press h-12 rounded-full border-[#E8F5EC]/35 bg-transparent px-8 text-base font-semibold text-[#E8F5EC] hover:bg-[#E8F5EC]/10 hover:text-white">
               <Link href="/academics">Explore Programmes</Link>
             </Button>
           </div>
@@ -126,8 +169,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ============ STATISTICS BAND (odometers) ============ */}
-      <StatBand />
+      {/* ============ STATISTICS BAND (settings-driven odometers) ============ */}
+      <StatBand settings={settings} />
+
+      {/* ============ SUBJECTS MARQUEE (Babi Khel) ============ */}
+      <SubjectsMarquee />
+
+      {/* ============ CAMPUS BANNER (settings-driven, conditional) ============ */}
+      <CampusBanner url={settings.banner_url} />
 
       {/* ============ PROGRAMMES BAND ============ */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-20" aria-labelledby="programmes">
@@ -167,7 +216,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ============ NOTICES + NEWS BAND ============ */}
+      {/* ============ WORD OF THE DAY (Babi Khel English learning) ============ */}
+      <WordOfDay />
+
+      {/* ============ NOTICES + NEWS BAND (with Listen pills + polls) ============ */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-20" aria-labelledby="news-band">
         <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
           <div>
@@ -189,6 +241,9 @@ export default async function HomePage() {
                     </div>
                     <h3 className="mt-3 text-base font-bold leading-snug">{n.title}</h3>
                     <p className="mt-2 flex-1 text-small leading-relaxed text-muted-foreground">{n.excerpt}</p>
+                    <div className="mt-3 border-t border-border/60 pt-3">
+                      <ListenButton title={n.title} text={`${n.title}. ${n.excerpt ?? ""}`} />
+                    </div>
                   </article>
                 </Reveal>
               ))}
@@ -196,9 +251,18 @@ export default async function HomePage() {
           </div>
           <div>
             <SectionHeading kicker="Notice board" title="Latest notices" />
-            <ul className="space-y-3">
-              {notices.map((n, i) => (
-                <Reveal as="li" key={n.id} delay={i * 60} className="card-lift list-none rounded-xl border border-border bg-card p-4">
+            <div className="space-y-3">
+              {notices.map((n, i) =>
+                n.id === pollNotice?.id && n.is_poll && n.poll_options ? (
+                  <NoticePoll
+                    key={n.id}
+                    noticeId={n.id}
+                    question={n.title}
+                    options={n.poll_options}
+                    closesAt={n.poll_closes_at ?? null}
+                  />
+                ) : (
+                  <Reveal as="div" key={n.id} delay={i * 60} className="card-lift rounded-xl border border-border bg-card p-4">
                     <Link href="/notices" className="group block">
                       <div className="flex items-start justify-between gap-3">
                         <h3 className="text-small font-bold leading-snug group-hover:text-primary">
@@ -214,12 +278,27 @@ export default async function HomePage() {
                         {formatDate(n.date)} · {n.category}
                       </p>
                     </Link>
-                </Reveal>
-              ))}
-            </ul>
+                  </Reveal>
+                )
+              )}
+              {notices.every((n) => n.id !== pollNotice?.id) && pollNotice && (
+                <NoticePoll
+                  noticeId={pollNotice.id}
+                  question={pollNotice.title}
+                  options={pollNotice.poll_options!}
+                  closesAt={pollNotice.poll_closes_at ?? null}
+                />
+              )}
+            </div>
           </div>
         </div>
       </section>
+
+      {/* ============ TEACHERS STRIP (Babi Khel) ============ */}
+      <TeachersStrip teachers={teachers} />
+
+      {/* ============ ACHIEVEMENTS STRIP (Babi Khel "Our Pride") ============ */}
+      <AchievementsStrip achievements={achievements} />
 
       {/* ============ VOICES BAND (§6.1) ============ */}
       <section className="border-y border-border/70 bg-secondary/50" aria-labelledby="voices">
@@ -247,8 +326,16 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ============ CTA BAND ============ */}
-      <CtaBand />
+      {/* ============ THOUGHT OF THE DAY (Babi Khel) ============ */}
+      <div className="pt-16 md:pt-20">
+        <DailyQuote quote={quote} />
+      </div>
+
+      {/* ============ ABOUT PREVIEW (Babi Khel) ============ */}
+      <AboutPreview settings={settings} />
+
+      {/* ============ ADMISSION CTA (settings-driven) ============ */}
+      <AdmissionCta settings={settings} />
     </>
   );
 }

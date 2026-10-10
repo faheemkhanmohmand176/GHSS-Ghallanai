@@ -7,7 +7,6 @@ export const metadata: Metadata = {
   title: "Result Lookup — Check by Roll Number",
   description:
     "Check GHSS Ghallanai intermediate results by roll number — full subject-wise card with grades, printable and shareable, published the day results release.",
-  alternates: { languages: { ur: "/ur/results" } },
 };
 
 export default function LookupPage() {

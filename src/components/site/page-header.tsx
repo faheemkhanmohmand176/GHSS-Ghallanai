@@ -17,13 +17,13 @@ export function PageHeader({
   kicker,
   title,
   lead,
-  breadcrumbs,
+  breadcrumbs = [{ name: "", href: "#" }],
   children,
 }: {
   kicker: string;
   title: React.ReactNode;
   lead?: string;
-  breadcrumbs: { name: string; href: string }[];
+  breadcrumbs?: { name: string; href: string }[];
   children?: React.ReactNode;
 }) {
   return (

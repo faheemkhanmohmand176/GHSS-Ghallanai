@@ -3,7 +3,7 @@ import { PROGRAMMES } from "@/content/programmes";
 
 /**
  * Dynamic sitemap — Master Plan §10.1.
- * Static routes + programme pages + Urdu key pages with hreflang alternates.
+ * Static routes + programme pages.
  * In production, news/merit entries join from the database at request time.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -26,13 +26,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: "/results/merit-list", changeFrequency: "weekly", priority: 0.8 },
     { url: "/results/toppers", changeFrequency: "monthly", priority: 0.6 },
     { url: "/notices", changeFrequency: "daily", priority: 0.8 },
+    { url: "/gallery", changeFrequency: "weekly", priority: 0.5 },
+    { url: "/library", changeFrequency: "weekly", priority: 0.6 },
+    { url: "/calendar", changeFrequency: "weekly", priority: 0.6 },
     { url: "/contact", changeFrequency: "monthly", priority: 0.7 },
-    // Urdu key pages (§10.1 hreflang alternates handled via metadata)
-    { url: "/ur", changeFrequency: "daily", priority: 0.9, alternates: { languages: { en: "/" } } },
-    { url: "/ur/admissions", changeFrequency: "weekly", priority: 0.7, alternates: { languages: { en: "/admissions" } } },
-    { url: "/ur/admissions/fees", changeFrequency: "monthly", priority: 0.7, alternates: { languages: { en: "/admissions/fees" } } },
-    { url: "/ur/results", changeFrequency: "weekly", priority: 0.8, alternates: { languages: { en: "/results/lookup" } } },
-    { url: "/ur/contact", changeFrequency: "monthly", priority: 0.6, alternates: { languages: { en: "/contact" } } },
   ];
 
   const programmeRoutes: MetadataRoute.Sitemap = PROGRAMMES.map((p) => ({

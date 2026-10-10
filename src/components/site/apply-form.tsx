@@ -141,37 +141,8 @@ const STEP_TITLES = [
   "Review & submit",
 ];
 
-const URDU_ERRORS: Record<string, string> = {
-  "Enter the student's full name": "طالب علم کا مکمل نام لکھیں",
-  "Enter the father's name": "والد کا نام لکھیں",
-  "CNIC must be exactly 13 digits without dashes": "شناختی کارڈ 13 ہندسی، بغیر ڈیش",
-  "Enter mobile in 03XXXXXXXXX format": "موبائل 03XXXXXXXXX فارمیٹ میں",
-  "Enter a valid email address": "ای میل درست لکھیں",
-  "Enter mother's name": "والدہ کا نام لکھیں",
-  "Father CNIC must be 13 digits without dashes": "والد کا شناختی کارڈ 13 ہندسی",
-  "Mother CNIC must be 13 digits without dashes": "والدہ کا شناختی کارڈ 13 ہندسی",
-  "Enter father's mobile in 03XXXXXXXXX format": "والد کا موبائل 03XXXXXXXXX",
-  "Enter your mailing address": "اپنا ڈاک کا پتہ لکھیں",
-  "Select religion": "مذہب منتخب کریں",
-  "Select gender": "جنس منتخب کریں",
-  "Select blood group": "بلڈ گروپ منتخب کریں",
-  "Select domicile province": "ڈومیسائل صوبہ منتخب کریں",
-  "Select domicile district": "ڈومیسائل ضلع منتخب کریں",
-  "Select domicile tehsil": "ڈومیسائل تحصیل منتخب کریں",
-  "Select union council": "یونین کونسل منتخب کریں",
-  "Enter the matric roll number": "میٹرک رول نمبر لکھیں",
-  "Select the matric board": "میٹرک بورڈ منتخب کریں",
-  "Select a study group": "سٹڈی گروپ منتخب کریں",
-  "Select province of board": "بورڈ کا صوبہ منتخب کریں",
-  "Select passing year": "پاسنگ سال منتخب کریں",
-  "Enter the previous school's name": "سابقہ سکول کا نام لکھیں",
-  "Select school province": "سکول کا صوبہ منتخب کریں",
-  "Select school district": "سکول کا ضلع منتخب کریں",
-};
-
 export function ApplyForm() {
   const [step, setStep] = useState(0);
-  const [urduErrors, setUrduErrors] = useState(false);
   const [docs, setDocs] = useState<Record<string, File | null>>({});
   const [applicantPhoto, setApplicantPhoto] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -247,7 +218,7 @@ export function ApplyForm() {
     } catch {
       /* corrupt draft — ignore */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Autosave on step change and field edits
@@ -287,7 +258,7 @@ export function ApplyForm() {
         form.setValue("matricBoard", "");
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [matricProvince]);
 
   // When institute province changes, reset district
@@ -298,7 +269,7 @@ export function ApplyForm() {
         form.setValue("instituteDistrict", "");
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [instituteProvince]);
 
   // When domicile province changes, reset district + tehsil + UC
@@ -311,7 +282,7 @@ export function ApplyForm() {
         form.setValue("domicileUnionCouncil", "");
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [domicileProvince]);
 
   // When domicile district changes, reset tehsil + UC
@@ -323,7 +294,7 @@ export function ApplyForm() {
         form.setValue("domicileUnionCouncil", "");
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [domicileDistrict]);
 
   // When domicile tehsil changes, reset UC
@@ -334,7 +305,7 @@ export function ApplyForm() {
         form.setValue("domicileUnionCouncil", "");
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [domicileTehsil, domicileDistrict]);
 
   const matricPercent = useMemo(() => {
@@ -523,7 +494,7 @@ export function ApplyForm() {
 
   function errText(msg?: string) {
     if (!msg) return undefined;
-    return urduErrors && URDU_ERRORS[msg] ? `${msg} · ${URDU_ERRORS[msg]}` : msg;
+    return msg;
   }
 
   /* ---------- RECEIPT SCREEN ---------- */
@@ -577,15 +548,6 @@ export function ApplyForm() {
           <span className="truncate">
             Step {step + 1} of {totalSteps} · {STEP_TITLES[step]}
           </span>
-          <button
-            type="button"
-            onClick={() => setUrduErrors((v) => !v)}
-            className="shrink-0 rounded-full px-2.5 py-1 font-urdu text-sm hover:bg-secondary"
-            lang="ur"
-            dir="rtl"
-          >
-            {urduErrors ? "English errors" : "اردو میں غلطیاں"}
-          </button>
         </div>
         <Progress value={((step + 1) / totalSteps) * 100} className="mt-2 h-2" aria-label={`Step ${step + 1} of ${totalSteps}`} />
         <ol className="mt-4 hidden justify-between sm:flex">
@@ -1228,9 +1190,6 @@ export function ApplyForm() {
                     <strong> locked after submission</strong> and cannot be changed without
                     contacting the school office. I have reviewed every field.
                   </span>
-                  <span className="mt-1.5 block font-urdu text-right text-muted-foreground" lang="ur" dir="rtl">
-                    میں سمجھتا/سمجھتی ہوں کہ جمع کرنے کے بعد معلومات تبدیل نہیں کی جا سکتیں۔
-                  </span>
                 </span>
               </label>
               <label className="flex items-start gap-3 rounded-xl border border-border p-4">
@@ -1243,9 +1202,6 @@ export function ApplyForm() {
                   information above is true to the best of my knowledge. I understand that any
                   false statement cancels the application, and that submission of this form does
                   not itself guarantee admission — selection follows the published merit process.
-                  <span className="mt-1.5 block font-urdu text-right text-muted-foreground" lang="ur" dir="rtl">
-                    میں بیان کرتا/کرتی ہوں کہ مذکورہ معلومات درست ہیں۔
-                  </span>
                 </span>
               </label>
               {(errors.declaration || errors.infoLocked) && (

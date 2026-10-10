@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-/** robots.txt — Master Plan §10.1: public routes allowed, portals/admin disallowed. */
+/** robots.txt — Master Plan §10.1: public routes allowed, admin/API disallowed. */
 export default function robots(): MetadataRoute.Robots {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   return {
@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/portal", "/login", "/api"],
+        disallow: ["/admin", "/api"],
       },
     ],
     sitemap: `${base}/sitemap.xml`,

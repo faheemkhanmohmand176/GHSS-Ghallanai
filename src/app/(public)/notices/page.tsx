@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { Megaphone, Pin } from "lucide-react";
+import { Megaphone, Pin, Zap } from "lucide-react";
 import { PageHeader } from "@/components/site/page-header";
 import { getNotices } from "@/lib/data";
 import { formatDate } from "@/content/site";
 import { Reveal } from "@/components/site/reveal";
+import { ListenButton } from "@/components/site/tts-player";
+import { NoticePoll } from "@/components/site/notice-poll";
 
 export const revalidate = 60;
 
@@ -29,7 +31,7 @@ export default async function NoticesPage() {
       <PageHeader
         kicker="Official announcements"
         title={<>The <span className="text-gold">notice board</span>, without the walk</>}
-        lead="Every notice the office issues — admissions, examinations, results, scholarships, holidays — published here the same minute, and broadcast on WhatsApp to opted-in families."
+        lead="Every notice the office issues — admissions, examinations, results, scholarships, holidays — published here the same minute, read aloud if you prefer, and broadcast to opted-in families."
         breadcrumbs={[{ name: "Notices", href: "/notices" }]}
       />
 
@@ -52,9 +54,29 @@ export default async function NoticesPage() {
                       <Pin className="h-3.5 w-3.5" aria-hidden /> Pinned
                     </span>
                   )}
+                  {n.is_urgent && (
+                    <span className="inline-flex items-center gap-1 font-bold text-destructive">
+                      <Zap className="h-3.5 w-3.5" aria-hidden /> Urgent
+                    </span>
+                  )}
                 </div>
                 <h2 className="mt-3 text-lg font-bold leading-snug">{n.title}</h2>
-                <p className="mt-2 text-small leading-relaxed text-muted-foreground">{n.body}</p>
+                {n.body && <p className="mt-2 text-small leading-relaxed text-muted-foreground">{n.body}</p>}
+
+                {n.is_poll && n.poll_options?.length ? (
+                  <div className="mt-4">
+                    <NoticePoll
+                      noticeId={n.id}
+                      question={n.title}
+                      options={n.poll_options}
+                      closesAt={n.poll_closes_at ?? null}
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-4 border-t border-border/60 pt-3">
+                    <ListenButton title={n.title} text={`${n.title}. ${n.body ?? ""}`} />
+                  </div>
+                )}
               </article>
             </Reveal>
           ))}

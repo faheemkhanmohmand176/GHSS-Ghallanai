@@ -69,19 +69,18 @@ export function InstallPrompt() {
     <div
       role="dialog"
       aria-label="Install app"
-      className="fixed bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] right-4 z-40 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-card p-4 shadow-xl"
+      className="fixed right-4 z-40 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-card p-4 shadow-xl bottom-[calc(env(safe-area-inset-bottom)+9rem)] md:bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+5.5rem))]"
     >
       <p className="text-small font-bold">Add GHSS to your home screen</p>
       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
         {showIosTip ? (
           <>
             On iPhone: tap <span className="font-semibold">Share</span> →{" "}
-            <span className="font-semibold">Add to Home Screen</span>. <span lang="ur" dir="rtl">گھر کے اسکرین پر شامل کریں</span>
+            <span className="font-semibold">Add to Home Screen</span>.
           </>
         ) : (
           <>
-            Works offline, loads fast on slow connections, and brings result and notice alerts.{" "}
-            <span lang="ur" dir="rtl">تیز رفتار اور آف لائن</span>
+            Works offline, loads fast on slow connections, and brings result and notice alerts.
           </>
         )}
       </p>
@@ -89,7 +88,7 @@ export function InstallPrompt() {
         <button
           type="button"
           onClick={dismiss}
-          className="h-9 rounded-full px-4 text-xs font-semibold text-muted-foreground hover:bg-secondary"
+          className="button-press h-10 rounded-full px-4 text-xs font-semibold text-muted-foreground hover:bg-secondary"
         >
           Not now
         </button>
@@ -97,7 +96,7 @@ export function InstallPrompt() {
           <button
             type="button"
             onClick={install}
-            className="h-9 rounded-full bg-primary px-4 text-xs font-bold text-primary-foreground hover:opacity-90"
+            className="button-press h-10 rounded-full bg-primary px-5 text-xs font-bold text-primary-foreground hover:opacity-90"
           >
             Install
           </button>

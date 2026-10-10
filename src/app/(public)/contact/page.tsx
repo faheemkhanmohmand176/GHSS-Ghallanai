@@ -11,7 +11,6 @@ export const metadata: Metadata = {
   title: "Contact & Directions",
   description:
     "Reach GHSS Ghallanai: office directory, WhatsApp, visiting hours, directions from Mohmand's main junctions, and the feedback channel that reaches the principal's office.",
-  alternates: { languages: { ur: "/ur/contact" } },
 };
 
 const DIRECTORY = [

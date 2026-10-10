@@ -6,7 +6,7 @@ import { WhatsAppIcon } from "./whatsapp";
 
 /**
  * Footer — Master Plan §4.3: four columns — quick links, contact (incl. WhatsApp),
- * programme shortcuts, sign-in block.
+ * programme shortcuts, enquiries.
  */
 export function SiteFooter() {
   const year = new Date().getFullYear();
@@ -24,10 +24,7 @@ export function SiteFooter() {
               <p className="text-xs text-[#E8F5EC]/70">{SITE.fullName}</p>
             </div>
           </div>
-          <p className="mt-4 text-small leading-relaxed text-[#E8F5EC]/75" dir="rtl" lang="ur">
-            {SITE.urduName}
-          </p>
-          <p className="mt-3 text-small text-[#E8F5EC]/75">
+          <p className="mt-4 text-small text-[#E8F5EC]/75">
             Serving the students of {SITE.district}, {SITE.province} — first year and second year,
             ICS · Pre-Medical · Pre-Engineering · Arts.
           </p>
@@ -61,6 +58,9 @@ export function SiteFooter() {
               ["FA Humanities (Arts)", "/academics/arts"],
               ["Apply Online", "/admissions/apply"],
               ["Check Results", "/results/lookup"],
+              ["Digital Library", "/library"],
+              ["Photo Gallery", "/gallery"],
+              ["Event Calendar", "/calendar"],
             ].map(([label, href]) => (
               <li key={href}>
                 <Link
@@ -99,18 +99,11 @@ export function SiteFooter() {
             href={WHATSAPP_LINK}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#E8F5EC]/25 px-4 py-2.5 text-small font-semibold text-[#E8F5EC] transition-colors hover:border-gold hover:text-gold"
+            className="button-press mt-4 inline-flex items-center gap-2 rounded-full border border-[#E8F5EC]/25 px-4 py-2.5 text-small font-semibold text-[#E8F5EC] transition-colors hover:border-gold hover:text-gold"
           >
             <WhatsAppIcon className="h-4 w-4" />
             WhatsApp us
           </a>
-
-          <h2 className="mt-6 text-small font-bold uppercase tracking-[0.14em] text-gold">Portals</h2>
-          <p className="mt-3 text-small text-[#E8F5EC]/85">
-            <Link href="/login" className="underline underline-offset-4 hover:text-white">
-              Student · Teacher · Admin sign-in
-            </Link>
-          </p>
         </div>
       </div>
 
@@ -119,12 +112,7 @@ export function SiteFooter() {
           <p>
             © {year} {SITE.fullName}, {SITE.district}, {SITE.province}.
           </p>
-          <p>
-            Digital Campus Programme ·{" "}
-            <Link href="/ur" lang="ur" className="underline underline-offset-2 hover:text-white">
-              اردو نسخہ
-            </Link>
-          </p>
+          <p>Digital Campus Programme</p>
         </div>
       </div>
     </footer>

@@ -50,7 +50,7 @@ self.addEventListener("activate", (event) => {
 });
 
 const OFFLINE_FALLBACK = "/offline";
-const NEVER_CACHE = [/\/api\//, /\/admin/, /\/portal/, /\/login/];
+const NEVER_CACHE = [/\/api\//, /\/admin/];
 
 async function staleWhileRevalidate(event) {
   const cache = await caches.open(PAGE_CACHE);

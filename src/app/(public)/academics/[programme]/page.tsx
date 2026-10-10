@@ -65,9 +65,6 @@ export default async function ProgrammePage({
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-secondary">
             <Icon className="h-6 w-6 text-primary" strokeWidth={1.75} aria-hidden />
           </span>
-          <p className="font-urdu text-lg text-muted-foreground" lang="ur" dir="rtl">
-            {p.urduName}
-          </p>
         </div>
       </PageHeader>
 

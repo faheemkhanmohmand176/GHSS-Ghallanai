@@ -46,7 +46,7 @@ export default function AboutPage() {
               </p>
               <p>
                 This website is part of the same duty. Admissions, fees, results and notices are
-                published here in English and Urdu, reachable from the cheapest phone on the
+                published here in English, reachable from the cheapest phone on the
                 weakest network — because a family&apos;s access to information about its own
                 school should never depend on office hours.
               </p>

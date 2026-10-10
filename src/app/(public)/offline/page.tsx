@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 /**
- * /offline — service-worker fallback (§9.1). Pure static, tiny, bilingual.
+ * /offline — service-worker fallback (§9.1). Pure static, tiny.
  */
 export default function OfflinePage() {
   return (
@@ -21,9 +21,6 @@ export default function OfflinePage() {
         <p className="mt-3 text-lead text-muted-foreground">
           Pages you have already opened still work from your phone&apos;s cache. Reconnect to load
           the latest notices and results.
-        </p>
-        <p className="urdu-body mt-4 text-muted-foreground" dir="rtl" lang="ur">
-          انٹرنیٹ دستیاب نہیں ہے — پہلے کھولے گئے صفحات اب بھی کام کر رہے ہیں۔
         </p>
         <div className="mt-8 flex flex-col gap-2 sm:flex-row">
           <a

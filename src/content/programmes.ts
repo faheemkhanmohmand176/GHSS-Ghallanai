@@ -17,7 +17,6 @@ export interface Programme {
   slug: ProgrammeSlug;
   name: string;
   shortName: string;
-  urduName: string;
   promise: string;
   icon: "code" | "flask" | "gear" | "quill";
   overview: string[];
@@ -34,7 +33,6 @@ export const PROGRAMMES: Programme[] = [
     slug: "ics",
     name: "ICS — Intermediate in Computer Science",
     shortName: "ICS",
-    urduName: "انٹرمیڈیٹ کمپیوٹر سائنس",
     promise: "Read, write and think in code — the stream that builds Pakistan's digital future.",
     icon: "code",
     accentWord: "Computing",
@@ -81,7 +79,6 @@ export const PROGRAMMES: Programme[] = [
     slug: "pre-medical",
     name: "F.Sc Pre-Medical",
     shortName: "Pre-Medical",
-    urduName: "ایف ایس سی پری میڈیکل",
     promise: "Biology, chemistry and physics — the two years that open the gate to medicine.",
     icon: "flask",
     accentWord: "Medicine",
@@ -127,7 +124,6 @@ export const PROGRAMMES: Programme[] = [
     slug: "pre-engineering",
     name: "F.Sc Pre-Engineering",
     shortName: "Pre-Engineering",
-    urduName: "ایف ایس سی پری انجینئرنگ",
     promise: "Physics, chemistry and mathematics at full depth — built for the engineers of tomorrow.",
     icon: "gear",
     accentWord: "Engineering",
@@ -173,7 +169,6 @@ export const PROGRAMMES: Programme[] = [
     slug: "arts",
     name: "FA — Faculty of Arts (Humanities)",
     shortName: "Arts (FA)",
-    urduName: "ایف اے ہیومینٹیز",
     promise: "The versatile stream into law, civil service, education, media and public life.",
     icon: "quill",
     accentWord: "Humanities",

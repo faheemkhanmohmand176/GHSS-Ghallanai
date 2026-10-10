@@ -12,6 +12,11 @@ export interface Notice {
   category: NoticeCategory;
   date: string; // ISO
   pinned: boolean;
+  // Poll attachments (Babi Khel pattern — admin authored, RPC-voted)
+  is_urgent?: boolean;
+  is_poll?: boolean;
+  poll_options?: { id: string; text: string; votes: number }[];
+  poll_closes_at?: string | null;
 }
 
 export const NOTICES: Notice[] = [
@@ -194,7 +199,6 @@ export const FAQS = [
   { q: "Does the school have laboratories?", a: "Yes — physics, chemistry and biology laboratories for the science practicals, and a computer laboratory for ICS practicals with one machine per student in practical periods." },
   { q: "Is there a library?", a: "Yes, a reference and lending library holding course texts, past papers and Urdu and English titles. Library periods are on the weekly timetable." },
   { q: "What are the school timings?", a: "The school day runs 8:00 AM to 2:00 PM, Monday to Saturday, with the assembly at 8:00 sharp. Office hours for visitors are the same." },
-  { q: "Is Urdu content available on this website?", a: "Yes. Key pages — home, admissions, fees, results and contact — are available in Urdu with proper Nastaliq typography at /ur on this website." },
   { q: "Can I install this website as an app?", a: "Yes. Open the site in Chrome on Android and tap the install prompt (or browser menu → Install app). The app works offline for pages you have already visited and notifies you when new notices are published." },
   { q: "How do parents receive announcements?", a: "Through the school's WhatsApp broadcast list, notices on this website, and the notice board. Opt in to WhatsApp alerts by sending your name and student's class to the school number." },
 ] as const;

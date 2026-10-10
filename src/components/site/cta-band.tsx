@@ -29,15 +29,15 @@ export function CtaBand() {
             Your progress saves as you type — one bus ride of connectivity is enough. Every
             applicant receives a tracking number and a WhatsApp confirmation.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="h-12 rounded-full bg-gold px-8 text-base font-bold text-[#1A2E22] hover:bg-gold-strong">
+          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+            <Button asChild size="lg" className="button-press h-12 rounded-full bg-gold px-8 text-base font-bold text-[#1A2E22] hover:bg-gold-strong sm:min-w-56">
               <Link href="/admissions/apply">Apply Online</Link>
             </Button>
             <a
               href={WHATSAPP_LINK}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-12 items-center gap-2 rounded-full border border-[#E8F5EC]/30 px-6 text-base font-semibold text-[#E8F5EC] transition-colors hover:border-gold hover:text-gold"
+              className="button-press inline-flex h-12 items-center justify-center gap-2 rounded-full border border-[#E8F5EC]/30 px-6 text-base font-semibold text-[#E8F5EC] transition-colors hover:border-gold hover:text-gold"
             >
               <WhatsAppIcon className="h-5 w-5" />
               Ask on WhatsApp

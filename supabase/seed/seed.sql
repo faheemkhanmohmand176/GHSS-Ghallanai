@@ -171,3 +171,76 @@ insert into public.merit_lists (session_year, programme, merit_no, application_n
   ('2026-27', 'arts', 9, 'GHSS-2026-0154', 'SAMPLE Applicant 9', '81.4%', null, 'Waitlisted', 'v1.0', true),
   ('2026-27', 'pre-engineering', 10, 'GHSS-2026-0301', 'SAMPLE Applicant 10', '80.2%', null, 'Waitlisted', 'v1.0', true)
 on conflict do nothing;
+
+-- ============================================================================
+-- ADMIN CONSOLE SEED (0006/0007) — SAMPLE rows; replace via the dashboard.
+-- ============================================================================
+
+-- College Setting — single row (id = 1)
+insert into public.school_settings (
+  id, school_name, tagline, description, about_text, emis_code, address, phone, email,
+  established_year, total_students, total_teachers, pass_percentage, board_results,
+  admission_open, admission_session, admission_deadline, admission_banner
+) values (
+  1,
+  'Government Higher Secondary School Ghallanai',
+  'Knowledge, Character, Service',
+  'The district''s government higher secondary school — 1st and 2nd year ICS, Pre-Medical, Pre-Engineering and Arts, with published results and merit lists.',
+  'GHSS Ghallanai serves Mohmand District with four intermediate streams...',
+  'SAMPLE-EMIS',
+  'Ghallanai, Mohmand District, Khyber Pakhtunkhwa, Pakistan',
+  '+92-XXX-XXXXXXX',
+  'info@ghssghallanai.edu.pk',
+  2005, 640, 28, 92.5, 'A+',
+  true, '2026-27', '2026-11-15',
+  'Admissions open for the 2026-27 session — apply online.'
+) on conflict (id) do nothing;
+
+-- Teachers (SAMPLE)
+insert into public.teachers (full_name, subject, qualification, experience, display_order, is_active) values
+  ('SAMPLE Teacher 1', 'Physics', 'M.Sc Physics', '12 years', 1, true),
+  ('SAMPLE Teacher 2', 'Chemistry', 'M.Sc Chemistry', '9 years', 2, true),
+  ('SAMPLE Teacher 3', 'Biology', 'M.Sc Zoology', '7 years', 3, true),
+  ('SAMPLE Teacher 4', 'Mathematics', 'M.Sc Mathematics', '15 years', 4, true),
+  ('SAMPLE Teacher 5', 'Computer Science', 'MS Computer Science', '6 years', 5, true),
+  ('SAMPLE Teacher 6', 'English', 'M.A English', '10 years', 6, true)
+on conflict do nothing;
+
+-- Events (SAMPLE)
+insert into public.school_events (title, description, event_type, start_date, end_date, is_published) values
+  ('First-term send-up exams begin', 'Send-up examination schedule for all 1st-year classes.', 'exam', current_date + 14, current_date + 21, true),
+  ('Parent-teacher meeting', 'Mid-term progress discussion with guardians.', 'ptm', current_date + 25, null, true),
+  ('Annual sports gala', 'Two-day inter-programme sports festival.', 'sports', current_date + 40, current_date + 41, true)
+on conflict do nothing;
+
+-- Fee structures (SAMPLE — 1st Year classes)
+insert into public.fee_structures (class_label, fee_type, label, amount, frequency, is_active) values
+  ('1st Year — ICS', 'tuition', 'Monthly tuition', 350.00, 'monthly', true),
+  ('1st Year — ICS', 'lab', 'Computer lab (annual)', 1500.00, 'annual', true),
+  ('1st Year — Pre-Medical', 'tuition', 'Monthly tuition', 350.00, 'monthly', true),
+  ('1st Year — Pre-Medical', 'lab', 'Biology lab (annual)', 1200.00, 'annual', true),
+  ('1st Year — Pre-Engineering', 'tuition', 'Monthly tuition', 350.00, 'monthly', true),
+  ('1st Year — Arts', 'tuition', 'Monthly tuition', 300.00, 'monthly', true),
+  ('1st Year — Arts', 'exam', 'Board examination fee', 2500.00, 'one_time', false)
+on conflict (class_label, fee_type) do nothing;
+
+-- Achievements (SAMPLE)
+insert into public.achievements (title, description, student_name, class_label, year, category) values
+  ('Board position — Pre-Medical', 'SAMPLE Student A secured 1st position in BISE annual results.', 'SAMPLE Student A', '2nd Year — Pre-Medical', 2026, 'Academic'),
+  ('Inter-district cricket champions', 'The school cricket team won the Mohmand District trophy.', null, null, 2026, 'Sports'),
+  ('Science fair gold medal', 'A physics project on renewable energy took the district science fair gold.', 'SAMPLE Student C', '1st Year — ICS', 2026, 'Science')
+on conflict do nothing;
+
+-- Gallery (SAMPLE)
+insert into public.gallery_albums (title, description) values
+  ('Annual Day 2026', 'Highlights from the annual day ceremony and prize distribution.'),
+  ('Science Fair', 'Student projects from the district science fair.'),
+  ('Campus Life', 'Everyday moments around the Ghallanai campus.')
+on conflict do nothing;
+
+-- Library files (SAMPLE links)
+insert into public.library_files (title, description, category, class_label, subject, file_url, file_type) values
+  ('Physics past papers — BISE 2025', 'Compiled board past papers with marking schemes.', 'Past Papers', '2nd Year — Pre-Engineering', 'Physics', 'https://example.com/physics-past-papers', 'LINK'),
+  ('Computer Science notes — Chapter 1 to 5', 'Class notes covering programming fundamentals.', 'Notes', '1st Year — ICS', 'Computer Science', 'https://example.com/cs-notes', 'LINK'),
+  ('Admission form 2026-27', 'Printable admission form for the current session.', 'Admission', 'All', null, 'https://example.com/admission-form', 'LINK')
+on conflict do nothing;

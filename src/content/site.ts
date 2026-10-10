@@ -8,7 +8,6 @@
 export const SITE = {
   name: "GHSS Ghallanai",
   fullName: "Government Higher Secondary School Ghallanai",
-  urduName: "گورنمنٹ ہائر سیکنڈری سکول غلانئی",
   tagline: "Knowledge, Character, Service",
   district: "Mohmand District",
   province: "Khyber Pakhtunkhwa",
@@ -38,6 +37,8 @@ export const NAV = [
       { label: "About the School", href: "/about", desc: "Our story, vision and mission" },
       { label: "Principal's Message", href: "/about/principal", desc: "A word from the head of the institution" },
       { label: "Faculty Directory", href: "/about/faculty", desc: "Meet our teaching staff" },
+      { label: "Photo Gallery", href: "/gallery", desc: "Albums from school life" },
+      { label: "Event Calendar", href: "/calendar", desc: "Exams, holidays and school events" },
     ],
   },
   {
@@ -49,6 +50,7 @@ export const NAV = [
       { label: "Pre-Medical (F.Sc)", href: "/academics/pre-medical", desc: "The path to medicine and life sciences" },
       { label: "Pre-Engineering (F.Sc)", href: "/academics/pre-engineering", desc: "The path to engineering disciplines" },
       { label: "Arts (FA Humanities)", href: "/academics/arts", desc: "Law, civil service, media and more" },
+      { label: "Digital Library", href: "/library", desc: "Past papers, notes and books" },
     ],
   },
   {
