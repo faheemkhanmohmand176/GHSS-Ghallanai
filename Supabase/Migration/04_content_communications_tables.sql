@@ -15,7 +15,7 @@
 -- ═══════════════════════════════════════════════════════════════════════
 
 
-CREATE TABLE public.achievements (
+CREATE TABLE IF NOT EXISTS public.achievements (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text NOT NULL,
     description text,
@@ -32,7 +32,9 @@ CREATE TABLE public.achievements (
 
 
 
-CREATE TABLE public.dismissed_notifications (
+
+
+CREATE TABLE IF NOT EXISTS public.dismissed_notifications (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     notification_id uuid NOT NULL,
@@ -43,7 +45,9 @@ CREATE TABLE public.dismissed_notifications (
 
 
 
-CREATE TABLE public.gallery_albums (
+
+
+CREATE TABLE IF NOT EXISTS public.gallery_albums (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text NOT NULL,
     description text,
@@ -55,7 +59,9 @@ CREATE TABLE public.gallery_albums (
 
 
 
-CREATE TABLE public.gallery_photos (
+
+
+CREATE TABLE IF NOT EXISTS public.gallery_photos (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     album_id uuid,
     photo_url text NOT NULL,
@@ -69,7 +75,9 @@ CREATE TABLE public.gallery_photos (
 
 
 
-CREATE TABLE public.lab_content_cache (
+
+
+CREATE TABLE IF NOT EXISTS public.lab_content_cache (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     subject text NOT NULL,
     chapter_key text NOT NULL,
@@ -84,7 +92,9 @@ CREATE TABLE public.lab_content_cache (
 
 
 
-CREATE TABLE public.library_books (
+
+
+CREATE TABLE IF NOT EXISTS public.library_books (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text,
     author text,
@@ -96,7 +106,9 @@ CREATE TABLE public.library_books (
 
 
 
-CREATE TABLE public.library_files (
+
+
+CREATE TABLE IF NOT EXISTS public.library_files (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text NOT NULL,
     description text,
@@ -118,7 +130,9 @@ CREATE TABLE public.library_files (
 
 
 
-CREATE TABLE public.news (
+
+
+CREATE TABLE IF NOT EXISTS public.news (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text NOT NULL,
     content text,
@@ -128,13 +142,17 @@ CREATE TABLE public.news (
     is_pinned boolean DEFAULT false NOT NULL
 );
 
+
+
 ALTER TABLE ONLY public.news REPLICA IDENTITY FULL;
 
 
 
 
 
-CREATE TABLE public.notices (
+
+
+CREATE TABLE IF NOT EXISTS public.notices (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text NOT NULL,
     content text,
@@ -149,13 +167,17 @@ CREATE TABLE public.notices (
     poll_closes_at timestamp with time zone
 );
 
+
+
 ALTER TABLE ONLY public.notices REPLICA IDENTITY FULL;
 
 
 
 
 
-CREATE TABLE public.notification_dismissals (
+
+
+CREATE TABLE IF NOT EXISTS public.notification_dismissals (
     user_id uuid NOT NULL,
     notification_id uuid NOT NULL,
     dismissed_at timestamp with time zone DEFAULT now() NOT NULL
@@ -165,7 +187,9 @@ CREATE TABLE public.notification_dismissals (
 
 
 
-CREATE TABLE public.notifications (
+
+
+CREATE TABLE IF NOT EXISTS public.notifications (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     audience text DEFAULT 'all'::text NOT NULL,
     type text DEFAULT 'default'::text NOT NULL,
@@ -181,7 +205,9 @@ CREATE TABLE public.notifications (
 
 
 
-CREATE TABLE public.online_classes (
+
+
+CREATE TABLE IF NOT EXISTS public.online_classes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text,
     subject text,
@@ -195,7 +221,9 @@ CREATE TABLE public.online_classes (
 
 
 
-CREATE TABLE public.poll_votes (
+
+
+CREATE TABLE IF NOT EXISTS public.poll_votes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     notice_id uuid NOT NULL,
     option_id text NOT NULL,
@@ -207,7 +235,9 @@ CREATE TABLE public.poll_votes (
 
 
 
-CREATE TABLE public.revision_reminders (
+
+
+CREATE TABLE IF NOT EXISTS public.revision_reminders (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid,
     chapter_id uuid,
@@ -219,7 +249,9 @@ CREATE TABLE public.revision_reminders (
 
 
 
-CREATE TABLE public.sms_outbox (
+
+
+CREATE TABLE IF NOT EXISTS public.sms_outbox (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     to_phone text NOT NULL,
     message text NOT NULL,
@@ -232,7 +264,9 @@ CREATE TABLE public.sms_outbox (
 
 
 
-CREATE TABLE public.user_messages (
+
+
+CREATE TABLE IF NOT EXISTS public.user_messages (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     content text NOT NULL,
@@ -245,7 +279,9 @@ CREATE TABLE public.user_messages (
 
 
 
-CREATE TABLE public.videos (
+
+
+CREATE TABLE IF NOT EXISTS public.videos (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
     title text NOT NULL,
     description text,
@@ -259,272 +295,492 @@ CREATE TABLE public.videos (
     CONSTRAINT videos_category_check CHECK ((category = ANY (ARRAY['Lecture'::text, 'Event'::text, 'Program'::text, 'Announcement'::text, 'Other'::text])))
 );
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.achievements
+        ADD CONSTRAINT achievements_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.dismissed_notifications
+        ADD CONSTRAINT dismissed_notifications_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.dismissed_notifications
+        ADD CONSTRAINT dismissed_notifications_user_id_notification_id_key UNIQUE (user_id, notification_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.gallery_albums
+        ADD CONSTRAINT gallery_albums_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.gallery_photos
+        ADD CONSTRAINT gallery_photos_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.lab_content_cache
+        ADD CONSTRAINT lab_content_cache_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.lab_content_cache
+        ADD CONSTRAINT lab_content_cache_subject_chapter_key_key UNIQUE (subject, chapter_key);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.library_books
+        ADD CONSTRAINT library_books_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.library_files
+        ADD CONSTRAINT library_files_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.news
+        ADD CONSTRAINT news_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.notices
+        ADD CONSTRAINT notices_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.notification_dismissals
+        ADD CONSTRAINT notification_dismissals_pkey PRIMARY KEY (user_id, notification_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.notifications
+        ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.online_classes
+        ADD CONSTRAINT online_classes_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.poll_votes
+        ADD CONSTRAINT poll_votes_notice_id_voter_token_key UNIQUE (notice_id, voter_token);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.poll_votes
+        ADD CONSTRAINT poll_votes_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.revision_reminders
+        ADD CONSTRAINT revision_reminders_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.revision_reminders
+        ADD CONSTRAINT revision_reminders_user_id_chapter_id_key UNIQUE (user_id, chapter_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.sms_outbox
+        ADD CONSTRAINT sms_outbox_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.user_messages
+        ADD CONSTRAINT user_messages_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-ALTER TABLE ONLY public.achievements
-    ADD CONSTRAINT achievements_pkey PRIMARY KEY (id);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.videos
+        ADD CONSTRAINT videos_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
 
 
 
-ALTER TABLE ONLY public.dismissed_notifications
-    ADD CONSTRAINT dismissed_notifications_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_achievements_category ON public.achievements USING btree (category, created_at DESC);
 
 
-ALTER TABLE ONLY public.dismissed_notifications
-    ADD CONSTRAINT dismissed_notifications_user_id_notification_id_key UNIQUE (user_id, notification_id);
 
 
 
 
-ALTER TABLE ONLY public.gallery_albums
-    ADD CONSTRAINT gallery_albums_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_achievements_class ON public.achievements USING btree (class) WHERE (class IS NOT NULL);
 
 
 
 
-ALTER TABLE ONLY public.gallery_photos
-    ADD CONSTRAINT gallery_photos_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_achievements_year ON public.achievements USING btree (year) WHERE (year IS NOT NULL);
 
 
-ALTER TABLE ONLY public.lab_content_cache
-    ADD CONSTRAINT lab_content_cache_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.lab_content_cache
-    ADD CONSTRAINT lab_content_cache_subject_chapter_key_key UNIQUE (subject, chapter_key);
+CREATE INDEX IF NOT EXISTS idx_dismissed_notifications_user ON public.dismissed_notifications USING btree (user_id);
 
 
 
 
-ALTER TABLE ONLY public.library_books
-    ADD CONSTRAINT library_books_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_lab_content_cache_lookup ON public.lab_content_cache USING btree (subject, chapter_key);
 
 
-ALTER TABLE ONLY public.library_files
-    ADD CONSTRAINT library_files_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.news
-    ADD CONSTRAINT news_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_library_category ON public.library_files USING btree (category);
 
 
 
 
-ALTER TABLE ONLY public.notices
-    ADD CONSTRAINT notices_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_library_class ON public.library_files USING btree (class);
 
 
-ALTER TABLE ONLY public.notification_dismissals
-    ADD CONSTRAINT notification_dismissals_pkey PRIMARY KEY (user_id, notification_id);
 
 
 
 
-ALTER TABLE ONLY public.notifications
-    ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_news_published ON public.news USING btree (is_published);
 
 
 
 
-ALTER TABLE ONLY public.online_classes
-    ADD CONSTRAINT online_classes_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_notices_published ON public.notices USING btree (is_published);
 
 
-ALTER TABLE ONLY public.poll_votes
-    ADD CONSTRAINT poll_votes_notice_id_voter_token_key UNIQUE (notice_id, voter_token);
 
 
 
 
-ALTER TABLE ONLY public.poll_votes
-    ADD CONSTRAINT poll_votes_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_notifications_audience ON public.notifications USING btree (audience);
 
 
 
 
-ALTER TABLE ONLY public.revision_reminders
-    ADD CONSTRAINT revision_reminders_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON public.notifications USING btree (created_at DESC);
 
 
-ALTER TABLE ONLY public.revision_reminders
-    ADD CONSTRAINT revision_reminders_user_id_chapter_id_key UNIQUE (user_id, chapter_id);
 
 
 
 
-ALTER TABLE ONLY public.sms_outbox
-    ADD CONSTRAINT sms_outbox_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON public.notifications USING btree (is_read);
 
 
 
 
-ALTER TABLE ONLY public.user_messages
-    ADD CONSTRAINT user_messages_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_poll_votes_notice ON public.poll_votes USING btree (notice_id);
 
 
-ALTER TABLE ONLY public.videos
-    ADD CONSTRAINT videos_pkey PRIMARY KEY (id);
 
 
 
 
-CREATE INDEX idx_achievements_category ON public.achievements USING btree (category, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_revision_reminders_user_id ON public.revision_reminders USING btree (user_id);
 
 
 
 
-CREATE INDEX idx_achievements_class ON public.achievements USING btree (class) WHERE (class IS NOT NULL);
 
 
+CREATE INDEX IF NOT EXISTS news_pinned_recent_idx ON public.news USING btree (is_pinned DESC, created_at DESC) WHERE (is_published = true);
 
 
-CREATE INDEX idx_achievements_year ON public.achievements USING btree (year) WHERE (year IS NOT NULL);
 
 
 
 
-CREATE INDEX idx_dismissed_notifications_user ON public.dismissed_notifications USING btree (user_id);
+CREATE INDEX IF NOT EXISTS notices_pinned_recent_idx ON public.notices USING btree (is_pinned DESC, created_at DESC) WHERE (is_published = true);
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.dismissed_notifications
+        ADD CONSTRAINT dismissed_notifications_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.notifications(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.dismissed_notifications
+        ADD CONSTRAINT dismissed_notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.gallery_photos
+        ADD CONSTRAINT gallery_photos_album_id_fkey FOREIGN KEY (album_id) REFERENCES public.gallery_albums(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-CREATE INDEX idx_lab_content_cache_lookup ON public.lab_content_cache USING btree (subject, chapter_key);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.library_files
+        ADD CONSTRAINT library_files_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.notification_dismissals
+        ADD CONSTRAINT notification_dismissals_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.notifications(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.notification_dismissals
+        ADD CONSTRAINT notification_dismissals_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.poll_votes
+        ADD CONSTRAINT poll_votes_notice_id_fkey FOREIGN KEY (notice_id) REFERENCES public.notices(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-CREATE INDEX idx_library_category ON public.library_files USING btree (category);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.revision_reminders
+        ADD CONSTRAINT revision_reminders_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.revision_reminders
+        ADD CONSTRAINT revision_reminders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.user_messages
+        ADD CONSTRAINT user_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
 
-CREATE INDEX idx_library_class ON public.library_files USING btree (class);
-
-
-
-
-CREATE INDEX idx_news_published ON public.news USING btree (is_published);
-
-
-
-
-CREATE INDEX idx_notices_published ON public.notices USING btree (is_published);
-
-
-
-
-CREATE INDEX idx_notifications_audience ON public.notifications USING btree (audience);
-
-
-
-
-CREATE INDEX idx_notifications_created_at ON public.notifications USING btree (created_at DESC);
-
-
-
-
-CREATE INDEX idx_notifications_is_read ON public.notifications USING btree (is_read);
-
-
-
-
-CREATE INDEX idx_poll_votes_notice ON public.poll_votes USING btree (notice_id);
-
-
-
-
-CREATE INDEX idx_revision_reminders_user_id ON public.revision_reminders USING btree (user_id);
-
-
-
-
-CREATE INDEX news_pinned_recent_idx ON public.news USING btree (is_pinned DESC, created_at DESC) WHERE (is_published = true);
-
-
-
-
-CREATE INDEX notices_pinned_recent_idx ON public.notices USING btree (is_pinned DESC, created_at DESC) WHERE (is_published = true);
-
-
-
-
-ALTER TABLE ONLY public.dismissed_notifications
-    ADD CONSTRAINT dismissed_notifications_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.notifications(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.dismissed_notifications
-    ADD CONSTRAINT dismissed_notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.gallery_photos
-    ADD CONSTRAINT gallery_photos_album_id_fkey FOREIGN KEY (album_id) REFERENCES public.gallery_albums(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.library_files
-    ADD CONSTRAINT library_files_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
-
-
-
-
-ALTER TABLE ONLY public.notification_dismissals
-    ADD CONSTRAINT notification_dismissals_notification_id_fkey FOREIGN KEY (notification_id) REFERENCES public.notifications(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.notification_dismissals
-    ADD CONSTRAINT notification_dismissals_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.poll_votes
-    ADD CONSTRAINT poll_votes_notice_id_fkey FOREIGN KEY (notice_id) REFERENCES public.notices(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.revision_reminders
-    ADD CONSTRAINT revision_reminders_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.revision_reminders
-    ADD CONSTRAINT revision_reminders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.user_messages
-    ADD CONSTRAINT user_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 
@@ -533,7 +789,11 @@ ALTER TABLE public.achievements ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.dismissed_notifications ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -541,7 +801,11 @@ ALTER TABLE public.gallery_albums ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.gallery_photos ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -549,7 +813,11 @@ ALTER TABLE public.lab_content_cache ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.library_books ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -557,7 +825,11 @@ ALTER TABLE public.library_files ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.news ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -565,7 +837,11 @@ ALTER TABLE public.notices ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.notification_dismissals ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -573,7 +849,11 @@ ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.online_classes ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -581,7 +861,11 @@ ALTER TABLE public.poll_votes ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.revision_reminders ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -589,7 +873,11 @@ ALTER TABLE public.sms_outbox ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.user_messages ENABLE ROW LEVEL SECURITY;
+
+
 
 
 

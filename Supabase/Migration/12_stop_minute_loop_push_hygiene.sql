@@ -59,15 +59,23 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
                          FROM public.push_state WHERE key = 'seen'), false)
   );
 $$;
+
+
 -- Server-only: the Vercel function calls it with the service-role key.
 REVOKE ALL ON FUNCTION public.push_signature() FROM PUBLIC, anon, authenticated;
+
+
 GRANT EXECUTE ON FUNCTION public.push_signature() TO service_role;
+
+
 
 -- ── 2. Small partial index so the "is a result due?" check is instant ──
 -- Only rows that are scheduled-but-unpublished are in it (usually zero rows).
 CREATE INDEX IF NOT EXISTS idx_results_scheduled_due
   ON public.results (publish_at)
   WHERE is_published = false AND publish_at IS NOT NULL;
+
+
 
 -- ── 3. The single gated tick ───────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.push_tick()
@@ -87,22 +95,46 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   NULL;  -- a cron tick must never raise
 END $$;
+
+
 REVOKE ALL ON FUNCTION public.push_tick() FROM PUBLIC, anon, authenticated;
+
+
 
 -- ── 4. Replace the two every-minute jobs ───────────────────────────────
 -- (unschedule by name via the jobs table so a missing job never raises)
-SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname IN ('ghss-push-dispatch', 'ghss-auto-publish');
+DO $mig$
+DECLARE j record;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    RAISE NOTICE 'pg_cron not installed - cron jobs skipped (fine on Supabase, which ships pg_cron)';
+    RETURN;
+  END IF;
+  -- pg_cron raises on a duplicate job name, so all names are unscheduled first.
+  FOR j IN SELECT jobid FROM cron.job
+           WHERE jobname IN ('ghss-push-dispatch', 'ghss-auto-publish',
+                             'ghss-tick', 'ghss-cron-cleanup')
+  LOOP
+    PERFORM cron.unschedule(j.jobid);
+    RAISE NOTICE 'Unscheduled job %', j.jobid;
+  END LOOP;
 
--- Staggered: minutes 2,7,12,…,57 → never starts at :00 where other jobs and Supabase internals start.
-SELECT cron.schedule('ghss-tick', '2-59/5 * * * *', $$select public.push_tick();$$);
+  -- Staggered: minutes 2,7,12,…,57 → never starts at :00 where other jobs start.
+  PERFORM cron.schedule('ghss-tick', '2-59/5 * * * *', $$select public.push_tick();$$);
 
--- cron's own run history: keep 2 days only (it used to grow by ~2,900 rows/day).
-SELECT cron.schedule('ghss-cron-cleanup', '23 3 * * *',
-  $$delete from cron.job_run_details where end_time < now() - interval '2 days';$$);
+  -- cron's own run history: keep 2 days only (it used to grow by ~2,900 rows/day).
+  PERFORM cron.schedule('ghss-cron-cleanup', '23 3 * * *',
+    $$delete from cron.job_run_details where end_time < now() - interval '2 days';$$);
+  RAISE NOTICE 'cron jobs registered: ghss-tick, ghss-cron-cleanup';
+END $mig$;
+
+
 -- 'ghss-net-cleanup' (from file 09) stays as it is.
 
 -- ── 5. push_state: leave free space in each page so updates stay in place (HOT) ──
 ALTER TABLE public.push_state SET (fillfactor = 70);
+
+
 
 -- ═══════════════════════════════════════════════════════════════════════
 -- RUN AS A SEPARATE STATEMENT AFTER THE ABOVE (VACUUM cannot run in a transaction block):

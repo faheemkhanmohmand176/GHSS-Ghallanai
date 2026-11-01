@@ -81,6 +81,8 @@ BEGIN
   END LOOP;
 END $$;
 
+
+
 -- ── 3. Verified-public whitelist for anon ──────────────────────────────────
 -- Each entry: called from a page that works WITHOUT login (grep of src/):
 --   submit_admission_public  Admission form submit        (useAdmission.ts)
@@ -122,6 +124,8 @@ BEGIN
   END LOOP;
 END $$;
 
+
+
 -- ── 4. Pin search_path on functions that have none ─────────────────────────
 DO $$
 DECLARE
@@ -148,6 +152,8 @@ BEGIN
   END LOOP;
 END $$;
 
+
+
 -- ── 5. v_student_seating: stop bypassing RLS as its owner ─────────────────
 -- All three underlying tables (exam_seating_assignments / _plans / _rooms)
 -- have public-read policies (SELECT USING (true)), so making the view
@@ -166,6 +172,8 @@ BEGIN
     RAISE NOTICE 'v_student_seating: skipped (missing view or PG < 15)';
   END IF;
 END $$;
+
+
 
 -- ── 6. Documented decisions (no action) ────────────────────────────────────
 --   push_state, push_subscriptions: RLS enabled with NO policies on purpose

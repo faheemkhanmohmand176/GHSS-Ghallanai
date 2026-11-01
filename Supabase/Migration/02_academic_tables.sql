@@ -21,7 +21,7 @@
 -- ═══════════════════════════════════════════════════════════════════════
 
 
-CREATE TABLE public.annotation_upvotes (
+CREATE TABLE IF NOT EXISTS public.annotation_upvotes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     annotation_id uuid NOT NULL,
     user_id uuid NOT NULL,
@@ -32,7 +32,9 @@ CREATE TABLE public.annotation_upvotes (
 
 
 
-CREATE TABLE public.attendance (
+
+
+CREATE TABLE IF NOT EXISTS public.attendance (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     student_id uuid,
     class text NOT NULL,
@@ -48,7 +50,9 @@ CREATE TABLE public.attendance (
 
 
 
-CREATE TABLE public.attendance_daily_stats (
+
+
+CREATE TABLE IF NOT EXISTS public.attendance_daily_stats (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     class text NOT NULL,
     date date NOT NULL,
@@ -67,7 +71,9 @@ CREATE TABLE public.attendance_daily_stats (
 
 
 
-CREATE TABLE public.attendance_thresholds (
+
+
+CREATE TABLE IF NOT EXISTS public.attendance_thresholds (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     minimum_percentage numeric(5,2) DEFAULT 75.00 NOT NULL,
@@ -82,7 +88,9 @@ CREATE TABLE public.attendance_thresholds (
 
 
 
-CREATE TABLE public.chapter_answers (
+
+
+CREATE TABLE IF NOT EXISTS public.chapter_answers (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     question_id uuid,
     user_id uuid,
@@ -94,7 +102,9 @@ CREATE TABLE public.chapter_answers (
 
 
 
-CREATE TABLE public.chapter_connections (
+
+
+CREATE TABLE IF NOT EXISTS public.chapter_connections (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     chapter_id uuid,
     related_chapter_id uuid
@@ -104,7 +114,9 @@ CREATE TABLE public.chapter_connections (
 
 
 
-CREATE TABLE public.chapter_questions (
+
+
+CREATE TABLE IF NOT EXISTS public.chapter_questions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     chapter_id uuid,
     user_id uuid,
@@ -117,7 +129,9 @@ CREATE TABLE public.chapter_questions (
 
 
 
-CREATE TABLE public.chapter_reading_times (
+
+
+CREATE TABLE IF NOT EXISTS public.chapter_reading_times (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid,
     chapter_id uuid,
@@ -129,7 +143,9 @@ CREATE TABLE public.chapter_reading_times (
 
 
 
-CREATE TABLE public.daily_challenge (
+
+
+CREATE TABLE IF NOT EXISTS public.daily_challenge (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     challenge_date date NOT NULL,
     question_id uuid,
@@ -140,7 +156,9 @@ CREATE TABLE public.daily_challenge (
 
 
 
-CREATE TABLE public.daily_challenge_answers (
+
+
+CREATE TABLE IF NOT EXISTS public.daily_challenge_answers (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid,
     challenge_date date NOT NULL,
@@ -153,7 +171,9 @@ CREATE TABLE public.daily_challenge_answers (
 
 
 
-CREATE TABLE public.daily_quiz_attempts (
+
+
+CREATE TABLE IF NOT EXISTS public.daily_quiz_attempts (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     quiz_date date NOT NULL,
@@ -172,7 +192,9 @@ CREATE TABLE public.daily_quiz_attempts (
 
 
 
-CREATE TABLE public.daily_quizzes (
+
+
+CREATE TABLE IF NOT EXISTS public.daily_quizzes (
     quiz_date date NOT NULL,
     category text NOT NULL,
     category_id integer NOT NULL,
@@ -185,7 +207,9 @@ CREATE TABLE public.daily_quizzes (
 
 
 
-CREATE TABLE public.discussion_messages (
+
+
+CREATE TABLE IF NOT EXISTS public.discussion_messages (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     content text NOT NULL,
@@ -198,7 +222,9 @@ CREATE TABLE public.discussion_messages (
 
 
 
-CREATE TABLE public.homework (
+
+
+CREATE TABLE IF NOT EXISTS public.homework (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text NOT NULL,
     description text,
@@ -211,13 +237,17 @@ CREATE TABLE public.homework (
     created_at timestamp with time zone DEFAULT now()
 );
 
+
+
 ALTER TABLE ONLY public.homework REPLICA IDENTITY FULL;
 
 
 
 
 
-CREATE TABLE public.homework_completions (
+
+
+CREATE TABLE IF NOT EXISTS public.homework_completions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     homework_id uuid NOT NULL,
     student_id uuid NOT NULL,
@@ -228,7 +258,9 @@ CREATE TABLE public.homework_completions (
 
 
 
-CREATE TABLE public.mistake_reports (
+
+
+CREATE TABLE IF NOT EXISTS public.mistake_reports (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     chapter_id uuid,
     user_id uuid,
@@ -242,7 +274,9 @@ CREATE TABLE public.mistake_reports (
 
 
 
-CREATE TABLE public.note_annotations (
+
+
+CREATE TABLE IF NOT EXISTS public.note_annotations (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     chapter_id uuid NOT NULL,
@@ -261,7 +295,9 @@ CREATE TABLE public.note_annotations (
 
 
 
-CREATE TABLE public.note_chapters (
+
+
+CREATE TABLE IF NOT EXISTS public.note_chapters (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     subject_id uuid NOT NULL,
     title text NOT NULL,
@@ -290,7 +326,9 @@ CREATE TABLE public.note_chapters (
 
 
 
-CREATE TABLE public.note_flashcard_progress (
+
+
+CREATE TABLE IF NOT EXISTS public.note_flashcard_progress (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid,
     flashcard_id uuid,
@@ -303,7 +341,9 @@ CREATE TABLE public.note_flashcard_progress (
 
 
 
-CREATE TABLE public.note_flashcards (
+
+
+CREATE TABLE IF NOT EXISTS public.note_flashcards (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     chapter_id uuid,
     front text NOT NULL,
@@ -315,7 +355,9 @@ CREATE TABLE public.note_flashcards (
 
 
 
-CREATE TABLE public.note_highlights (
+
+
+CREATE TABLE IF NOT EXISTS public.note_highlights (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid,
     chapter_id uuid,
@@ -329,7 +371,9 @@ CREATE TABLE public.note_highlights (
 
 
 
-CREATE TABLE public.note_progress (
+
+
+CREATE TABLE IF NOT EXISTS public.note_progress (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     chapter_id uuid NOT NULL,
@@ -343,7 +387,9 @@ CREATE TABLE public.note_progress (
 
 
 
-CREATE TABLE public.note_questions (
+
+
+CREATE TABLE IF NOT EXISTS public.note_questions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     quiz_id uuid NOT NULL,
     question text NOT NULL,
@@ -367,7 +413,9 @@ CREATE TABLE public.note_questions (
 
 
 
-CREATE TABLE public.note_quiz_results (
+
+
+CREATE TABLE IF NOT EXISTS public.note_quiz_results (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     quiz_id uuid NOT NULL,
@@ -381,7 +429,9 @@ CREATE TABLE public.note_quiz_results (
 
 
 
-CREATE TABLE public.note_quizzes (
+
+
+CREATE TABLE IF NOT EXISTS public.note_quizzes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     chapter_id uuid NOT NULL,
     title text NOT NULL,
@@ -395,7 +445,9 @@ CREATE TABLE public.note_quizzes (
 
 
 
-CREATE TABLE public.note_ratings (
+
+
+CREATE TABLE IF NOT EXISTS public.note_ratings (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid,
     chapter_id uuid,
@@ -408,7 +460,9 @@ CREATE TABLE public.note_ratings (
 
 
 
-CREATE TABLE public.note_subjects (
+
+
+CREATE TABLE IF NOT EXISTS public.note_subjects (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     slug text NOT NULL,
@@ -426,7 +480,9 @@ CREATE TABLE public.note_subjects (
 
 
 
-CREATE TABLE public.note_wrong_answers (
+
+
+CREATE TABLE IF NOT EXISTS public.note_wrong_answers (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid,
     question_id uuid,
@@ -438,7 +494,9 @@ CREATE TABLE public.note_wrong_answers (
 
 
 
-CREATE TABLE public.srs_reviews (
+
+
+CREATE TABLE IF NOT EXISTS public.srs_reviews (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     question_id uuid NOT NULL,
@@ -457,7 +515,9 @@ CREATE TABLE public.srs_reviews (
 
 
 
-CREATE TABLE public.student_gamification (
+
+
+CREATE TABLE IF NOT EXISTS public.student_gamification (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     user_id uuid NOT NULL,
     total_points integer DEFAULT 0,
@@ -477,7 +537,9 @@ CREATE TABLE public.student_gamification (
 
 
 
-CREATE TABLE public.study_group_members (
+
+
+CREATE TABLE IF NOT EXISTS public.study_group_members (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     group_id uuid,
     user_id uuid,
@@ -488,7 +550,9 @@ CREATE TABLE public.study_group_members (
 
 
 
-CREATE TABLE public.study_groups (
+
+
+CREATE TABLE IF NOT EXISTS public.study_groups (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     code text NOT NULL,
@@ -500,7 +564,9 @@ CREATE TABLE public.study_groups (
 
 
 
-CREATE TABLE public.test_attempts (
+
+
+CREATE TABLE IF NOT EXISTS public.test_attempts (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
     test_id uuid NOT NULL,
     user_id uuid NOT NULL,
@@ -519,7 +585,9 @@ CREATE TABLE public.test_attempts (
 
 
 
-CREATE TABLE public.test_questions (
+
+
+CREATE TABLE IF NOT EXISTS public.test_questions (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
     test_id uuid NOT NULL,
     question_text text NOT NULL,
@@ -537,7 +605,9 @@ CREATE TABLE public.test_questions (
 
 
 
-CREATE TABLE public.tests (
+
+
+CREATE TABLE IF NOT EXISTS public.tests (
     id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
     title text NOT NULL,
     subject text NOT NULL,
@@ -555,7 +625,9 @@ CREATE TABLE public.tests (
 
 
 
-CREATE TABLE public.timetable_overrides (
+
+
+CREATE TABLE IF NOT EXISTS public.timetable_overrides (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     effective_date date NOT NULL,
     class text NOT NULL,
@@ -573,7 +645,9 @@ CREATE TABLE public.timetable_overrides (
 
 
 
-CREATE TABLE public.timetables (
+
+
+CREATE TABLE IF NOT EXISTS public.timetables (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     class text NOT NULL,
     day text NOT NULL,
@@ -591,824 +665,1542 @@ CREATE TABLE public.timetables (
     CONSTRAINT timetables_period_number_check CHECK (((period_number >= 1) AND (period_number <= 9)))
 );
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.annotation_upvotes
+        ADD CONSTRAINT annotation_upvotes_annotation_id_user_id_key UNIQUE (annotation_id, user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.annotation_upvotes
+        ADD CONSTRAINT annotation_upvotes_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.attendance_daily_stats
+        ADD CONSTRAINT attendance_daily_stats_class_date_key UNIQUE (class, date);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.attendance_daily_stats
+        ADD CONSTRAINT attendance_daily_stats_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.attendance
+        ADD CONSTRAINT attendance_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.attendance
+        ADD CONSTRAINT attendance_student_id_date_key UNIQUE (student_id, date);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.attendance_thresholds
+        ADD CONSTRAINT attendance_thresholds_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_answers
+        ADD CONSTRAINT chapter_answers_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_connections
+        ADD CONSTRAINT chapter_connections_chapter_id_related_chapter_id_key UNIQUE (chapter_id, related_chapter_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_connections
+        ADD CONSTRAINT chapter_connections_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_questions
+        ADD CONSTRAINT chapter_questions_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_reading_times
+        ADD CONSTRAINT chapter_reading_times_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_reading_times
+        ADD CONSTRAINT chapter_reading_times_user_id_chapter_id_key UNIQUE (user_id, chapter_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_challenge_answers
+        ADD CONSTRAINT daily_challenge_answers_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_challenge_answers
+        ADD CONSTRAINT daily_challenge_answers_user_id_challenge_date_key UNIQUE (user_id, challenge_date);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_challenge
+        ADD CONSTRAINT daily_challenge_challenge_date_key UNIQUE (challenge_date);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_challenge
+        ADD CONSTRAINT daily_challenge_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_quiz_attempts
+        ADD CONSTRAINT daily_quiz_attempts_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_quiz_attempts
+        ADD CONSTRAINT daily_quiz_attempts_user_id_quiz_date_key UNIQUE (user_id, quiz_date);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_quizzes
+        ADD CONSTRAINT daily_quizzes_pkey PRIMARY KEY (quiz_date);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.discussion_messages
+        ADD CONSTRAINT discussion_messages_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.homework_completions
+        ADD CONSTRAINT homework_completions_homework_id_student_id_key UNIQUE (homework_id, student_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.homework_completions
+        ADD CONSTRAINT homework_completions_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.homework
+        ADD CONSTRAINT homework_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.mistake_reports
+        ADD CONSTRAINT mistake_reports_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_annotations
+        ADD CONSTRAINT note_annotations_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_chapters
+        ADD CONSTRAINT note_chapters_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_chapters
+        ADD CONSTRAINT note_chapters_subject_id_slug_key UNIQUE (subject_id, slug);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_flashcard_progress
+        ADD CONSTRAINT note_flashcard_progress_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_flashcard_progress
+        ADD CONSTRAINT note_flashcard_progress_user_id_flashcard_id_key UNIQUE (user_id, flashcard_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_flashcards
+        ADD CONSTRAINT note_flashcards_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_highlights
+        ADD CONSTRAINT note_highlights_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_progress
+        ADD CONSTRAINT note_progress_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_progress
+        ADD CONSTRAINT note_progress_user_id_chapter_id_key UNIQUE (user_id, chapter_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_questions
+        ADD CONSTRAINT note_questions_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_quiz_results
+        ADD CONSTRAINT note_quiz_results_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_quizzes
+        ADD CONSTRAINT note_quizzes_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_ratings
+        ADD CONSTRAINT note_ratings_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_ratings
+        ADD CONSTRAINT note_ratings_user_id_chapter_id_key UNIQUE (user_id, chapter_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_subjects
+        ADD CONSTRAINT note_subjects_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_subjects
+        ADD CONSTRAINT note_subjects_slug_key UNIQUE (slug);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_wrong_answers
+        ADD CONSTRAINT note_wrong_answers_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_wrong_answers
+        ADD CONSTRAINT note_wrong_answers_user_id_question_id_key UNIQUE (user_id, question_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.srs_reviews
+        ADD CONSTRAINT srs_reviews_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.srs_reviews
+        ADD CONSTRAINT srs_reviews_unique_user_question UNIQUE (user_id, question_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.student_gamification
+        ADD CONSTRAINT student_gamification_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.student_gamification
+        ADD CONSTRAINT student_gamification_user_id_key UNIQUE (user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.study_group_members
+        ADD CONSTRAINT study_group_members_group_id_user_id_key UNIQUE (group_id, user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.study_group_members
+        ADD CONSTRAINT study_group_members_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.study_groups
+        ADD CONSTRAINT study_groups_code_key UNIQUE (code);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.study_groups
+        ADD CONSTRAINT study_groups_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.test_attempts
+        ADD CONSTRAINT test_attempts_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.test_attempts
+        ADD CONSTRAINT test_attempts_test_id_user_id_key UNIQUE (test_id, user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.test_questions
+        ADD CONSTRAINT test_questions_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.tests
+        ADD CONSTRAINT tests_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.timetable_overrides
+        ADD CONSTRAINT timetable_overrides_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.timetables
+        ADD CONSTRAINT timetables_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+
+
+
+
+
+CREATE INDEX IF NOT EXISTS idx_annotation_upvotes_annotation ON public.annotation_upvotes USING btree (annotation_id);
+
+
+
+
+
+
+CREATE INDEX IF NOT EXISTS idx_annotation_upvotes_annotation_id ON public.annotation_upvotes USING btree (annotation_id);
+
+
+
+
+
+
+CREATE INDEX IF NOT EXISTS idx_annotation_upvotes_user ON public.annotation_upvotes USING btree (user_id);
+
+
+
+
+
+
+CREATE INDEX IF NOT EXISTS idx_attendance_class_date ON public.attendance USING btree (class, date DESC);
+
+
+
+
+
+
+CREATE INDEX IF NOT EXISTS idx_attendance_daily_stats_class_date ON public.attendance_daily_stats USING btree (class, date DESC);
+
+
+
+
+
+
+CREATE INDEX IF NOT EXISTS idx_attendance_date ON public.attendance USING btree (date);
+
+
+
+
+
+
+CREATE INDEX IF NOT EXISTS idx_attendance_status ON public.attendance USING btree (status);
+
+
+
+
+
+
+CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON public.attendance USING btree (student_id, date);
+
+
+
+
 
+
+CREATE INDEX IF NOT EXISTS idx_chapter_answers_question_id ON public.chapter_answers USING btree (question_id);
 
 
 
-ALTER TABLE ONLY public.annotation_upvotes
-    ADD CONSTRAINT annotation_upvotes_annotation_id_user_id_key UNIQUE (annotation_id, user_id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_chapter_questions_chapter_id ON public.chapter_questions USING btree (chapter_id);
 
-ALTER TABLE ONLY public.annotation_upvotes
-    ADD CONSTRAINT annotation_upvotes_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.attendance_daily_stats
-    ADD CONSTRAINT attendance_daily_stats_class_date_key UNIQUE (class, date);
 
+CREATE INDEX IF NOT EXISTS idx_chapter_questions_created_at ON public.chapter_questions USING btree (created_at DESC);
 
 
 
-ALTER TABLE ONLY public.attendance_daily_stats
-    ADD CONSTRAINT attendance_daily_stats_pkey PRIMARY KEY (id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_chapter_reading_times_user_id ON public.chapter_reading_times USING btree (user_id);
 
-ALTER TABLE ONLY public.attendance
-    ADD CONSTRAINT attendance_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.attendance
-    ADD CONSTRAINT attendance_student_id_date_key UNIQUE (student_id, date);
 
+CREATE INDEX IF NOT EXISTS idx_dqa_date ON public.daily_quiz_attempts USING btree (quiz_date);
 
 
 
-ALTER TABLE ONLY public.attendance_thresholds
-    ADD CONSTRAINT attendance_thresholds_pkey PRIMARY KEY (id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_dqa_user ON public.daily_quiz_attempts USING btree (user_id);
 
-ALTER TABLE ONLY public.chapter_answers
-    ADD CONSTRAINT chapter_answers_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.chapter_connections
-    ADD CONSTRAINT chapter_connections_chapter_id_related_chapter_id_key UNIQUE (chapter_id, related_chapter_id);
 
+CREATE INDEX IF NOT EXISTS idx_homework_class ON public.homework USING btree (class);
 
 
 
-ALTER TABLE ONLY public.chapter_connections
-    ADD CONSTRAINT chapter_connections_pkey PRIMARY KEY (id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_homework_due ON public.homework USING btree (due_date);
 
-ALTER TABLE ONLY public.chapter_questions
-    ADD CONSTRAINT chapter_questions_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.chapter_reading_times
-    ADD CONSTRAINT chapter_reading_times_pkey PRIMARY KEY (id);
 
+CREATE INDEX IF NOT EXISTS idx_hw_completions_hw ON public.homework_completions USING btree (homework_id);
 
 
 
-ALTER TABLE ONLY public.chapter_reading_times
-    ADD CONSTRAINT chapter_reading_times_user_id_chapter_id_key UNIQUE (user_id, chapter_id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_hw_completions_student ON public.homework_completions USING btree (student_id);
 
-ALTER TABLE ONLY public.daily_challenge_answers
-    ADD CONSTRAINT daily_challenge_answers_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.daily_challenge_answers
-    ADD CONSTRAINT daily_challenge_answers_user_id_challenge_date_key UNIQUE (user_id, challenge_date);
 
+CREATE INDEX IF NOT EXISTS idx_mistake_reports_chapter_id ON public.mistake_reports USING btree (chapter_id);
 
 
 
-ALTER TABLE ONLY public.daily_challenge
-    ADD CONSTRAINT daily_challenge_challenge_date_key UNIQUE (challenge_date);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_mistake_reports_created_at ON public.mistake_reports USING btree (created_at DESC);
 
-ALTER TABLE ONLY public.daily_challenge
-    ADD CONSTRAINT daily_challenge_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.daily_quiz_attempts
-    ADD CONSTRAINT daily_quiz_attempts_pkey PRIMARY KEY (id);
 
+CREATE INDEX IF NOT EXISTS idx_mistake_reports_status ON public.mistake_reports USING btree (status);
 
 
 
-ALTER TABLE ONLY public.daily_quiz_attempts
-    ADD CONSTRAINT daily_quiz_attempts_user_id_quiz_date_key UNIQUE (user_id, quiz_date);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_note_annotations_chapter ON public.note_annotations USING btree (chapter_id);
 
-ALTER TABLE ONLY public.daily_quizzes
-    ADD CONSTRAINT daily_quizzes_pkey PRIMARY KEY (quiz_date);
 
 
 
 
-ALTER TABLE ONLY public.discussion_messages
-    ADD CONSTRAINT discussion_messages_pkey PRIMARY KEY (id);
 
+CREATE INDEX IF NOT EXISTS idx_note_annotations_chapter_id ON public.note_annotations USING btree (chapter_id);
 
 
 
-ALTER TABLE ONLY public.homework_completions
-    ADD CONSTRAINT homework_completions_homework_id_student_id_key UNIQUE (homework_id, student_id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_note_annotations_user ON public.note_annotations USING btree (user_id);
 
-ALTER TABLE ONLY public.homework_completions
-    ADD CONSTRAINT homework_completions_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.homework
-    ADD CONSTRAINT homework_pkey PRIMARY KEY (id);
 
+CREATE INDEX IF NOT EXISTS idx_note_annotations_user_id ON public.note_annotations USING btree (user_id);
 
 
 
-ALTER TABLE ONLY public.mistake_reports
-    ADD CONSTRAINT mistake_reports_pkey PRIMARY KEY (id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_note_annotations_visibility ON public.note_annotations USING btree (visibility);
 
-ALTER TABLE ONLY public.note_annotations
-    ADD CONSTRAINT note_annotations_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.note_chapters
-    ADD CONSTRAINT note_chapters_pkey PRIMARY KEY (id);
 
+CREATE INDEX IF NOT EXISTS idx_srs_reviews_question ON public.srs_reviews USING btree (question_id);
 
 
 
-ALTER TABLE ONLY public.note_chapters
-    ADD CONSTRAINT note_chapters_subject_id_slug_key UNIQUE (subject_id, slug);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_srs_reviews_user_due ON public.srs_reviews USING btree (user_id, next_review_date);
 
-ALTER TABLE ONLY public.note_flashcard_progress
-    ADD CONSTRAINT note_flashcard_progress_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.note_flashcard_progress
-    ADD CONSTRAINT note_flashcard_progress_user_id_flashcard_id_key UNIQUE (user_id, flashcard_id);
 
+CREATE INDEX IF NOT EXISTS idx_timetables_class ON public.timetables USING btree (class);
 
 
 
-ALTER TABLE ONLY public.note_flashcards
-    ADD CONSTRAINT note_flashcards_pkey PRIMARY KEY (id);
 
 
 
+CREATE INDEX IF NOT EXISTS srs_reviews_question ON public.srs_reviews USING btree (question_id);
 
-ALTER TABLE ONLY public.note_highlights
-    ADD CONSTRAINT note_highlights_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.note_progress
-    ADD CONSTRAINT note_progress_pkey PRIMARY KEY (id);
 
+CREATE INDEX IF NOT EXISTS srs_reviews_user_due ON public.srs_reviews USING btree (user_id, next_review_date);
 
 
 
-ALTER TABLE ONLY public.note_progress
-    ADD CONSTRAINT note_progress_user_id_chapter_id_key UNIQUE (user_id, chapter_id);
 
 
 
+CREATE INDEX IF NOT EXISTS timetable_overrides_date_idx ON public.timetable_overrides USING btree (effective_date);
 
-ALTER TABLE ONLY public.note_questions
-    ADD CONSTRAINT note_questions_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.note_quiz_results
-    ADD CONSTRAINT note_quiz_results_pkey PRIMARY KEY (id);
 
+CREATE INDEX IF NOT EXISTS timetable_overrides_substitute_idx ON public.timetable_overrides USING btree (effective_date, substitute_teacher);
 
 
 
-ALTER TABLE ONLY public.note_quizzes
-    ADD CONSTRAINT note_quizzes_pkey PRIMARY KEY (id);
 
 
 
+CREATE UNIQUE INDEX IF NOT EXISTS timetable_overrides_unique ON public.timetable_overrides USING btree (effective_date, class, day, period_number);
 
-ALTER TABLE ONLY public.note_ratings
-    ADD CONSTRAINT note_ratings_pkey PRIMARY KEY (id);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.annotation_upvotes
+        ADD CONSTRAINT annotation_upvotes_annotation_id_fkey FOREIGN KEY (annotation_id) REFERENCES public.note_annotations(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.annotation_upvotes
+        ADD CONSTRAINT annotation_upvotes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.attendance
+        ADD CONSTRAINT attendance_marked_by_fkey FOREIGN KEY (marked_by) REFERENCES public.profiles(id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.attendance
+        ADD CONSTRAINT attendance_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-ALTER TABLE ONLY public.note_ratings
-    ADD CONSTRAINT note_ratings_user_id_chapter_id_key UNIQUE (user_id, chapter_id);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_answers
+        ADD CONSTRAINT chapter_answers_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.chapter_questions(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_answers
+        ADD CONSTRAINT chapter_answers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_connections
+        ADD CONSTRAINT chapter_connections_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_connections
+        ADD CONSTRAINT chapter_connections_related_chapter_id_fkey FOREIGN KEY (related_chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-ALTER TABLE ONLY public.note_subjects
-    ADD CONSTRAINT note_subjects_pkey PRIMARY KEY (id);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_questions
+        ADD CONSTRAINT chapter_questions_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_questions
+        ADD CONSTRAINT chapter_questions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_reading_times
+        ADD CONSTRAINT chapter_reading_times_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.chapter_reading_times
+        ADD CONSTRAINT chapter_reading_times_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-ALTER TABLE ONLY public.note_subjects
-    ADD CONSTRAINT note_subjects_slug_key UNIQUE (slug);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_challenge_answers
+        ADD CONSTRAINT daily_challenge_answers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_challenge
+        ADD CONSTRAINT daily_challenge_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.note_questions(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_quiz_attempts
+        ADD CONSTRAINT daily_quiz_attempts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.discussion_messages
+        ADD CONSTRAINT discussion_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.homework_completions
+        ADD CONSTRAINT homework_completions_homework_id_fkey FOREIGN KEY (homework_id) REFERENCES public.homework(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.homework_completions
+        ADD CONSTRAINT homework_completions_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.homework
+        ADD CONSTRAINT homework_posted_by_fkey FOREIGN KEY (posted_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.mistake_reports
+        ADD CONSTRAINT mistake_reports_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.mistake_reports
+        ADD CONSTRAINT mistake_reports_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_annotations
+        ADD CONSTRAINT note_annotations_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_annotations
+        ADD CONSTRAINT note_annotations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_annotations
+        ADD CONSTRAINT note_annotations_user_id_profiles_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_chapters
+        ADD CONSTRAINT note_chapters_prerequisite_chapter_id_fkey FOREIGN KEY (prerequisite_chapter_id) REFERENCES public.note_chapters(id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_chapters
+        ADD CONSTRAINT note_chapters_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.note_subjects(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_flashcard_progress
+        ADD CONSTRAINT note_flashcard_progress_flashcard_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.note_flashcards(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_flashcard_progress
+        ADD CONSTRAINT note_flashcard_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_flashcards
+        ADD CONSTRAINT note_flashcards_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_highlights
+        ADD CONSTRAINT note_highlights_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_highlights
+        ADD CONSTRAINT note_highlights_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_progress
+        ADD CONSTRAINT note_progress_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_progress
+        ADD CONSTRAINT note_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_questions
+        ADD CONSTRAINT note_questions_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.note_quizzes(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_quiz_results
+        ADD CONSTRAINT note_quiz_results_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.note_quizzes(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_quiz_results
+        ADD CONSTRAINT note_quiz_results_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_quizzes
+        ADD CONSTRAINT note_quizzes_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_ratings
+        ADD CONSTRAINT note_ratings_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_ratings
+        ADD CONSTRAINT note_ratings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_wrong_answers
+        ADD CONSTRAINT note_wrong_answers_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.note_questions(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.note_wrong_answers
+        ADD CONSTRAINT note_wrong_answers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.srs_reviews
+        ADD CONSTRAINT srs_reviews_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.note_questions(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.srs_reviews
+        ADD CONSTRAINT srs_reviews_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.student_gamification
+        ADD CONSTRAINT student_gamification_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.study_group_members
+        ADD CONSTRAINT study_group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.study_groups(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.study_group_members
+        ADD CONSTRAINT study_group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.study_groups
+        ADD CONSTRAINT study_groups_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.test_attempts
+        ADD CONSTRAINT test_attempts_test_id_fkey FOREIGN KEY (test_id) REFERENCES public.tests(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.test_attempts
+        ADD CONSTRAINT test_attempts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.test_questions
+        ADD CONSTRAINT test_questions_test_id_fkey FOREIGN KEY (test_id) REFERENCES public.tests(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.tests
+        ADD CONSTRAINT tests_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-ALTER TABLE ONLY public.note_wrong_answers
-    ADD CONSTRAINT note_wrong_answers_pkey PRIMARY KEY (id);
 
-
-
-
-ALTER TABLE ONLY public.note_wrong_answers
-    ADD CONSTRAINT note_wrong_answers_user_id_question_id_key UNIQUE (user_id, question_id);
-
-
-
-
-ALTER TABLE ONLY public.srs_reviews
-    ADD CONSTRAINT srs_reviews_pkey PRIMARY KEY (id);
-
-
-
-
-ALTER TABLE ONLY public.srs_reviews
-    ADD CONSTRAINT srs_reviews_unique_user_question UNIQUE (user_id, question_id);
-
-
-
-
-ALTER TABLE ONLY public.student_gamification
-    ADD CONSTRAINT student_gamification_pkey PRIMARY KEY (id);
-
-
-
-
-ALTER TABLE ONLY public.student_gamification
-    ADD CONSTRAINT student_gamification_user_id_key UNIQUE (user_id);
-
-
-
-
-ALTER TABLE ONLY public.study_group_members
-    ADD CONSTRAINT study_group_members_group_id_user_id_key UNIQUE (group_id, user_id);
-
-
-
-
-ALTER TABLE ONLY public.study_group_members
-    ADD CONSTRAINT study_group_members_pkey PRIMARY KEY (id);
-
-
-
-
-ALTER TABLE ONLY public.study_groups
-    ADD CONSTRAINT study_groups_code_key UNIQUE (code);
-
-
-
-
-ALTER TABLE ONLY public.study_groups
-    ADD CONSTRAINT study_groups_pkey PRIMARY KEY (id);
-
-
-
-
-ALTER TABLE ONLY public.test_attempts
-    ADD CONSTRAINT test_attempts_pkey PRIMARY KEY (id);
-
-
-
-
-ALTER TABLE ONLY public.test_attempts
-    ADD CONSTRAINT test_attempts_test_id_user_id_key UNIQUE (test_id, user_id);
-
-
-
-
-ALTER TABLE ONLY public.test_questions
-    ADD CONSTRAINT test_questions_pkey PRIMARY KEY (id);
-
-
-
-
-ALTER TABLE ONLY public.tests
-    ADD CONSTRAINT tests_pkey PRIMARY KEY (id);
-
-
-
-
-ALTER TABLE ONLY public.timetable_overrides
-    ADD CONSTRAINT timetable_overrides_pkey PRIMARY KEY (id);
-
-
-
-
-ALTER TABLE ONLY public.timetables
-    ADD CONSTRAINT timetables_pkey PRIMARY KEY (id);
-
-
-
-
-CREATE INDEX idx_annotation_upvotes_annotation ON public.annotation_upvotes USING btree (annotation_id);
-
-
-
-
-CREATE INDEX idx_annotation_upvotes_annotation_id ON public.annotation_upvotes USING btree (annotation_id);
-
-
-
-
-CREATE INDEX idx_annotation_upvotes_user ON public.annotation_upvotes USING btree (user_id);
-
-
-
-
-CREATE INDEX idx_attendance_class_date ON public.attendance USING btree (class, date DESC);
-
-
-
-
-CREATE INDEX idx_attendance_daily_stats_class_date ON public.attendance_daily_stats USING btree (class, date DESC);
-
-
-
-
-CREATE INDEX idx_attendance_date ON public.attendance USING btree (date);
-
-
-
-
-CREATE INDEX idx_attendance_status ON public.attendance USING btree (status);
-
-
-
-
-CREATE INDEX idx_attendance_student_date ON public.attendance USING btree (student_id, date);
-
-
-
-
-CREATE INDEX idx_chapter_answers_question_id ON public.chapter_answers USING btree (question_id);
-
-
-
-
-CREATE INDEX idx_chapter_questions_chapter_id ON public.chapter_questions USING btree (chapter_id);
-
-
-
-
-CREATE INDEX idx_chapter_questions_created_at ON public.chapter_questions USING btree (created_at DESC);
-
-
-
-
-CREATE INDEX idx_chapter_reading_times_user_id ON public.chapter_reading_times USING btree (user_id);
-
-
-
-
-CREATE INDEX idx_dqa_date ON public.daily_quiz_attempts USING btree (quiz_date);
-
-
-
-
-CREATE INDEX idx_dqa_user ON public.daily_quiz_attempts USING btree (user_id);
-
-
-
-
-CREATE INDEX idx_homework_class ON public.homework USING btree (class);
-
-
-
-
-CREATE INDEX idx_homework_due ON public.homework USING btree (due_date);
-
-
-
-
-CREATE INDEX idx_hw_completions_hw ON public.homework_completions USING btree (homework_id);
-
-
-
-
-CREATE INDEX idx_hw_completions_student ON public.homework_completions USING btree (student_id);
-
-
-
-
-CREATE INDEX idx_mistake_reports_chapter_id ON public.mistake_reports USING btree (chapter_id);
-
-
-
-
-CREATE INDEX idx_mistake_reports_created_at ON public.mistake_reports USING btree (created_at DESC);
-
-
-
-
-CREATE INDEX idx_mistake_reports_status ON public.mistake_reports USING btree (status);
-
-
-
-
-CREATE INDEX idx_note_annotations_chapter ON public.note_annotations USING btree (chapter_id);
-
-
-
-
-CREATE INDEX idx_note_annotations_chapter_id ON public.note_annotations USING btree (chapter_id);
-
-
-
-
-CREATE INDEX idx_note_annotations_user ON public.note_annotations USING btree (user_id);
-
-
-
-
-CREATE INDEX idx_note_annotations_user_id ON public.note_annotations USING btree (user_id);
-
-
-
-
-CREATE INDEX idx_note_annotations_visibility ON public.note_annotations USING btree (visibility);
-
-
-
-
-CREATE INDEX idx_srs_reviews_question ON public.srs_reviews USING btree (question_id);
-
-
-
-
-CREATE INDEX idx_srs_reviews_user_due ON public.srs_reviews USING btree (user_id, next_review_date);
-
-
-
-
-CREATE INDEX idx_timetables_class ON public.timetables USING btree (class);
-
-
-
-
-CREATE INDEX srs_reviews_question ON public.srs_reviews USING btree (question_id);
-
-
-
-
-CREATE INDEX srs_reviews_user_due ON public.srs_reviews USING btree (user_id, next_review_date);
-
-
-
-
-CREATE INDEX timetable_overrides_date_idx ON public.timetable_overrides USING btree (effective_date);
-
-
-
-
-CREATE INDEX timetable_overrides_substitute_idx ON public.timetable_overrides USING btree (effective_date, substitute_teacher);
-
-
-
-
-CREATE UNIQUE INDEX timetable_overrides_unique ON public.timetable_overrides USING btree (effective_date, class, day, period_number);
-
-
-
-
-ALTER TABLE ONLY public.annotation_upvotes
-    ADD CONSTRAINT annotation_upvotes_annotation_id_fkey FOREIGN KEY (annotation_id) REFERENCES public.note_annotations(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.annotation_upvotes
-    ADD CONSTRAINT annotation_upvotes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.attendance
-    ADD CONSTRAINT attendance_marked_by_fkey FOREIGN KEY (marked_by) REFERENCES public.profiles(id);
-
-
-
-
-ALTER TABLE ONLY public.attendance
-    ADD CONSTRAINT attendance_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.chapter_answers
-    ADD CONSTRAINT chapter_answers_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.chapter_questions(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.chapter_answers
-    ADD CONSTRAINT chapter_answers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.chapter_connections
-    ADD CONSTRAINT chapter_connections_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.chapter_connections
-    ADD CONSTRAINT chapter_connections_related_chapter_id_fkey FOREIGN KEY (related_chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.chapter_questions
-    ADD CONSTRAINT chapter_questions_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.chapter_questions
-    ADD CONSTRAINT chapter_questions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.chapter_reading_times
-    ADD CONSTRAINT chapter_reading_times_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.chapter_reading_times
-    ADD CONSTRAINT chapter_reading_times_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.daily_challenge_answers
-    ADD CONSTRAINT daily_challenge_answers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.daily_challenge
-    ADD CONSTRAINT daily_challenge_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.note_questions(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.daily_quiz_attempts
-    ADD CONSTRAINT daily_quiz_attempts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.discussion_messages
-    ADD CONSTRAINT discussion_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.homework_completions
-    ADD CONSTRAINT homework_completions_homework_id_fkey FOREIGN KEY (homework_id) REFERENCES public.homework(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.homework_completions
-    ADD CONSTRAINT homework_completions_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.homework
-    ADD CONSTRAINT homework_posted_by_fkey FOREIGN KEY (posted_by) REFERENCES auth.users(id) ON DELETE SET NULL;
-
-
-
-
-ALTER TABLE ONLY public.mistake_reports
-    ADD CONSTRAINT mistake_reports_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.mistake_reports
-    ADD CONSTRAINT mistake_reports_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_annotations
-    ADD CONSTRAINT note_annotations_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_annotations
-    ADD CONSTRAINT note_annotations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_annotations
-    ADD CONSTRAINT note_annotations_user_id_profiles_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_chapters
-    ADD CONSTRAINT note_chapters_prerequisite_chapter_id_fkey FOREIGN KEY (prerequisite_chapter_id) REFERENCES public.note_chapters(id);
-
-
-
-
-ALTER TABLE ONLY public.note_chapters
-    ADD CONSTRAINT note_chapters_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.note_subjects(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_flashcard_progress
-    ADD CONSTRAINT note_flashcard_progress_flashcard_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.note_flashcards(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_flashcard_progress
-    ADD CONSTRAINT note_flashcard_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_flashcards
-    ADD CONSTRAINT note_flashcards_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_highlights
-    ADD CONSTRAINT note_highlights_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_highlights
-    ADD CONSTRAINT note_highlights_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_progress
-    ADD CONSTRAINT note_progress_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_progress
-    ADD CONSTRAINT note_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_questions
-    ADD CONSTRAINT note_questions_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.note_quizzes(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_quiz_results
-    ADD CONSTRAINT note_quiz_results_quiz_id_fkey FOREIGN KEY (quiz_id) REFERENCES public.note_quizzes(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_quiz_results
-    ADD CONSTRAINT note_quiz_results_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_quizzes
-    ADD CONSTRAINT note_quizzes_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_ratings
-    ADD CONSTRAINT note_ratings_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.note_chapters(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_ratings
-    ADD CONSTRAINT note_ratings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_wrong_answers
-    ADD CONSTRAINT note_wrong_answers_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.note_questions(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.note_wrong_answers
-    ADD CONSTRAINT note_wrong_answers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.srs_reviews
-    ADD CONSTRAINT srs_reviews_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.note_questions(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.srs_reviews
-    ADD CONSTRAINT srs_reviews_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.student_gamification
-    ADD CONSTRAINT student_gamification_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.study_group_members
-    ADD CONSTRAINT study_group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.study_groups(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.study_group_members
-    ADD CONSTRAINT study_group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.study_groups
-    ADD CONSTRAINT study_groups_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.test_attempts
-    ADD CONSTRAINT test_attempts_test_id_fkey FOREIGN KEY (test_id) REFERENCES public.tests(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.test_attempts
-    ADD CONSTRAINT test_attempts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.test_questions
-    ADD CONSTRAINT test_questions_test_id_fkey FOREIGN KEY (test_id) REFERENCES public.tests(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.tests
-    ADD CONSTRAINT tests_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
 
 
 
@@ -1417,7 +2209,11 @@ ALTER TABLE public.annotation_upvotes ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1425,7 +2221,11 @@ ALTER TABLE public.attendance_daily_stats ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.attendance_thresholds ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1433,7 +2233,11 @@ ALTER TABLE public.chapter_answers ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.chapter_connections ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1441,7 +2245,11 @@ ALTER TABLE public.chapter_questions ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.chapter_reading_times ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1449,7 +2257,11 @@ ALTER TABLE public.daily_challenge ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.daily_challenge_answers ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1457,7 +2269,11 @@ ALTER TABLE public.daily_quiz_attempts ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.daily_quizzes ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1465,7 +2281,11 @@ ALTER TABLE public.discussion_messages ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.homework ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1473,7 +2293,11 @@ ALTER TABLE public.homework_completions ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.mistake_reports ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1481,7 +2305,11 @@ ALTER TABLE public.note_annotations ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.note_chapters ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1489,7 +2317,11 @@ ALTER TABLE public.note_flashcard_progress ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.note_flashcards ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1497,7 +2329,11 @@ ALTER TABLE public.note_highlights ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.note_progress ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1505,7 +2341,11 @@ ALTER TABLE public.note_questions ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.note_quiz_results ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1513,7 +2353,11 @@ ALTER TABLE public.note_quizzes ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.note_ratings ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1521,7 +2365,11 @@ ALTER TABLE public.note_subjects ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.note_wrong_answers ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1529,7 +2377,11 @@ ALTER TABLE public.srs_reviews ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.student_gamification ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1537,7 +2389,11 @@ ALTER TABLE public.study_group_members ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.study_groups ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1545,7 +2401,11 @@ ALTER TABLE public.test_attempts ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.test_questions ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1553,7 +2413,11 @@ ALTER TABLE public.tests ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.timetable_overrides ENABLE ROW LEVEL SECURITY;
+
+
 
 
 

@@ -48,6 +48,8 @@ INSERT INTO public.school_settings (
 )
 ON CONFLICT (id) DO NOTHING;
 
+
+
 -- ─── First admin user (created via Supabase Auth → then linked here) ───
 -- The auth.users row is created when the school owner signs up via the
 -- website. After they confirm their email, run the following from the

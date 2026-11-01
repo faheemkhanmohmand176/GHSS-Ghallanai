@@ -18,7 +18,15 @@
 -- ═══════════════════════════════════════════════════════════════════════
 
 
-CREATE TABLE public.admissions (
+-- The reference_no DEFAULT (GHSS-YYYY-00001) draws from this sequence.
+-- It was missing on fresh installs (the live DB had it from an earlier session),
+-- which made every statement touching public.admissions fail. Self-contained now.
+CREATE SEQUENCE IF NOT EXISTS public.admissions_ref_seq START 1;
+
+
+
+
+CREATE TABLE IF NOT EXISTS public.admissions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     reference_no text DEFAULT ((('GHSS-'::text || to_char(now(), 'YYYY'::text)) || '-'::text) || lpad((nextval('public.admissions_ref_seq'::regclass))::text, 5, '0'::text)) NOT NULL,
     full_name text NOT NULL,
@@ -52,7 +60,9 @@ CREATE TABLE public.admissions (
 
 
 
-CREATE TABLE public.admission_documents (
+
+
+CREATE TABLE IF NOT EXISTS public.admission_documents (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     admission_id uuid NOT NULL,
     doc_type text NOT NULL,
@@ -65,7 +75,9 @@ CREATE TABLE public.admission_documents (
 
 
 
-CREATE TABLE public.admission_otp_codes (
+
+
+CREATE TABLE IF NOT EXISTS public.admission_otp_codes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     contact_number text NOT NULL,
     otp_code text NOT NULL,
@@ -80,7 +92,9 @@ CREATE TABLE public.admission_otp_codes (
 
 
 
-CREATE TABLE public.admission_settings (
+
+
+CREATE TABLE IF NOT EXISTS public.admission_settings (
     id integer DEFAULT 1 NOT NULL,
     is_open boolean DEFAULT false NOT NULL,
     session_year text DEFAULT '2026'::text NOT NULL,
@@ -96,7 +110,9 @@ CREATE TABLE public.admission_settings (
 
 
 
-CREATE TABLE public.admission_status_timeline (
+
+
+CREATE TABLE IF NOT EXISTS public.admission_status_timeline (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     admission_id uuid NOT NULL,
     from_status public.admission_status,
@@ -110,7 +126,9 @@ CREATE TABLE public.admission_status_timeline (
 
 
 
-CREATE TABLE public.exam_attendance (
+
+
+CREATE TABLE IF NOT EXISTS public.exam_attendance (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     session_id uuid NOT NULL,
     student_id uuid NOT NULL,
@@ -136,7 +154,9 @@ CREATE TABLE public.exam_attendance (
 
 
 
-CREATE TABLE public.exam_roll_numbers (
+
+
+CREATE TABLE IF NOT EXISTS public.exam_roll_numbers (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     session_id uuid,
     student_id uuid,
@@ -153,7 +173,9 @@ CREATE TABLE public.exam_roll_numbers (
 
 
 
-CREATE TABLE public.exam_roll_sessions (
+
+
+CREATE TABLE IF NOT EXISTS public.exam_roll_sessions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text NOT NULL,
     exam_year integer NOT NULL,
@@ -172,7 +194,9 @@ CREATE TABLE public.exam_roll_sessions (
 
 
 
-CREATE TABLE public.exam_schedule (
+
+
+CREATE TABLE IF NOT EXISTS public.exam_schedule (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     class text NOT NULL,
     exam_type text NOT NULL,
@@ -193,7 +217,9 @@ CREATE TABLE public.exam_schedule (
 
 
 
-CREATE TABLE public.exam_seating_assignments (
+
+
+CREATE TABLE IF NOT EXISTS public.exam_seating_assignments (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     plan_id uuid NOT NULL,
     room_id uuid NOT NULL,
@@ -213,7 +239,9 @@ CREATE TABLE public.exam_seating_assignments (
 
 
 
-CREATE TABLE public.exam_seating_plans (
+
+
+CREATE TABLE IF NOT EXISTS public.exam_seating_plans (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     session_id uuid NOT NULL,
     title text NOT NULL,
@@ -247,7 +275,9 @@ CREATE TABLE public.exam_seating_plans (
 
 
 
-CREATE TABLE public.exam_seating_rooms (
+
+
+CREATE TABLE IF NOT EXISTS public.exam_seating_rooms (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     plan_id uuid NOT NULL,
     name text NOT NULL,
@@ -267,7 +297,9 @@ CREATE TABLE public.exam_seating_rooms (
 
 
 
-CREATE TABLE public.fee_payments (
+
+
+CREATE TABLE IF NOT EXISTS public.fee_payments (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     voucher_id uuid NOT NULL,
     student_id uuid NOT NULL,
@@ -284,7 +316,9 @@ CREATE TABLE public.fee_payments (
 
 
 
-CREATE TABLE public.fee_structures (
+
+
+CREATE TABLE IF NOT EXISTS public.fee_structures (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     class text NOT NULL,
     fee_type text NOT NULL,
@@ -303,7 +337,9 @@ CREATE TABLE public.fee_structures (
 
 
 
-CREATE TABLE public.fee_types (
+
+
+CREATE TABLE IF NOT EXISTS public.fee_types (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     school_id uuid,
     name text NOT NULL,
@@ -318,7 +354,9 @@ CREATE TABLE public.fee_types (
 
 
 
-CREATE TABLE public.fee_vouchers (
+
+
+CREATE TABLE IF NOT EXISTS public.fee_vouchers (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     voucher_number text NOT NULL,
     student_id uuid NOT NULL,
@@ -342,7 +380,9 @@ CREATE TABLE public.fee_vouchers (
 
 
 
-CREATE TABLE public.generated_id_cards (
+
+
+CREATE TABLE IF NOT EXISTS public.generated_id_cards (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     student_id uuid NOT NULL,
     full_name text NOT NULL,
@@ -361,7 +401,9 @@ CREATE TABLE public.generated_id_cards (
 
 
 
-CREATE TABLE public.interview_bookings (
+
+
+CREATE TABLE IF NOT EXISTS public.interview_bookings (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     admission_id uuid NOT NULL,
     slot_id uuid NOT NULL,
@@ -374,7 +416,9 @@ CREATE TABLE public.interview_bookings (
 
 
 
-CREATE TABLE public.interview_slots (
+
+
+CREATE TABLE IF NOT EXISTS public.interview_slots (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     slot_date date NOT NULL,
     start_time time without time zone NOT NULL,
@@ -395,7 +439,9 @@ CREATE TABLE public.interview_slots (
 
 
 
-CREATE TABLE public.merit_lists (
+
+
+CREATE TABLE IF NOT EXISTS public.merit_lists (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     class text NOT NULL,
     exam_type text,
@@ -422,7 +468,9 @@ CREATE TABLE public.merit_lists (
 
 
 
-CREATE TABLE public.payment_items (
+
+
+CREATE TABLE IF NOT EXISTS public.payment_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     payment_id uuid NOT NULL,
     charge_id uuid NOT NULL,
@@ -434,7 +482,9 @@ CREATE TABLE public.payment_items (
 
 
 
-CREATE TABLE public.payments (
+
+
+CREATE TABLE IF NOT EXISTS public.payments (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     school_id uuid,
     student_id uuid NOT NULL,
@@ -457,7 +507,9 @@ CREATE TABLE public.payments (
 
 
 
-CREATE TABLE public.receipts (
+
+
+CREATE TABLE IF NOT EXISTS public.receipts (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     payment_id uuid NOT NULL,
     receipt_number text NOT NULL,
@@ -468,7 +520,9 @@ CREATE TABLE public.receipts (
 
 
 
-CREATE TABLE public.results (
+
+
+CREATE TABLE IF NOT EXISTS public.results (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     student_id uuid,
     class text NOT NULL,
@@ -490,13 +544,17 @@ CREATE TABLE public.results (
     CONSTRAINT results_class_check CHECK ((class = ANY (ARRAY['1st Year'::text, '2nd Year'::text])))
 );
 
+
+
 ALTER TABLE ONLY public.results REPLICA IDENTITY FULL;
 
 
 
 
 
-CREATE TABLE public.student_charges (
+
+
+CREATE TABLE IF NOT EXISTS public.student_charges (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     school_id uuid,
     student_id uuid NOT NULL,
@@ -511,693 +569,1211 @@ CREATE TABLE public.student_charges (
     CONSTRAINT student_charges_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'partial'::text, 'paid'::text])))
 );
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.admission_documents
+        ADD CONSTRAINT admission_documents_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.admission_otp_codes
+        ADD CONSTRAINT admission_otp_codes_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.admission_settings
+        ADD CONSTRAINT admission_settings_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.admission_status_timeline
+        ADD CONSTRAINT admission_status_timeline_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.admissions
+        ADD CONSTRAINT admissions_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.admissions
+        ADD CONSTRAINT admissions_reference_no_key UNIQUE (reference_no);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_attendance
+        ADD CONSTRAINT exam_attendance_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_attendance
+        ADD CONSTRAINT exam_attendance_session_id_student_id_subject_exam_date_key UNIQUE (session_id, student_id, subject, exam_date);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_attendance
+        ADD CONSTRAINT exam_attendance_session_student_subject_date_key UNIQUE (session_id, student_id, subject, exam_date);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_roll_numbers
+        ADD CONSTRAINT exam_roll_numbers_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_roll_numbers
+        ADD CONSTRAINT exam_roll_numbers_session_id_exam_roll_no_key UNIQUE (session_id, exam_roll_no);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_roll_numbers
+        ADD CONSTRAINT exam_roll_numbers_session_id_student_id_key UNIQUE (session_id, student_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_roll_sessions
+        ADD CONSTRAINT exam_roll_sessions_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_schedule
+        ADD CONSTRAINT exam_schedule_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_seating_assignments
+        ADD CONSTRAINT exam_seating_assignments_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_seating_assignments
+        ADD CONSTRAINT exam_seating_assignments_plan_id_room_id_row_idx_col_idx_key UNIQUE (plan_id, room_id, row_idx, col_idx);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_seating_assignments
+        ADD CONSTRAINT exam_seating_assignments_plan_id_student_id_key UNIQUE (plan_id, student_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_seating_plans
+        ADD CONSTRAINT exam_seating_plans_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_seating_rooms
+        ADD CONSTRAINT exam_seating_rooms_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.fee_payments
+        ADD CONSTRAINT fee_payments_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.fee_structures
+        ADD CONSTRAINT fee_structures_class_fee_type_key UNIQUE (class, fee_type);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.fee_structures
+        ADD CONSTRAINT fee_structures_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.fee_types
+        ADD CONSTRAINT fee_types_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.fee_vouchers
+        ADD CONSTRAINT fee_vouchers_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.fee_vouchers
+        ADD CONSTRAINT fee_vouchers_student_id_month_year_fee_period_key UNIQUE (student_id, month, year, fee_period);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.fee_vouchers
+        ADD CONSTRAINT fee_vouchers_voucher_number_key UNIQUE (voucher_number);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.generated_id_cards
+        ADD CONSTRAINT generated_id_cards_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.interview_bookings
+        ADD CONSTRAINT interview_bookings_admission_id_key UNIQUE (admission_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.interview_bookings
+        ADD CONSTRAINT interview_bookings_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.interview_slots
+        ADD CONSTRAINT interview_slots_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.merit_lists
+        ADD CONSTRAINT merit_lists_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.merit_lists
+        ADD CONSTRAINT merit_lists_scope_class_exam_type_year_key UNIQUE (scope, class, exam_type, year);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.merit_lists
+        ADD CONSTRAINT merit_lists_scope_class_exam_year_key UNIQUE (scope, class, exam_type, year);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.payment_items
+        ADD CONSTRAINT payment_items_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.payments
+        ADD CONSTRAINT payments_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.receipts
+        ADD CONSTRAINT receipts_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.receipts
+        ADD CONSTRAINT receipts_receipt_number_key UNIQUE (receipt_number);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.results
+        ADD CONSTRAINT results_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.results
+        ADD CONSTRAINT results_student_class_exam_year_unique UNIQUE (student_id, class, exam_type, year);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.student_charges
+        ADD CONSTRAINT student_charges_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.merit_lists
+        ADD CONSTRAINT unique_merit_list UNIQUE (class, exam_type, year);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.generated_id_cards
+        ADD CONSTRAINT unique_student_card UNIQUE (student_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+
+
+
+
+
+CREATE INDEX IF NOT EXISTS exam_attendance_session_class_idx ON public.exam_attendance USING btree (session_id, class);
+
+
+
+
 
 
+CREATE INDEX IF NOT EXISTS exam_attendance_student_subject_date_idx ON public.exam_attendance USING btree (student_id, subject, exam_date);
 
 
-ALTER TABLE ONLY public.admission_documents
-    ADD CONSTRAINT admission_documents_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.admission_otp_codes
-    ADD CONSTRAINT admission_otp_codes_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_admission_docs_admission ON public.admission_documents USING btree (admission_id);
 
 
 
 
-ALTER TABLE ONLY public.admission_settings
-    ADD CONSTRAINT admission_settings_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_admission_otp_phone ON public.admission_otp_codes USING btree (contact_number, created_at DESC);
 
 
-ALTER TABLE ONLY public.admission_status_timeline
-    ADD CONSTRAINT admission_status_timeline_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.admissions
-    ADD CONSTRAINT admissions_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_admission_timeline_admission ON public.admission_status_timeline USING btree (admission_id, created_at DESC);
 
 
 
 
-ALTER TABLE ONLY public.admissions
-    ADD CONSTRAINT admissions_reference_no_key UNIQUE (reference_no);
 
 
+CREATE INDEX IF NOT EXISTS idx_admissions_bform ON public.admissions USING btree (b_form_no);
 
 
-ALTER TABLE ONLY public.exam_attendance
-    ADD CONSTRAINT exam_attendance_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.exam_attendance
-    ADD CONSTRAINT exam_attendance_session_id_student_id_subject_exam_date_key UNIQUE (session_id, student_id, subject, exam_date);
+CREATE INDEX IF NOT EXISTS idx_admissions_class ON public.admissions USING btree (applying_class);
 
 
 
 
-ALTER TABLE ONLY public.exam_attendance
-    ADD CONSTRAINT exam_attendance_session_student_subject_date_key UNIQUE (session_id, student_id, subject, exam_date);
 
 
+CREATE INDEX IF NOT EXISTS idx_admissions_created ON public.admissions USING btree (created_at DESC);
 
 
-ALTER TABLE ONLY public.exam_roll_numbers
-    ADD CONSTRAINT exam_roll_numbers_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.exam_roll_numbers
-    ADD CONSTRAINT exam_roll_numbers_session_id_exam_roll_no_key UNIQUE (session_id, exam_roll_no);
+CREATE INDEX IF NOT EXISTS idx_admissions_status ON public.admissions USING btree (status);
 
 
 
 
-ALTER TABLE ONLY public.exam_roll_numbers
-    ADD CONSTRAINT exam_roll_numbers_session_id_student_id_key UNIQUE (session_id, student_id);
 
 
+CREATE INDEX IF NOT EXISTS idx_admissions_type ON public.admissions USING btree (admission_type);
 
 
-ALTER TABLE ONLY public.exam_roll_sessions
-    ADD CONSTRAINT exam_roll_sessions_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.exam_schedule
-    ADD CONSTRAINT exam_schedule_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_charges_status ON public.student_charges USING btree (status);
 
 
 
 
-ALTER TABLE ONLY public.exam_seating_assignments
-    ADD CONSTRAINT exam_seating_assignments_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_charges_student ON public.student_charges USING btree (student_id);
 
 
-ALTER TABLE ONLY public.exam_seating_assignments
-    ADD CONSTRAINT exam_seating_assignments_plan_id_room_id_row_idx_col_idx_key UNIQUE (plan_id, room_id, row_idx, col_idx);
 
 
 
 
-ALTER TABLE ONLY public.exam_seating_assignments
-    ADD CONSTRAINT exam_seating_assignments_plan_id_student_id_key UNIQUE (plan_id, student_id);
+CREATE INDEX IF NOT EXISTS idx_exam_att_session_class ON public.exam_attendance USING btree (session_id, class);
 
 
 
 
-ALTER TABLE ONLY public.exam_seating_plans
-    ADD CONSTRAINT exam_seating_plans_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_exam_att_session_class_subject_date ON public.exam_attendance USING btree (session_id, class, subject, exam_date);
 
 
-ALTER TABLE ONLY public.exam_seating_rooms
-    ADD CONSTRAINT exam_seating_rooms_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.fee_payments
-    ADD CONSTRAINT fee_payments_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_exam_att_student ON public.exam_attendance USING btree (student_id);
 
 
 
 
-ALTER TABLE ONLY public.fee_structures
-    ADD CONSTRAINT fee_structures_class_fee_type_key UNIQUE (class, fee_type);
 
 
+CREATE INDEX IF NOT EXISTS idx_exam_schedule_class ON public.exam_schedule USING btree (class, exam_type, year);
 
 
-ALTER TABLE ONLY public.fee_structures
-    ADD CONSTRAINT fee_structures_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.fee_types
-    ADD CONSTRAINT fee_types_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_exam_schedule_date ON public.exam_schedule USING btree (exam_date) WHERE (is_published = true);
 
 
 
 
-ALTER TABLE ONLY public.fee_vouchers
-    ADD CONSTRAINT fee_vouchers_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_fee_payments_date ON public.fee_payments USING btree (payment_date);
 
 
-ALTER TABLE ONLY public.fee_vouchers
-    ADD CONSTRAINT fee_vouchers_student_id_month_year_fee_period_key UNIQUE (student_id, month, year, fee_period);
 
 
 
 
-ALTER TABLE ONLY public.fee_vouchers
-    ADD CONSTRAINT fee_vouchers_voucher_number_key UNIQUE (voucher_number);
+CREATE INDEX IF NOT EXISTS idx_fee_payments_student ON public.fee_payments USING btree (student_id);
 
 
 
 
-ALTER TABLE ONLY public.generated_id_cards
-    ADD CONSTRAINT generated_id_cards_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_fee_payments_voucher ON public.fee_payments USING btree (voucher_id);
 
 
-ALTER TABLE ONLY public.interview_bookings
-    ADD CONSTRAINT interview_bookings_admission_id_key UNIQUE (admission_id);
 
 
 
 
-ALTER TABLE ONLY public.interview_bookings
-    ADD CONSTRAINT interview_bookings_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_fee_structures_active ON public.fee_structures USING btree (is_active);
 
 
 
 
-ALTER TABLE ONLY public.interview_slots
-    ADD CONSTRAINT interview_slots_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_fee_structures_class ON public.fee_structures USING btree (class);
 
 
-ALTER TABLE ONLY public.merit_lists
-    ADD CONSTRAINT merit_lists_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.merit_lists
-    ADD CONSTRAINT merit_lists_scope_class_exam_type_year_key UNIQUE (scope, class, exam_type, year);
+CREATE INDEX IF NOT EXISTS idx_fee_vouchers_class ON public.fee_vouchers USING btree (class);
 
 
 
 
-ALTER TABLE ONLY public.merit_lists
-    ADD CONSTRAINT merit_lists_scope_class_exam_year_key UNIQUE (scope, class, exam_type, year);
 
 
+CREATE INDEX IF NOT EXISTS idx_fee_vouchers_due_date ON public.fee_vouchers USING btree (due_date);
 
 
-ALTER TABLE ONLY public.payment_items
-    ADD CONSTRAINT payment_items_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.payments
-    ADD CONSTRAINT payments_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_fee_vouchers_month_year ON public.fee_vouchers USING btree (month, year);
 
 
 
 
-ALTER TABLE ONLY public.receipts
-    ADD CONSTRAINT receipts_pkey PRIMARY KEY (id);
 
 
+CREATE INDEX IF NOT EXISTS idx_fee_vouchers_status ON public.fee_vouchers USING btree (status);
 
 
-ALTER TABLE ONLY public.receipts
-    ADD CONSTRAINT receipts_receipt_number_key UNIQUE (receipt_number);
 
 
 
 
-ALTER TABLE ONLY public.results
-    ADD CONSTRAINT results_pkey PRIMARY KEY (id);
+CREATE INDEX IF NOT EXISTS idx_fee_vouchers_student ON public.fee_vouchers USING btree (student_id);
 
 
 
 
-ALTER TABLE ONLY public.results
-    ADD CONSTRAINT results_student_class_exam_year_unique UNIQUE (student_id, class, exam_type, year);
 
 
+CREATE INDEX IF NOT EXISTS idx_generated_id_cards_class ON public.generated_id_cards USING btree (class);
 
 
-ALTER TABLE ONLY public.student_charges
-    ADD CONSTRAINT student_charges_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.merit_lists
-    ADD CONSTRAINT unique_merit_list UNIQUE (class, exam_type, year);
+CREATE INDEX IF NOT EXISTS idx_generated_id_cards_student_id ON public.generated_id_cards USING btree (student_id);
 
 
 
 
-ALTER TABLE ONLY public.generated_id_cards
-    ADD CONSTRAINT unique_student_card UNIQUE (student_id);
 
 
+CREATE INDEX IF NOT EXISTS idx_interview_bookings_admission ON public.interview_bookings USING btree (admission_id);
 
 
-CREATE INDEX exam_attendance_session_class_idx ON public.exam_attendance USING btree (session_id, class);
 
 
 
 
-CREATE INDEX exam_attendance_student_subject_date_idx ON public.exam_attendance USING btree (student_id, subject, exam_date);
+CREATE INDEX IF NOT EXISTS idx_interview_bookings_slot ON public.interview_bookings USING btree (slot_id) WHERE (cancelled_at IS NULL);
 
 
 
 
-CREATE INDEX idx_admission_docs_admission ON public.admission_documents USING btree (admission_id);
 
 
+CREATE INDEX IF NOT EXISTS idx_interview_slots_date ON public.interview_slots USING btree (slot_date, start_time);
 
 
-CREATE INDEX idx_admission_otp_phone ON public.admission_otp_codes USING btree (contact_number, created_at DESC);
 
 
 
 
-CREATE INDEX idx_admission_timeline_admission ON public.admission_status_timeline USING btree (admission_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_items_charge ON public.payment_items USING btree (charge_id);
 
 
 
 
-CREATE INDEX idx_admissions_bform ON public.admissions USING btree (b_form_no);
 
 
+CREATE INDEX IF NOT EXISTS idx_items_payment ON public.payment_items USING btree (payment_id);
 
 
-CREATE INDEX idx_admissions_class ON public.admissions USING btree (applying_class);
 
 
 
 
-CREATE INDEX idx_admissions_created ON public.admissions USING btree (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_merit_lists_class ON public.merit_lists USING btree (class, exam_type, year);
 
 
 
 
-CREATE INDEX idx_admissions_status ON public.admissions USING btree (status);
 
 
+CREATE INDEX IF NOT EXISTS idx_merit_lists_is_published ON public.merit_lists USING btree (is_published);
 
 
-CREATE INDEX idx_admissions_type ON public.admissions USING btree (admission_type);
 
 
 
 
-CREATE INDEX idx_charges_status ON public.student_charges USING btree (status);
+CREATE INDEX IF NOT EXISTS idx_merit_lists_publish_at ON public.merit_lists USING btree (publish_at);
 
 
 
 
-CREATE INDEX idx_charges_student ON public.student_charges USING btree (student_id);
 
 
+CREATE INDEX IF NOT EXISTS idx_merit_lists_published ON public.merit_lists USING btree (is_published);
 
 
-CREATE INDEX idx_exam_att_session_class ON public.exam_attendance USING btree (session_id, class);
 
 
 
 
-CREATE INDEX idx_exam_att_session_class_subject_date ON public.exam_attendance USING btree (session_id, class, subject, exam_date);
+CREATE INDEX IF NOT EXISTS idx_merit_lists_published_live ON public.merit_lists USING btree (is_published, publish_at);
 
 
 
 
-CREATE INDEX idx_exam_att_student ON public.exam_attendance USING btree (student_id);
 
 
+CREATE INDEX IF NOT EXISTS idx_merit_lists_scope ON public.merit_lists USING btree (scope);
 
 
-CREATE INDEX idx_exam_schedule_class ON public.exam_schedule USING btree (class, exam_type, year);
 
 
 
 
-CREATE INDEX idx_exam_schedule_date ON public.exam_schedule USING btree (exam_date) WHERE (is_published = true);
+CREATE INDEX IF NOT EXISTS idx_merit_lists_scope_class ON public.merit_lists USING btree (scope, class);
 
 
 
 
-CREATE INDEX idx_fee_payments_date ON public.fee_payments USING btree (payment_date);
 
 
+CREATE INDEX IF NOT EXISTS idx_merit_lists_year ON public.merit_lists USING btree (year);
 
 
-CREATE INDEX idx_fee_payments_student ON public.fee_payments USING btree (student_id);
 
 
 
 
-CREATE INDEX idx_fee_payments_voucher ON public.fee_payments USING btree (voucher_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments USING btree (status);
 
 
 
 
-CREATE INDEX idx_fee_structures_active ON public.fee_structures USING btree (is_active);
 
 
+CREATE INDEX IF NOT EXISTS idx_payments_student ON public.payments USING btree (student_id);
 
 
-CREATE INDEX idx_fee_structures_class ON public.fee_structures USING btree (class);
 
 
 
 
-CREATE INDEX idx_fee_vouchers_class ON public.fee_vouchers USING btree (class);
+CREATE INDEX IF NOT EXISTS idx_results_class_exam_year ON public.results USING btree (class, exam_type, year);
 
 
 
 
-CREATE INDEX idx_fee_vouchers_due_date ON public.fee_vouchers USING btree (due_date);
 
 
+CREATE INDEX IF NOT EXISTS idx_results_exam_roll_no ON public.results USING btree (exam_roll_no);
 
 
-CREATE INDEX idx_fee_vouchers_month_year ON public.fee_vouchers USING btree (month, year);
 
 
 
 
-CREATE INDEX idx_fee_vouchers_status ON public.fee_vouchers USING btree (status);
+CREATE INDEX IF NOT EXISTS idx_results_student_id ON public.results USING btree (student_id);
 
 
 
 
-CREATE INDEX idx_fee_vouchers_student ON public.fee_vouchers USING btree (student_id);
 
 
+CREATE INDEX IF NOT EXISTS idx_seating_assign_plan ON public.exam_seating_assignments USING btree (plan_id);
 
 
-CREATE INDEX idx_generated_id_cards_class ON public.generated_id_cards USING btree (class);
 
 
 
 
-CREATE INDEX idx_generated_id_cards_student_id ON public.generated_id_cards USING btree (student_id);
+CREATE INDEX IF NOT EXISTS idx_seating_assign_qr ON public.exam_seating_assignments USING btree (qr_token);
 
 
 
 
-CREATE INDEX idx_interview_bookings_admission ON public.interview_bookings USING btree (admission_id);
 
 
+CREATE INDEX IF NOT EXISTS idx_seating_assign_room ON public.exam_seating_assignments USING btree (room_id);
 
 
-CREATE INDEX idx_interview_bookings_slot ON public.interview_bookings USING btree (slot_id) WHERE (cancelled_at IS NULL);
 
 
 
 
-CREATE INDEX idx_interview_slots_date ON public.interview_slots USING btree (slot_date, start_time);
+CREATE INDEX IF NOT EXISTS idx_seating_assign_stud ON public.exam_seating_assignments USING btree (student_id);
 
 
 
 
-CREATE INDEX idx_items_charge ON public.payment_items USING btree (charge_id);
 
 
+CREATE INDEX IF NOT EXISTS idx_seating_plans_date_range ON public.exam_seating_plans USING btree (exam_date_from, exam_date_to) WHERE ((exam_date_from IS NOT NULL) AND (exam_date_to IS NOT NULL));
 
 
-CREATE INDEX idx_items_payment ON public.payment_items USING btree (payment_id);
 
 
 
 
-CREATE INDEX idx_merit_lists_class ON public.merit_lists USING btree (class, exam_type, year);
+CREATE INDEX IF NOT EXISTS idx_seating_plans_publish_at ON public.exam_seating_plans USING btree (publish_at) WHERE (publish_at IS NOT NULL);
 
 
 
 
-CREATE INDEX idx_merit_lists_is_published ON public.merit_lists USING btree (is_published);
 
 
+CREATE INDEX IF NOT EXISTS idx_seating_plans_session ON public.exam_seating_plans USING btree (session_id);
 
 
-CREATE INDEX idx_merit_lists_publish_at ON public.merit_lists USING btree (publish_at);
 
 
 
 
-CREATE INDEX idx_merit_lists_published ON public.merit_lists USING btree (is_published);
+CREATE INDEX IF NOT EXISTS idx_seating_plans_status ON public.exam_seating_plans USING btree (status);
 
 
 
 
-CREATE INDEX idx_merit_lists_published_live ON public.merit_lists USING btree (is_published, publish_at);
 
 
+CREATE INDEX IF NOT EXISTS idx_seating_rooms_plan ON public.exam_seating_rooms USING btree (plan_id);
 
 
-CREATE INDEX idx_merit_lists_scope ON public.merit_lists USING btree (scope);
 
 
 
 
-CREATE INDEX idx_merit_lists_scope_class ON public.merit_lists USING btree (scope, class);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_interview_slot ON public.interview_slots USING btree (slot_date, start_time) WHERE is_active;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.admission_documents
+        ADD CONSTRAINT admission_documents_admission_id_fkey FOREIGN KEY (admission_id) REFERENCES public.admissions(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.admission_status_timeline
+        ADD CONSTRAINT admission_status_timeline_admission_id_fkey FOREIGN KEY (admission_id) REFERENCES public.admissions(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_attendance
+        ADD CONSTRAINT exam_attendance_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.exam_roll_sessions(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-CREATE INDEX idx_merit_lists_year ON public.merit_lists USING btree (year);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_roll_numbers
+        ADD CONSTRAINT exam_roll_numbers_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.exam_roll_sessions(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_roll_numbers
+        ADD CONSTRAINT exam_roll_numbers_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_roll_sessions
+        ADD CONSTRAINT exam_roll_sessions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_seating_assignments
+        ADD CONSTRAINT exam_seating_assignments_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.exam_seating_plans(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-CREATE INDEX idx_payments_status ON public.payments USING btree (status);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_seating_assignments
+        ADD CONSTRAINT exam_seating_assignments_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.exam_seating_rooms(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_seating_plans
+        ADD CONSTRAINT exam_seating_plans_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.exam_roll_sessions(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.exam_seating_rooms
+        ADD CONSTRAINT exam_seating_rooms_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.exam_seating_plans(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.fee_payments
+        ADD CONSTRAINT fee_payments_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-CREATE INDEX idx_payments_student ON public.payments USING btree (student_id);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.fee_payments
+        ADD CONSTRAINT fee_payments_voucher_id_fkey FOREIGN KEY (voucher_id) REFERENCES public.fee_vouchers(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.fee_vouchers
+        ADD CONSTRAINT fee_vouchers_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.interview_bookings
+        ADD CONSTRAINT interview_bookings_admission_id_fkey FOREIGN KEY (admission_id) REFERENCES public.admissions(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.interview_bookings
+        ADD CONSTRAINT interview_bookings_slot_id_fkey FOREIGN KEY (slot_id) REFERENCES public.interview_slots(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-CREATE INDEX idx_results_class_exam_year ON public.results USING btree (class, exam_type, year);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.payment_items
+        ADD CONSTRAINT payment_items_charge_id_fkey FOREIGN KEY (charge_id) REFERENCES public.student_charges(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.payment_items
+        ADD CONSTRAINT payment_items_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.payments
+        ADD CONSTRAINT payments_received_by_fkey FOREIGN KEY (received_by) REFERENCES auth.users(id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.payments
+        ADD CONSTRAINT payments_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-CREATE INDEX idx_results_exam_roll_no ON public.results USING btree (exam_roll_no);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.payments
+        ADD CONSTRAINT payments_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES auth.users(id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.receipts
+        ADD CONSTRAINT receipts_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.results
+        ADD CONSTRAINT results_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.student_charges
+        ADD CONSTRAINT student_charges_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-CREATE INDEX idx_results_student_id ON public.results USING btree (student_id);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.student_charges
+        ADD CONSTRAINT student_charges_fee_type_id_fkey FOREIGN KEY (fee_type_id) REFERENCES public.fee_types(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.student_charges
+        ADD CONSTRAINT student_charges_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
 
-
-CREATE INDEX idx_seating_assign_plan ON public.exam_seating_assignments USING btree (plan_id);
-
-
-
-
-CREATE INDEX idx_seating_assign_qr ON public.exam_seating_assignments USING btree (qr_token);
-
-
-
-
-CREATE INDEX idx_seating_assign_room ON public.exam_seating_assignments USING btree (room_id);
-
-
-
-
-CREATE INDEX idx_seating_assign_stud ON public.exam_seating_assignments USING btree (student_id);
-
-
-
-
-CREATE INDEX idx_seating_plans_date_range ON public.exam_seating_plans USING btree (exam_date_from, exam_date_to) WHERE ((exam_date_from IS NOT NULL) AND (exam_date_to IS NOT NULL));
-
-
-
-
-CREATE INDEX idx_seating_plans_publish_at ON public.exam_seating_plans USING btree (publish_at) WHERE (publish_at IS NOT NULL);
-
-
-
-
-CREATE INDEX idx_seating_plans_session ON public.exam_seating_plans USING btree (session_id);
-
-
-
-
-CREATE INDEX idx_seating_plans_status ON public.exam_seating_plans USING btree (status);
-
-
-
-
-CREATE INDEX idx_seating_rooms_plan ON public.exam_seating_rooms USING btree (plan_id);
-
-
-
-
-CREATE UNIQUE INDEX uniq_interview_slot ON public.interview_slots USING btree (slot_date, start_time) WHERE is_active;
-
-
-
-
-ALTER TABLE ONLY public.admission_documents
-    ADD CONSTRAINT admission_documents_admission_id_fkey FOREIGN KEY (admission_id) REFERENCES public.admissions(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.admission_status_timeline
-    ADD CONSTRAINT admission_status_timeline_admission_id_fkey FOREIGN KEY (admission_id) REFERENCES public.admissions(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.exam_attendance
-    ADD CONSTRAINT exam_attendance_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.exam_roll_sessions(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.exam_roll_numbers
-    ADD CONSTRAINT exam_roll_numbers_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.exam_roll_sessions(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.exam_roll_numbers
-    ADD CONSTRAINT exam_roll_numbers_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.exam_roll_sessions
-    ADD CONSTRAINT exam_roll_sessions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id);
-
-
-
-
-ALTER TABLE ONLY public.exam_seating_assignments
-    ADD CONSTRAINT exam_seating_assignments_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.exam_seating_plans(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.exam_seating_assignments
-    ADD CONSTRAINT exam_seating_assignments_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.exam_seating_rooms(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.exam_seating_plans
-    ADD CONSTRAINT exam_seating_plans_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.exam_roll_sessions(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.exam_seating_rooms
-    ADD CONSTRAINT exam_seating_rooms_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.exam_seating_plans(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.fee_payments
-    ADD CONSTRAINT fee_payments_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.fee_payments
-    ADD CONSTRAINT fee_payments_voucher_id_fkey FOREIGN KEY (voucher_id) REFERENCES public.fee_vouchers(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.fee_vouchers
-    ADD CONSTRAINT fee_vouchers_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.interview_bookings
-    ADD CONSTRAINT interview_bookings_admission_id_fkey FOREIGN KEY (admission_id) REFERENCES public.admissions(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.interview_bookings
-    ADD CONSTRAINT interview_bookings_slot_id_fkey FOREIGN KEY (slot_id) REFERENCES public.interview_slots(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.payment_items
-    ADD CONSTRAINT payment_items_charge_id_fkey FOREIGN KEY (charge_id) REFERENCES public.student_charges(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.payment_items
-    ADD CONSTRAINT payment_items_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.payments
-    ADD CONSTRAINT payments_received_by_fkey FOREIGN KEY (received_by) REFERENCES auth.users(id);
-
-
-
-
-ALTER TABLE ONLY public.payments
-    ADD CONSTRAINT payments_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.payments
-    ADD CONSTRAINT payments_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES auth.users(id);
-
-
-
-
-ALTER TABLE ONLY public.receipts
-    ADD CONSTRAINT receipts_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.results
-    ADD CONSTRAINT results_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.student_charges
-    ADD CONSTRAINT student_charges_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
-
-
-
-
-ALTER TABLE ONLY public.student_charges
-    ADD CONSTRAINT student_charges_fee_type_id_fkey FOREIGN KEY (fee_type_id) REFERENCES public.fee_types(id) ON DELETE SET NULL;
-
-
-
-
-ALTER TABLE ONLY public.student_charges
-    ADD CONSTRAINT student_charges_student_id_fkey FOREIGN KEY (student_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 
@@ -1206,7 +1782,11 @@ ALTER TABLE public.admission_documents ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.admission_otp_codes ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1214,7 +1794,11 @@ ALTER TABLE public.admission_settings ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.admission_status_timeline ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1222,7 +1806,11 @@ ALTER TABLE public.admissions ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.exam_attendance ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1230,7 +1818,11 @@ ALTER TABLE public.exam_roll_numbers ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.exam_roll_sessions ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1238,7 +1830,11 @@ ALTER TABLE public.exam_schedule ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.exam_seating_assignments ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1246,7 +1842,11 @@ ALTER TABLE public.exam_seating_plans ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.exam_seating_rooms ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1254,7 +1854,11 @@ ALTER TABLE public.fee_payments ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.fee_structures ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1262,7 +1866,11 @@ ALTER TABLE public.fee_types ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.fee_vouchers ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1270,7 +1878,11 @@ ALTER TABLE public.generated_id_cards ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.interview_bookings ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1278,7 +1890,11 @@ ALTER TABLE public.interview_slots ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.merit_lists ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1286,7 +1902,11 @@ ALTER TABLE public.payment_items ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -1294,7 +1914,11 @@ ALTER TABLE public.receipts ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.results ENABLE ROW LEVEL SECURITY;
+
+
 
 
 

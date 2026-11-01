@@ -121,6 +121,8 @@ BEGIN
   END LOOP;
 END $$;
 
+
+
 -- ═══════════════════════════════════════════════════════════════════════
 -- CHECK (run after):
 --   1) Count policies still containing an un-wrapped auth call (expect 0):
@@ -150,4 +152,4 @@ END $$;
 --   2) To roll back: for each exported policy, DROP POLICY ... ; CREATE
 --      POLICY ... USING (<original qual>) WITH CHECK (<original with_check>).
 -- A mechanical unwrap (replace '(select auth.uid())' -> 'auth.uid()') is NOT
--- recommended: it would also unwrap calls that were already wrapped before.
+-- recommended: it would also unwrap calls that were already wrapped before.;

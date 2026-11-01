@@ -21,7 +21,7 @@
 -- ═══════════════════════════════════════════════════════════════════════
 
 
-CREATE TABLE public.contact_messages (
+CREATE TABLE IF NOT EXISTS public.contact_messages (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     email text NOT NULL,
@@ -36,7 +36,9 @@ CREATE TABLE public.contact_messages (
 
 
 
-CREATE TABLE public.daily_quotes (
+
+
+CREATE TABLE IF NOT EXISTS public.daily_quotes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     text text NOT NULL,
     author text,
@@ -52,7 +54,9 @@ CREATE TABLE public.daily_quotes (
 
 
 
-CREATE TABLE public.duty_board (
+
+
+CREATE TABLE IF NOT EXISTS public.duty_board (
     id integer DEFAULT 1 NOT NULL,
     classes jsonb DEFAULT '{}'::jsonb NOT NULL,
     chief_proctor text DEFAULT ''::text NOT NULL,
@@ -64,7 +68,9 @@ CREATE TABLE public.duty_board (
 
 
 
-CREATE TABLE public.honor_roll (
+
+
+CREATE TABLE IF NOT EXISTS public.honor_roll (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     student_name text NOT NULL,
     class text NOT NULL,
@@ -81,7 +87,9 @@ CREATE TABLE public.honor_roll (
 
 
 
-CREATE TABLE public.house_members (
+
+
+CREATE TABLE IF NOT EXISTS public.house_members (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     house_id uuid NOT NULL,
     user_id uuid NOT NULL,
@@ -92,7 +100,9 @@ CREATE TABLE public.house_members (
 
 
 
-CREATE TABLE public.houses (
+
+
+CREATE TABLE IF NOT EXISTS public.houses (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     emoji text DEFAULT ''::text NOT NULL,
@@ -106,7 +116,9 @@ CREATE TABLE public.houses (
 
 
 
-CREATE TABLE public.profiles (
+
+
+CREATE TABLE IF NOT EXISTS public.profiles (
     id uuid NOT NULL,
     full_name text,
     role text DEFAULT 'user'::text,
@@ -127,7 +139,9 @@ CREATE TABLE public.profiles (
 
 
 
-CREATE TABLE public.rooms (
+
+
+CREATE TABLE IF NOT EXISTS public.rooms (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     capacity integer DEFAULT 40,
@@ -141,7 +155,9 @@ CREATE TABLE public.rooms (
 
 
 
-CREATE TABLE public.school_events (
+
+
+CREATE TABLE IF NOT EXISTS public.school_events (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     title text NOT NULL,
     description text,
@@ -157,7 +173,9 @@ CREATE TABLE public.school_events (
 
 
 
-CREATE TABLE public.school_settings (
+
+
+CREATE TABLE IF NOT EXISTS public.school_settings (
     id integer DEFAULT 1 NOT NULL,
     school_name text DEFAULT 'GHSS Ghallanai'::text,
     tagline text DEFAULT 'Excellence in Education'::text,
@@ -184,7 +202,9 @@ CREATE TABLE public.school_settings (
 
 
 
-CREATE TABLE public.site_visits (
+
+
+CREATE TABLE IF NOT EXISTS public.site_visits (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     page text DEFAULT '/'::text NOT NULL,
     referrer text,
@@ -199,7 +219,9 @@ CREATE TABLE public.site_visits (
 
 
 
-CREATE TABLE public.student_records (
+
+
+CREATE TABLE IF NOT EXISTS public.student_records (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     admission_date date,
     serial_no integer,
@@ -225,7 +247,9 @@ CREATE TABLE public.student_records (
 
 
 
-CREATE TABLE public.students (
+
+
+CREATE TABLE IF NOT EXISTS public.students (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     full_name text NOT NULL,
     roll_number text NOT NULL,
@@ -244,7 +268,9 @@ CREATE TABLE public.students (
 
 
 
-CREATE TABLE public.teachers (
+
+
+CREATE TABLE IF NOT EXISTS public.teachers (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     full_name text NOT NULL,
     subject text,
@@ -260,316 +286,532 @@ CREATE TABLE public.teachers (
     user_id uuid
 );
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.contact_messages
+        ADD CONSTRAINT contact_messages_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.daily_quotes
+        ADD CONSTRAINT daily_quotes_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.duty_board
+        ADD CONSTRAINT duty_board_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.honor_roll
+        ADD CONSTRAINT honor_roll_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.house_members
+        ADD CONSTRAINT house_members_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.house_members
+        ADD CONSTRAINT house_members_user_id_key UNIQUE (user_id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.houses
+        ADD CONSTRAINT houses_name_key UNIQUE (name);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.houses
+        ADD CONSTRAINT houses_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.profiles
+        ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.rooms
+        ADD CONSTRAINT rooms_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.school_events
+        ADD CONSTRAINT school_events_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.school_settings
+        ADD CONSTRAINT school_settings_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
+
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.site_visits
+        ADD CONSTRAINT site_visits_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.student_records
+        ADD CONSTRAINT student_records_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.students
+        ADD CONSTRAINT students_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.students
+        ADD CONSTRAINT students_roll_number_class_key UNIQUE (roll_number, class);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-ALTER TABLE ONLY public.contact_messages
-    ADD CONSTRAINT contact_messages_pkey PRIMARY KEY (id);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.students
+        ADD CONSTRAINT students_roll_number_class_unique UNIQUE (roll_number, class);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.teachers
+        ADD CONSTRAINT teachers_pkey PRIMARY KEY (id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
 
 
-ALTER TABLE ONLY public.daily_quotes
-    ADD CONSTRAINT daily_quotes_pkey PRIMARY KEY (id);
 
 
 
+CREATE UNIQUE INDEX IF NOT EXISTS house_members_user_id_unique ON public.house_members USING btree (user_id);
 
-ALTER TABLE ONLY public.duty_board
-    ADD CONSTRAINT duty_board_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.honor_roll
-    ADD CONSTRAINT honor_roll_pkey PRIMARY KEY (id);
 
+CREATE INDEX IF NOT EXISTS idx_contact_messages_created_at ON public.contact_messages USING btree (created_at DESC);
 
 
 
-ALTER TABLE ONLY public.house_members
-    ADD CONSTRAINT house_members_pkey PRIMARY KEY (id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_contact_messages_is_read ON public.contact_messages USING btree (is_read);
 
-ALTER TABLE ONLY public.house_members
-    ADD CONSTRAINT house_members_user_id_key UNIQUE (user_id);
 
 
 
 
-ALTER TABLE ONLY public.houses
-    ADD CONSTRAINT houses_name_key UNIQUE (name);
 
+CREATE INDEX IF NOT EXISTS idx_daily_quotes_active ON public.daily_quotes USING btree (is_active);
 
 
 
-ALTER TABLE ONLY public.houses
-    ADD CONSTRAINT houses_pkey PRIMARY KEY (id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_daily_quotes_category ON public.daily_quotes USING btree (category);
 
-ALTER TABLE ONLY public.profiles
-    ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.rooms
-    ADD CONSTRAINT rooms_pkey PRIMARY KEY (id);
 
+CREATE INDEX IF NOT EXISTS idx_daily_quotes_fixed_date ON public.daily_quotes USING btree (fixed_date);
 
 
 
-ALTER TABLE ONLY public.school_events
-    ADD CONSTRAINT school_events_pkey PRIMARY KEY (id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_daily_quotes_pinned ON public.daily_quotes USING btree (is_pinned);
 
-ALTER TABLE ONLY public.school_settings
-    ADD CONSTRAINT school_settings_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.site_visits
-    ADD CONSTRAINT site_visits_pkey PRIMARY KEY (id);
 
+CREATE INDEX IF NOT EXISTS idx_honor_roll_class ON public.honor_roll USING btree (class);
 
 
 
-ALTER TABLE ONLY public.student_records
-    ADD CONSTRAINT student_records_pkey PRIMARY KEY (id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_honor_roll_featured ON public.honor_roll USING btree (is_featured) WHERE (is_featured = true);
 
-ALTER TABLE ONLY public.students
-    ADD CONSTRAINT students_pkey PRIMARY KEY (id);
 
 
 
 
-ALTER TABLE ONLY public.students
-    ADD CONSTRAINT students_roll_number_class_key UNIQUE (roll_number, class);
 
+CREATE INDEX IF NOT EXISTS idx_honor_roll_month ON public.honor_roll USING btree (year, month);
 
 
 
-ALTER TABLE ONLY public.students
-    ADD CONSTRAINT students_roll_number_class_unique UNIQUE (roll_number, class);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_honor_roll_published ON public.honor_roll USING btree (is_published, created_at DESC);
 
-ALTER TABLE ONLY public.teachers
-    ADD CONSTRAINT teachers_pkey PRIMARY KEY (id);
 
 
 
 
-CREATE UNIQUE INDEX house_members_user_id_unique ON public.house_members USING btree (user_id);
 
+CREATE INDEX IF NOT EXISTS idx_honor_roll_year_month ON public.honor_roll USING btree (year, month);
 
 
 
-CREATE INDEX idx_contact_messages_created_at ON public.contact_messages USING btree (created_at DESC);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_house_members_house_id ON public.house_members USING btree (house_id);
 
-CREATE INDEX idx_contact_messages_is_read ON public.contact_messages USING btree (is_read);
 
 
 
 
-CREATE INDEX idx_daily_quotes_active ON public.daily_quotes USING btree (is_active);
 
+CREATE INDEX IF NOT EXISTS idx_house_members_user_id ON public.house_members USING btree (user_id);
 
 
 
-CREATE INDEX idx_daily_quotes_category ON public.daily_quotes USING btree (category);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_quotes_date ON public.daily_quotes USING btree (fixed_date);
 
-CREATE INDEX idx_daily_quotes_fixed_date ON public.daily_quotes USING btree (fixed_date);
 
 
 
 
-CREATE INDEX idx_daily_quotes_pinned ON public.daily_quotes USING btree (is_pinned);
 
+CREATE INDEX IF NOT EXISTS idx_school_events_start_date ON public.school_events USING btree (start_date);
 
 
 
-CREATE INDEX idx_honor_roll_class ON public.honor_roll USING btree (class);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_school_events_type ON public.school_events USING btree (event_type);
 
-CREATE INDEX idx_honor_roll_featured ON public.honor_roll USING btree (is_featured) WHERE (is_featured = true);
 
 
 
 
-CREATE INDEX idx_honor_roll_month ON public.honor_roll USING btree (year, month);
 
+CREATE INDEX IF NOT EXISTS idx_site_visits_created_at ON public.site_visits USING btree (created_at DESC);
 
 
 
-CREATE INDEX idx_honor_roll_published ON public.honor_roll USING btree (is_published, created_at DESC);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_site_visits_device_type ON public.site_visits USING btree (device_type);
 
-CREATE INDEX idx_honor_roll_year_month ON public.honor_roll USING btree (year, month);
 
 
 
 
-CREATE INDEX idx_house_members_house_id ON public.house_members USING btree (house_id);
 
+CREATE INDEX IF NOT EXISTS idx_site_visits_page ON public.site_visits USING btree (page);
 
 
 
-CREATE INDEX idx_house_members_user_id ON public.house_members USING btree (user_id);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_site_visits_session_id ON public.site_visits USING btree (session_id);
 
-CREATE INDEX idx_quotes_date ON public.daily_quotes USING btree (fixed_date);
 
 
 
 
-CREATE INDEX idx_school_events_start_date ON public.school_events USING btree (start_date);
 
+CREATE INDEX IF NOT EXISTS idx_site_visits_user_id ON public.site_visits USING btree (user_id) WHERE (user_id IS NOT NULL);
 
 
 
-CREATE INDEX idx_school_events_type ON public.school_events USING btree (event_type);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_student_records_admitted_class ON public.student_records USING btree (admitted_class);
 
-CREATE INDEX idx_site_visits_created_at ON public.site_visits USING btree (created_at DESC);
 
 
 
 
-CREATE INDEX idx_site_visits_device_type ON public.site_visits USING btree (device_type);
 
+CREATE INDEX IF NOT EXISTS idx_student_records_father_name ON public.student_records USING gin (father_name gin_trgm_ops);
 
 
 
-CREATE INDEX idx_site_visits_page ON public.site_visits USING btree (page);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_student_records_name ON public.student_records USING gin (student_name gin_trgm_ops);
 
-CREATE INDEX idx_site_visits_session_id ON public.site_visits USING btree (session_id);
 
 
 
 
-CREATE INDEX idx_site_visits_user_id ON public.site_visits USING btree (user_id) WHERE (user_id IS NOT NULL);
 
+CREATE INDEX IF NOT EXISTS idx_student_records_status ON public.student_records USING btree (status);
 
 
 
-CREATE INDEX idx_student_records_admitted_class ON public.student_records USING btree (admitted_class);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_students_class ON public.students USING btree (class);
 
-CREATE INDEX idx_student_records_father_name ON public.student_records USING gin (father_name public.gin_trgm_ops);
 
 
 
 
-CREATE INDEX idx_student_records_name ON public.student_records USING gin (student_name public.gin_trgm_ops);
 
+CREATE INDEX IF NOT EXISTS idx_students_is_active ON public.students USING btree (is_active);
 
 
 
-CREATE INDEX idx_student_records_status ON public.student_records USING btree (status);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_students_roll_number ON public.students USING btree (roll_number);
 
-CREATE INDEX idx_students_class ON public.students USING btree (class);
 
 
 
 
-CREATE INDEX idx_students_is_active ON public.students USING btree (is_active);
 
+CREATE INDEX IF NOT EXISTS idx_students_user_id ON public.students USING btree (user_id);
 
 
 
-CREATE INDEX idx_students_roll_number ON public.students USING btree (roll_number);
 
 
 
+CREATE INDEX IF NOT EXISTS idx_teachers_display_order ON public.teachers USING btree (display_order);
 
-CREATE INDEX idx_students_user_id ON public.students USING btree (user_id);
 
 
 
 
-CREATE INDEX idx_teachers_display_order ON public.teachers USING btree (display_order);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_teachers_user_id ON public.teachers USING btree (user_id);
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.contact_messages
+        ADD CONSTRAINT contact_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.house_members
+        ADD CONSTRAINT house_members_house_id_fkey FOREIGN KEY (house_id) REFERENCES public.houses(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-CREATE UNIQUE INDEX idx_teachers_user_id ON public.teachers USING btree (user_id);
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.house_members
+        ADD CONSTRAINT house_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.profiles
+        ADD CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.site_visits
+        ADD CONSTRAINT site_visits_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.student_records
+        ADD CONSTRAINT student_records_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
-ALTER TABLE ONLY public.contact_messages
-    ADD CONSTRAINT contact_messages_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+DO $mig$
+BEGIN
+    
+    
+    
+    
+    
+    ALTER TABLE ONLY public.teachers
+        ADD CONSTRAINT teachers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object OR duplicate_table OR invalid_table_definition THEN NULL;
+END $mig$;
 
 
-
-
-ALTER TABLE ONLY public.house_members
-    ADD CONSTRAINT house_members_house_id_fkey FOREIGN KEY (house_id) REFERENCES public.houses(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.house_members
-    ADD CONSTRAINT house_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.profiles
-    ADD CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
-
-
-
-ALTER TABLE ONLY public.site_visits
-    ADD CONSTRAINT site_visits_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
-
-
-
-
-ALTER TABLE ONLY public.student_records
-    ADD CONSTRAINT student_records_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
-
-
-
-
-ALTER TABLE ONLY public.teachers
-    ADD CONSTRAINT teachers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 
@@ -578,7 +820,11 @@ ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.daily_quotes ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -586,7 +832,11 @@ ALTER TABLE public.duty_board ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.honor_roll ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -594,7 +844,11 @@ ALTER TABLE public.house_members ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.houses ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -602,7 +856,11 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -610,7 +868,11 @@ ALTER TABLE public.school_events ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.school_settings ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -618,7 +880,11 @@ ALTER TABLE public.site_visits ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.student_records ENABLE ROW LEVEL SECURITY;
+
+
 
 
 
@@ -626,4 +892,254 @@ ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
 ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS admin_delete_achievements ON storage.objects;
+
+
+-- ════════════════════════════════════════════════════════════════════
+-- Storage-object policies that reference public.profiles.
+-- They originally lived in file 00, but profiles is created in THIS
+-- file, so on a fresh database file 00 failed; they run here instead.
+-- ════════════════════════════════════════════════════════════════════
+
+
+
+
+
+
+CREATE POLICY admin_delete_achievements ON storage.objects FOR DELETE TO authenticated USING (((bucket_id = 'achievement-images'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_delete_gallery ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_delete_gallery ON storage.objects FOR DELETE TO authenticated USING (((bucket_id = 'gallery'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_delete_library ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_delete_library ON storage.objects FOR DELETE TO authenticated USING (((bucket_id = 'library-files'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_delete_news_images ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_delete_news_images ON storage.objects FOR DELETE TO authenticated USING (((bucket_id = 'news-images'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_delete_school_assets ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_delete_school_assets ON storage.objects FOR DELETE TO authenticated USING (((bucket_id = 'school-assets'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_delete_student_photos ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_delete_student_photos ON storage.objects FOR DELETE TO authenticated USING (((bucket_id = 'student-photos'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_delete_teacher_photos ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_delete_teacher_photos ON storage.objects FOR DELETE TO authenticated USING (((bucket_id = 'teacher-photos'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_update_school_assets ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_update_school_assets ON storage.objects FOR UPDATE TO authenticated USING (((bucket_id = 'school-assets'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_update_student_photos ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_update_student_photos ON storage.objects FOR UPDATE TO authenticated USING (((bucket_id = 'student-photos'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_update_teacher_photos ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_update_teacher_photos ON storage.objects FOR UPDATE TO authenticated USING (((bucket_id = 'teacher-photos'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_upload_achievements ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_upload_achievements ON storage.objects FOR INSERT TO authenticated WITH CHECK (((bucket_id = 'achievement-images'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_upload_gallery ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_upload_gallery ON storage.objects FOR INSERT TO authenticated WITH CHECK (((bucket_id = 'gallery'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_upload_library ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_upload_library ON storage.objects FOR INSERT TO authenticated WITH CHECK (((bucket_id = 'library-files'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_upload_news_images ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_upload_news_images ON storage.objects FOR INSERT TO authenticated WITH CHECK (((bucket_id = 'news-images'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_upload_school_assets ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_upload_school_assets ON storage.objects FOR INSERT TO authenticated WITH CHECK (((bucket_id = 'school-assets'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_upload_student_photos ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_upload_student_photos ON storage.objects FOR INSERT TO authenticated WITH CHECK (((bucket_id = 'student-photos'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admin_upload_teacher_photos ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admin_upload_teacher_photos ON storage.objects FOR INSERT TO authenticated WITH CHECK (((bucket_id = 'teacher-photos'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles
+  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS admissions_bucket_admin_manage ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY admissions_bucket_admin_manage ON storage.objects USING (((bucket_id = 'admissions'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))))) WITH CHECK (((bucket_id = 'admissions'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS "videos storage admin delete" ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY "videos storage admin delete" ON storage.objects FOR DELETE USING (((bucket_id = 'videos'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text))))));
+
+DROP POLICY IF EXISTS "videos storage admin write" ON storage.objects;
+
+
+
+
+
+
+
+CREATE POLICY "videos storage admin write" ON storage.objects FOR INSERT WITH CHECK (((bucket_id = 'videos'::text) AND (auth.role() = 'authenticated'::text) AND (EXISTS ( SELECT 1
+   FROM public.profiles p
+  WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text))))));

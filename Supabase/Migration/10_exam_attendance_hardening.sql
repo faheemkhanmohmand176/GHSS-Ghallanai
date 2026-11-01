@@ -16,17 +16,32 @@
 -- ---------------------------------------------------------------------------
 
 DROP POLICY IF EXISTS "Admin and teachers can insert exam attendance" ON public.exam_attendance;
+
+
 DROP POLICY IF EXISTS "Admin and teachers can update exam attendance" ON public.exam_attendance;
+
+
 DROP POLICY IF EXISTS "Admin can delete exam attendance"              ON public.exam_attendance;
+
+DROP POLICY IF EXISTS "Admins can insert exam attendance" ON public.exam_attendance;
+
 
 CREATE POLICY "Admins can insert exam attendance" ON public.exam_attendance
   FOR INSERT TO authenticated WITH CHECK (public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can update exam attendance" ON public.exam_attendance;
+
+
 CREATE POLICY "Admins can update exam attendance" ON public.exam_attendance
   FOR UPDATE TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
+DROP POLICY IF EXISTS "Admins can delete exam attendance" ON public.exam_attendance;
+
+
 CREATE POLICY "Admins can delete exam attendance" ON public.exam_attendance
   FOR DELETE TO authenticated USING (public.is_admin());
+
+
 
 -- ---------------------------------------------------------------------------
 -- ROLLBACK

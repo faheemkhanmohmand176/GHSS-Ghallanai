@@ -20,6 +20,8 @@
 CREATE INDEX IF NOT EXISTS idx_results_year_class_exam
   ON public.results (year, class, exam_type);
 
+
+
 CREATE OR REPLACE FUNCTION public.get_result_ranks(p_result_ids uuid[])
 RETURNS TABLE (
   result_id      uuid,
@@ -83,7 +85,11 @@ AS $$
            ON s.year = t.year AND s.sid = t.sid;
 $$;
 
+
+
 GRANT EXECUTE ON FUNCTION public.get_result_ranks(uuid[]) TO anon, authenticated;
+
+
 
 -- rollback: drop function if exists public.get_result_ranks(uuid[]);
 --           drop index if exists public.idx_results_year_class_exam;

@@ -31,7 +31,16 @@
 -- Run AFTER files 01-19.
 -- ═══════════════════════════════════════════════════════════════════════
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- pgcrypto: available on Supabase (and most hosts). gen_random_uuid() is
+-- built-in from PostgreSQL 13, so a host without it still runs this file.
+DO $mig$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS pgcrypto;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'pgcrypto not available - not needed on PostgreSQL 13+ (gen_random_uuid is built-in)';
+END $mig$;
+
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 1. ENUMS
@@ -41,9 +50,13 @@ DO $$ BEGIN
         ('open_merit', 'local_quota', 'sports', 'college_employees', 'special_person');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+
+
 DO $$ BEGIN
     CREATE TYPE public.inter_payment_status AS ENUM ('pending', 'paid', 'rejected');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+
 
 DO $$ BEGIN
     CREATE TYPE public.inter_app_status AS ENUM
@@ -51,10 +64,14 @@ DO $$ BEGIN
          'admitted', 'rejected', 'cancelled');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+
+
 -- ─────────────────────────────────────────────────────────────────────
 -- 2. SEQUENCES  (tracking id + JazzCash token numbering)
 -- ─────────────────────────────────────────────────────────────────────
 CREATE SEQUENCE IF NOT EXISTS public.inter_application_seq START 100001;
+
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 3. TABLES
@@ -79,6 +96,8 @@ CREATE TABLE IF NOT EXISTS public.inter_applicants (
     CONSTRAINT inter_applicants_mobile_chk CHECK (mobile_number ~ '^03[0-9]{9}$')
 );
 
+
+
 -- Lightweight session tokens (custom auth — Supabase Auth stays for staff)
 CREATE TABLE IF NOT EXISTS public.inter_applicant_sessions (
     token        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -86,8 +105,14 @@ CREATE TABLE IF NOT EXISTS public.inter_applicant_sessions (
     expires_at   timestamptz NOT NULL,
     created_at   timestamptz NOT NULL DEFAULT now()
 );
+
+
 CREATE INDEX IF NOT EXISTS idx_inter_sessions_applicant ON public.inter_applicant_sessions(applicant_id);
+
+
 CREATE INDEX IF NOT EXISTS idx_inter_sessions_expiry ON public.inter_applicant_sessions(expires_at);
+
+
 
 -- Personal Information profile (HED student_personal_profile.php fields)
 CREATE TABLE IF NOT EXISTS public.inter_personal_profiles (
@@ -119,6 +144,8 @@ CREATE TABLE IF NOT EXISTS public.inter_personal_profiles (
     updated_at       timestamptz NOT NULL DEFAULT now()
 );
 
+
+
 -- Matric / SSC profile (HED student_academic_profile_entry.php, manual path)
 CREATE TABLE IF NOT EXISTS public.inter_ssc_profiles (
     applicant_id        uuid PRIMARY KEY REFERENCES public.inter_applicants(id) ON DELETE CASCADE,
@@ -144,6 +171,8 @@ CREATE TABLE IF NOT EXISTS public.inter_ssc_profiles (
     CONSTRAINT inter_ssc_marks_chk CHECK (marks_obtained <= marks_total)
 );
 
+
+
 -- Programs offered for Inter admission at the college
 -- (GHSS Ghallanai faculties — HED general-college program names)
 CREATE TABLE IF NOT EXISTS public.inter_programs (
@@ -159,6 +188,8 @@ CREATE TABLE IF NOT EXISTS public.inter_programs (
     created_at     timestamptz NOT NULL DEFAULT now()
 );
 
+
+
 -- Subject groups per program (HED program_subject_group_id — captured live
 -- from get_subjectgroups_by_program_id.php at GDC Wadpaga, a general college
 -- with the same four faculties; each Inter group has 7 subjects)
@@ -169,13 +200,19 @@ CREATE TABLE IF NOT EXISTS public.inter_subject_groups (
     is_active     boolean NOT NULL DEFAULT true,
     display_order int NOT NULL DEFAULT 0
 );
+
+
 CREATE INDEX IF NOT EXISTS idx_inter_groups_program ON public.inter_subject_groups(program_id);
+
+
 
 -- Union councils in the college jurisdiction (Mohmand, HED ids preserved)
 CREATE TABLE IF NOT EXISTS public.inter_union_councils (
     id   int PRIMARY KEY,
     name text NOT NULL
 );
+
+
 
 -- Applications (HED student_submit_application*.php + pay flow)
 CREATE TABLE IF NOT EXISTS public.inter_applications (
@@ -211,14 +248,24 @@ CREATE TABLE IF NOT EXISTS public.inter_applications (
     created_at             timestamptz NOT NULL DEFAULT now(),
     updated_at             timestamptz NOT NULL DEFAULT now()
 );
+
+
 -- (re-run safe: column added in v2 of this migration)
 ALTER TABLE public.inter_applications
     ADD COLUMN IF NOT EXISTS subject_group text;
+
+
 CREATE INDEX IF NOT EXISTS idx_inter_apps_applicant ON public.inter_applications(applicant_id);
+
+
 CREATE INDEX IF NOT EXISTS idx_inter_apps_tracking  ON public.inter_applications(tracking_id);
+
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_inter_apps_one_per_quota
     ON public.inter_applications (applicant_id, program_id, quota)
     WHERE (status <> 'cancelled');
+
+
 
 -- Public-visible status timeline (HED "Application Detail": # | Title | Date | Details)
 CREATE TABLE IF NOT EXISTS public.inter_application_timeline (
@@ -228,7 +275,11 @@ CREATE TABLE IF NOT EXISTS public.inter_application_timeline (
     details         text,
     created_at      timestamptz NOT NULL DEFAULT now()
 );
+
+
 CREATE INDEX IF NOT EXISTS idx_inter_tl_app ON public.inter_application_timeline(application_id);
+
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 3b. MERIT LISTS (HED merit_list_view.php — public per program + quota)
@@ -249,7 +300,11 @@ CREATE TABLE IF NOT EXISTS public.inter_merit_lists (
     published_at        timestamptz,
     created_at          timestamptz NOT NULL DEFAULT now()
 );
+
+
 CREATE INDEX IF NOT EXISTS idx_inter_ml_program ON public.inter_merit_lists(program_id, quota);
+
+
 
 CREATE TABLE IF NOT EXISTS public.inter_merit_list_entries (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -265,8 +320,14 @@ CREATE TABLE IF NOT EXISTS public.inter_merit_list_entries (
     percentage      numeric NOT NULL,
     remarks         text
 );
+
+
 CREATE INDEX IF NOT EXISTS idx_inter_mle_list ON public.inter_merit_list_entries(merit_list_id);
+
+
 CREATE INDEX IF NOT EXISTS idx_inter_mle_app  ON public.inter_merit_list_entries(application_id);
+
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 4. SEED DATA (HED general-college capture 01-Nov-2026 — GHSS faculties)
@@ -283,10 +344,14 @@ VALUES
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name, study_level = EXCLUDED.study_level,
     seats = EXCLUDED.seats, display_order = EXCLUDED.display_order;
+
+
 -- retire stray program rows from older runs (never touched if referenced)
 DELETE FROM public.inter_programs p
  WHERE p.id NOT IN (1, 2, 3, 4)
    AND NOT EXISTS (SELECT 1 FROM public.inter_applications a WHERE a.program_id = p.id);
+
+
 
 INSERT INTO public.inter_subject_groups (id, program_id, name, display_order) VALUES
     (1, 1, 'Botany,Chemistry,English,Islamic Edu,Mutalia-e-Quran,Physics,Urdu', 1),
@@ -297,6 +362,8 @@ INSERT INTO public.inter_subject_groups (id, program_id, name, display_order) VA
 ON CONFLICT (id) DO UPDATE SET
     program_id = EXCLUDED.program_id, name = EXCLUDED.name,
     display_order = EXCLUDED.display_order;
+
+
 
 INSERT INTO public.inter_union_councils (id, name) VALUES
     (2808,'Khewezai'),          (2809,'Baizai-2'),         (2810,'Baizai-1'),
@@ -323,20 +390,44 @@ INSERT INTO public.inter_union_councils (id, name) VALUES
     (2871,'Bara Kadi Khel-1'),  (2872,'Chamarkand')
 ON CONFLICT (id) DO NOTHING;
 
+
+
 -- ─────────────────────────────────────────────────────────────────────
 -- 5. ROW LEVEL SECURITY — deny all direct access; RPCs only
 -- ─────────────────────────────────────────────────────────────────────
 ALTER TABLE public.inter_applicants            ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.inter_applicant_sessions   ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.inter_personal_profiles    ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.inter_ssc_profiles         ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.inter_programs             ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.inter_subject_groups       ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.inter_union_councils       ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.inter_applications         ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.inter_application_timeline ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.inter_merit_lists          ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.inter_merit_list_entries   ENABLE ROW LEVEL SECURITY;
+
+
 
 DO $$
 DECLARE t text;
@@ -352,6 +443,8 @@ BEGIN
             t, t);
     END LOOP;
 END $$;
+
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 6. HELPER FUNCTIONS
@@ -371,6 +464,8 @@ AS $$
     LIMIT 1;
 $$;
 
+
+
 -- Staff guard (Supabase Auth admin)
 CREATE OR REPLACE FUNCTION public.inter_is_admin()
 RETURNS boolean
@@ -382,6 +477,8 @@ AS $$
         WHERE id = auth.uid() AND role = 'admin'
     );
 $$;
+
+
 
 -- HED grade scale (A+ ≥ 80% as verified on the live system)
 CREATE OR REPLACE FUNCTION public.inter_grade_for(p_percentage numeric)
@@ -398,6 +495,8 @@ AS $$
     END;
 $$;
 
+
+
 -- Exact age (y/m/d) from DOB — mirrors HED get_age_against_cycle.php
 -- (which returns PHP DateInterval {y, m, d})
 CREATE OR REPLACE FUNCTION public.inter_age(p_dob date)
@@ -410,6 +509,8 @@ AS $$
         'd', date_part('day',   age(current_date, p_dob))::int
     );
 $$;
+
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 7. AUTH RPCs  (register / login / logout / session state)
@@ -464,6 +565,8 @@ BEGIN
 END;
 $$;
 
+
+
 -- HED student_login.php — login_id (CNIC) + password
 CREATE OR REPLACE FUNCTION public.inter_login(p_login_id text, p_password text)
 RETURNS jsonb
@@ -490,11 +593,15 @@ BEGIN
 END;
 $$;
 
+
+
 CREATE OR REPLACE FUNCTION public.inter_logout(p_token uuid)
 RETURNS void
 LANGUAGE sql SECURITY DEFINER
 SET search_path = public, extensions
 AS $$ DELETE FROM public.inter_applicant_sessions WHERE token = p_token; $$;
+
+
 
 -- Everything the portal needs in one call (HED dashboard + menu state)
 CREATE OR REPLACE FUNCTION public.inter_session_state(p_token uuid)
@@ -540,6 +647,8 @@ BEGIN
     );
 END;
 $$;
+
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 8. PROFILE RPCs
@@ -613,6 +722,8 @@ BEGIN
 END;
 $$;
 
+
+
 -- Matric/SSC profile — manual entry (HED manual path), grade auto-computed,
 -- hafiz +20 marks percentage rule applied verbatim.
 CREATE OR REPLACE FUNCTION public.inter_save_ssc(p_token uuid, p_data jsonb)
@@ -683,6 +794,8 @@ BEGIN
 END;
 $$;
 
+
+
 -- ─────────────────────────────────────────────────────────────────────
 -- 9. APPLICATION RPCs (the cascade rules, verbatim HED messages)
 -- ─────────────────────────────────────────────────────────────────────
@@ -708,6 +821,8 @@ AS $$
     WHERE p.is_active OR p_include_inactive;
 $$;
 
+
+
 -- Public: subject groups only (flat) — for the Program Subject Groups select
 CREATE OR REPLACE FUNCTION public.inter_subject_groups_list(p_program_id int DEFAULT NULL)
 RETURNS jsonb
@@ -722,6 +837,8 @@ AS $$
       AND (p_program_id IS NULL OR g.program_id = p_program_id);
 $$;
 
+
+
 -- Public: college jurisdiction UCs (for Local Quota display)
 CREATE OR REPLACE FUNCTION public.inter_ucs_list()
 RETURNS jsonb
@@ -731,6 +848,8 @@ AS $$
     SELECT coalesce(jsonb_agg(jsonb_build_object('id', id, 'name', name) ORDER BY id), '[]'::jsonb)
     FROM public.inter_union_councils;
 $$;
+
+
 
 -- Quota validation BEFORE submit (mirrors the live cascade checks)
 -- Returns {ok, message?, needs?} exactly like the HED JS behaviours.
@@ -842,6 +961,8 @@ BEGIN
     RETURN jsonb_build_object('ok', true);
 END;
 $$;
+
+
 
 -- Submit a new application (HED Submit Application → confirm page state)
 -- p_subject_group mirrors HED program_subject_group_id (group NAME is
@@ -980,6 +1101,8 @@ BEGIN
 END;
 $$;
 
+
+
 -- "Submit & Pay Application Processing Fee" → Proceed with Payment →
 -- generates the JazzCash token + deadline (HED student_pay_application_fee_response.php)
 CREATE OR REPLACE FUNCTION public.inter_proceed_payment(p_token uuid, p_application_id uuid)
@@ -1027,6 +1150,8 @@ BEGIN
 END;
 $$;
 
+
+
 -- Full application detail (view/print page)
 CREATE OR REPLACE FUNCTION public.inter_application_detail(p_token uuid, p_application_id uuid)
 RETURNS jsonb
@@ -1067,6 +1192,8 @@ BEGIN
 END;
 $$;
 
+
+
 -- ─────────────────────────────────────────────────────────────────────
 -- 10. PUBLIC TRACK (HED application_status.php — tracking id only)
 -- ─────────────────────────────────────────────────────────────────────
@@ -1097,6 +1224,8 @@ AS $$
     WHERE upper(trim(a.tracking_id)) = upper(trim(p_tracking_id))
     LIMIT 1;
 $$;
+
+
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 11. ADMIN RPCs (staff, guarded by Supabase Auth admin role)
@@ -1138,6 +1267,8 @@ BEGIN
 END;
 $$;
 
+
+
 CREATE OR REPLACE FUNCTION public.inter_admin_set_payment(
     p_application_id uuid, p_payment_status text, p_reference text DEFAULT NULL
 )
@@ -1173,6 +1304,8 @@ BEGIN
 END;
 $$;
 
+
+
 CREATE OR REPLACE FUNCTION public.inter_admin_set_status(
     p_application_id uuid, p_status text, p_note text DEFAULT NULL
 )
@@ -1197,6 +1330,8 @@ BEGIN
     RETURN jsonb_build_object('ok', true);
 END;
 $$;
+
+
 
 -- Admin: manage program seats / active flag (sanctioned seats are the
 -- school's own numbers and may change; everything else is HED-fixed)
@@ -1228,6 +1363,8 @@ BEGIN
 END;
 $$;
 
+
+
 -- ─────────────────────────────────────────────────────────────────────
 -- 12. MERIT LIST RPCs (HED merit_list_view.php, structure captured live)
 -- Public list of published merit lists + admin generation & management
@@ -1257,6 +1394,8 @@ AS $$
     FROM public.inter_merit_lists m
     WHERE m.is_published;
 $$;
+
+
 
 -- Public: one merit list with entries (HED table:
 -- # | Tracking ID | Name | Father Name | Total | Obtained | Net Marks |
@@ -1297,6 +1436,8 @@ BEGIN
             WHERE e.merit_list_id = v_row.id));
 END;
 $$;
+
+
 
 -- Admin: generate a merit list for one program + quota from the
 -- FEE-PAID applications, sorted by net marks (HED merit order).
@@ -1420,6 +1561,8 @@ BEGIN
 END;
 $$;
 
+
+
 -- Admin: all merit lists (published + drafts) with entry counts
 CREATE OR REPLACE FUNCTION public.inter_admin_merit_lists()
 RETURNS jsonb
@@ -1447,6 +1590,8 @@ BEGIN
 END;
 $$;
 
+
+
 -- Admin: publish / unpublish a merit list
 CREATE OR REPLACE FUNCTION public.inter_admin_merit_publish(
     p_merit_list_id uuid, p_published boolean
@@ -1470,6 +1615,8 @@ BEGIN
 END;
 $$;
 
+
+
 -- Admin: delete an unpublished merit list (published lists must be
 -- unpublished first — mirrors HED's one-way publication history)
 CREATE OR REPLACE FUNCTION public.inter_admin_merit_delete(p_merit_list_id uuid)
@@ -1490,6 +1637,8 @@ BEGIN
     RETURN jsonb_build_object('ok', true);
 END;
 $$;
+
+
 
 -- Admin: edit one entry's remarks (e.g. "2 Session(s) Missed")
 CREATE OR REPLACE FUNCTION public.inter_admin_merit_entry_remark(

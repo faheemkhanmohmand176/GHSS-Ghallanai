@@ -18,12 +18,30 @@
 -- ═══════════════════════════════════════════════════════════════════════
 
 DROP INDEX IF EXISTS public.idx_site_visits_device_type;
+
+
 DROP INDEX IF EXISTS public.idx_site_visits_page;
+
+
 DROP INDEX IF EXISTS public.idx_site_visits_session_id;
 
+
+
 -- Runs as the cron owner (bypasses RLS, so the "no one can delete" policy does not block it).
-SELECT cron.schedule('ghss-site-visits-retention', '41 3 * * *',
-  $$delete from public.site_visits where created_at < now() - interval '120 days';$$);
+DO $mig$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    RAISE NOTICE 'pg_cron not installed - retention job skipped (fine on Supabase, which ships pg_cron)';
+    RETURN;
+  END IF;
+  -- unschedule first so re-running never raises 'job already exists'
+  PERFORM cron.unschedule(jobid) FROM cron.job WHERE jobname = 'ghss-site-visits-retention';
+  PERFORM cron.schedule('ghss-site-visits-retention', '41 3 * * *',
+    $$delete from public.site_visits where created_at < now() - interval '120 days';$$);
+  RAISE NOTICE 'cron job registered: ghss-site-visits-retention';
+END $mig$;
+
+
 
 -- ═══════════════════════════ ROLLBACK (run only if needed) ═════════════
 -- select cron.unschedule(jobid) from cron.job where jobname = 'ghss-site-visits-retention';

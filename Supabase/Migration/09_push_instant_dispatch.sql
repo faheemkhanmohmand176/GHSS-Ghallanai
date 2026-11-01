@@ -22,8 +22,26 @@
 --      (status_code 200 = working)
 -- ═══════════════════════════════════════════════════════════════════════
 
-CREATE EXTENSION IF NOT EXISTS pg_net;
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+-- Supabase ships pg_net / pg_cron; on other hosts these DO blocks degrade to a
+-- NOTICE instead of a hard failure, and the cron sections in files 12/17 skip themselves.
+DO $mig$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS pg_net;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'pg_net not available on this host (fine on Supabase)';
+END $mig$;
+
+
+
+
+DO $mig$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS pg_cron;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'pg_cron not available on this host (fine on Supabase)';
+END $mig$;
+
+
 
 -- Config lives in push_state (RLS on, no policies → invisible to anon/authenticated).
 CREATE OR REPLACE FUNCTION public.push_configure(p_site text, p_secret text)
@@ -37,7 +55,11 @@ BEGIN
   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
   RETURN 'push dispatcher configured for ' || rtrim(p_site,'/');
 END $$;
+
+
 REVOKE ALL ON FUNCTION public.push_configure(text,text) FROM PUBLIC, anon, authenticated;
+
+
 
 -- Fire-and-forget call to the dispatcher. NEVER raises: a push problem must not block a publish.
 CREATE OR REPLACE FUNCTION public.push_ping()
@@ -56,7 +78,11 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   RETURN NULL;
 END $$;
+
+
 REVOKE ALL ON FUNCTION public.push_ping() FROM PUBLIC, anon, authenticated;
+
+
 
 CREATE OR REPLACE FUNCTION public.push_auto_publish()
 RETURNS bigint LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions AS $$
@@ -74,7 +100,11 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   RETURN NULL;
 END $$;
+
+
 REVOKE ALL ON FUNCTION public.push_auto_publish() FROM PUBLIC, anon, authenticated;
+
+
 
 CREATE OR REPLACE FUNCTION public.push_ping_trigger()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -82,6 +112,8 @@ BEGIN
   PERFORM public.push_ping();
   RETURN NULL;
 END $$;
+
+
 
 -- Statement-level: ONE ping per INSERT/UPDATE statement (bulk imports don't flood the API).
 -- pg_net sends the request only after the transaction commits, so the dispatcher always sees the new data.
@@ -99,9 +131,24 @@ BEGIN
   CREATE TRIGGER push_ping_upd AFTER UPDATE ON public.admissions FOR EACH STATEMENT EXECUTE FUNCTION public.push_ping_trigger();
 END $$;
 
--- Safety net + scheduled-results publisher: every minute. (cron.schedule with the same name replaces the job.)
-SELECT cron.schedule('ghss-push-dispatch', '* * * * *', $$select public.push_ping();$$);
-SELECT cron.schedule('ghss-auto-publish',  '* * * * *', $$select public.push_auto_publish();$$);
 
--- Keep pg_net's response log from growing forever.
-SELECT cron.schedule('ghss-net-cleanup', '17 3 * * *', $$delete from net._http_response where created < now() - interval '2 days';$$);
+
+-- Safety net + scheduled-results publisher: every minute.
+-- pg_cron raises on a duplicate job name, so each name is unscheduled first
+-- (file 12 later replaces ghss-push-dispatch / ghss-auto-publish with one
+-- 'ghss-tick' job) — re-running this file is safe. Skipped (NOTICE) without pg_cron.
+DO $mig$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    RAISE NOTICE 'pg_cron not installed - push jobs skipped (fine on Supabase, which ships pg_cron)';
+    RETURN;
+  END IF;
+  PERFORM cron.unschedule(jobid) FROM cron.job
+   WHERE jobname IN ('ghss-push-dispatch', 'ghss-auto-publish', 'ghss-net-cleanup');
+  PERFORM cron.schedule('ghss-push-dispatch', '* * * * *', $$select public.push_ping();$$);
+  PERFORM cron.schedule('ghss-auto-publish',  '* * * * *', $$select public.push_auto_publish();$$);
+
+  -- Keep pg_net's response log from growing forever.
+  PERFORM cron.schedule('ghss-net-cleanup', '17 3 * * *', $$delete from net._http_response where created < now() - interval '2 days';$$);
+  RAISE NOTICE 'cron jobs registered: ghss-push-dispatch, ghss-auto-publish, ghss-net-cleanup';
+END $mig$;

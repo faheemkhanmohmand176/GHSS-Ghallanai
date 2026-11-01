@@ -4,6 +4,8 @@
 
 CREATE INDEX IF NOT EXISTS idx_students_class_roll ON public.students (class, roll_number);
 
+
+
 CREATE OR REPLACE FUNCTION public.search_result_card(
   p_mode  text,            -- 'exam' (6-digit exam roll) or 'class'
   p_roll  text,
@@ -49,5 +51,9 @@ AS $$
     LEFT JOIN rk ON rk.result_id = h.id;
 $$;
 
+
+
 GRANT EXECUTE ON FUNCTION public.search_result_card(text, text, text) TO anon, authenticated;
+
+
 -- rollback: drop function if exists public.search_result_card(text,text,text);

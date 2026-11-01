@@ -22,8 +22,14 @@ CREATE TABLE IF NOT EXISTS public.push_subscriptions (
   last_seen     timestamptz NOT NULL DEFAULT now()
 );
 
+
+
 CREATE INDEX IF NOT EXISTS push_subscriptions_topics_idx        ON public.push_subscriptions USING gin (topics);
+
+
 CREATE INDEX IF NOT EXISTS push_subscriptions_admission_ref_idx ON public.push_subscriptions (admission_ref) WHERE admission_ref IS NOT NULL;
+
+
 
 CREATE TABLE IF NOT EXISTS public.push_state (
   key        text PRIMARY KEY,
@@ -31,5 +37,9 @@ CREATE TABLE IF NOT EXISTS public.push_state (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+
+
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE public.push_state         ENABLE ROW LEVEL SECURITY;

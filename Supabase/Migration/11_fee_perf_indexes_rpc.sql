@@ -95,12 +95,26 @@ begin
 end;
 $$;
 
+
+
 grant execute on function public.record_fee_payment to authenticated, anon;
+
+
 
 -- ── 2. Query-path indexes ────────────────────────────────────────────────────
 create index if not exists idx_fee_vouchers_status     on public.fee_vouchers (status);
+
+
 create index if not exists idx_fee_vouchers_year       on public.fee_vouchers (year);
+
+
 create index if not exists idx_fee_vouchers_class      on public.fee_vouchers (class);
+
+
 create index if not exists idx_fee_vouchers_student_id on public.fee_vouchers (student_id);
+
+
 create index if not exists idx_fee_payments_student_date on public.fee_payments (student_id, payment_date desc);
+
+
 create index if not exists idx_fee_payments_voucher_id   on public.fee_payments (voucher_id);

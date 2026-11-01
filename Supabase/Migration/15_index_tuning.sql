@@ -25,7 +25,11 @@
 --   two single-column copies are dead weight on every merit_lists write
 --   (AdminMeritList publishes/upserts regularly).
 DROP INDEX IF EXISTS public.idx_merit_lists_is_published;
+
+
 DROP INDEX IF EXISTS public.idx_merit_lists_published;
+
+
 
 -- notices: idx_notices_published btree(is_published) is structurally
 --   dominated by notices_pinned_recent_idx (is_pinned DESC, created_at DESC)
@@ -35,18 +39,26 @@ DROP INDEX IF EXISTS public.idx_merit_lists_published;
 --   use the primary key.
 DROP INDEX IF EXISTS public.idx_notices_published;
 
+
+
 -- exam_attendance: idx_exam_att_session_class and
 --   exam_attendance_session_class_idx are IDENTICAL (session_id, class), and
 --   both are subsumed by idx_exam_att_session_class_subject_date
 --   (session_id, class, subject, exam_date) via leading columns. The Live
 --   Console queries by session+class(+subject+date) — kept covered.
 DROP INDEX IF EXISTS public.idx_exam_att_session_class;
+
+
 DROP INDEX IF EXISTS public.exam_attendance_session_class_idx;
+
+
 
 -- fee_vouchers: idx_fee_vouchers_student and idx_fee_vouchers_student_id
 --   are IDENTICAL (student_id) — one copy is pure write overhead on the
 --   busiest fee table (get_all_vouchers / record_fee_payment paths).
 DROP INDEX IF EXISTS public.idx_fee_vouchers_student;
+
+
 
 -- ── 2. ADDS — proven hot query paths + FK cascades ─────────────────────────
 
@@ -60,10 +72,14 @@ DROP INDEX IF EXISTS public.idx_fee_vouchers_student;
 CREATE INDEX IF NOT EXISTS idx_exam_roll_numbers_session_serial
   ON public.exam_roll_numbers (session_id, serial_number);
 
+
+
 -- gallery_photos: no index at all; album_id FK is ON DELETE CASCADE and the
 --   public Gallery page lists photos per album.
 CREATE INDEX IF NOT EXISTS idx_gallery_photos_album
   ON public.gallery_photos (album_id);
+
+
 
 -- notification_dismissals: no index at all. (user_id, notification_id) is
 --   the exact lookup dismiss_notification / dismiss_all_notifications run
@@ -71,8 +87,12 @@ CREATE INDEX IF NOT EXISTS idx_gallery_photos_album
 --   and both FKs are ON DELETE CASCADE.
 CREATE INDEX IF NOT EXISTS idx_notification_dismissals_user_notif
   ON public.notification_dismissals (user_id, notification_id);
+
+
 CREATE INDEX IF NOT EXISTS idx_notification_dismissals_notif
   ON public.notification_dismissals (notification_id);
+
+
 
 -- library_files: category/class are indexed but the listing ORDER BY
 --   created_at DESC + LIMIT (useLibraryFiles, every Library page view and
@@ -80,6 +100,8 @@ CREATE INDEX IF NOT EXISTS idx_notification_dismissals_notif
 --   index → top-N sort each time.
 CREATE INDEX IF NOT EXISTS idx_library_files_created
   ON public.library_files (created_at DESC);
+
+
 
 -- ── 3. EXPLICITLY KEPT (checked, do NOT drop) ──────────────────────────────
 --   • student_records(admitted_class, status, GIN student_name/father_name):

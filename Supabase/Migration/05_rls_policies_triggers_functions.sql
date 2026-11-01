@@ -20,7 +20,7 @@
 -- ═══════════════════════════════════════════════════════════════════════
 
 
-CREATE FUNCTION public.admin_delete_user(target_user_id uuid) RETURNS void
+CREATE OR REPLACE FUNCTION public.admin_delete_user(target_user_id uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -69,7 +69,9 @@ BEGIN
 
 
 
-CREATE FUNCTION public.auto_link_student_user_id() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.auto_link_student_user_id() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                                                                                             BEGIN
@@ -92,7 +94,9 @@ CREATE FUNCTION public.auto_link_student_user_id() RETURNS trigger
 
 
 
-CREATE FUNCTION public.book_interview_slot(p_admission_id uuid, p_slot_id uuid) RETURNS jsonb
+
+
+CREATE OR REPLACE FUNCTION public.book_interview_slot(p_admission_id uuid, p_slot_id uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -201,7 +205,9 @@ $$;
 
 
 
-CREATE FUNCTION public.cancel_interview_booking(p_admission_id uuid) RETURNS jsonb
+
+
+CREATE OR REPLACE FUNCTION public.cancel_interview_booking(p_admission_id uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                      declare
@@ -278,7 +284,9 @@ CREATE FUNCTION public.cancel_interview_booking(p_admission_id uuid) RETURNS jso
 
 
 
-CREATE FUNCTION public.cast_poll_vote(p_notice_id uuid, p_option_id text, p_voter_token text) RETURNS jsonb
+
+
+CREATE OR REPLACE FUNCTION public.cast_poll_vote(p_notice_id uuid, p_option_id text, p_voter_token text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -348,7 +356,9 @@ CREATE FUNCTION public.cast_poll_vote(p_notice_id uuid, p_option_id text, p_vote
 
 
 
-CREATE FUNCTION public.create_my_profile(p_full_name text, p_role text, p_phone text, p_status text) RETURNS void
+
+
+CREATE OR REPLACE FUNCTION public.create_my_profile(p_full_name text, p_role text, p_phone text, p_status text) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -386,7 +396,9 @@ $$;
 
 
 
-CREATE FUNCTION public.custom_access_token_hook(event jsonb) RETURNS jsonb
+
+
+CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event jsonb) RETURNS jsonb
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -418,7 +430,9 @@ DECLARE
 
 
 
-CREATE FUNCTION public.dismiss_all_notifications() RETURNS void
+
+
+CREATE OR REPLACE FUNCTION public.dismiss_all_notifications() RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                   BEGIN
@@ -444,7 +458,9 @@ CREATE FUNCTION public.dismiss_all_notifications() RETURNS void
 
 
 
-CREATE FUNCTION public.dismiss_notification(p_notification_id uuid) RETURNS void
+
+
+CREATE OR REPLACE FUNCTION public.dismiss_notification(p_notification_id uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                                                                                                                                   DECLARE
@@ -477,7 +493,9 @@ CREATE FUNCTION public.dismiss_notification(p_notification_id uuid) RETURNS void
 
 
 
-CREATE FUNCTION public.enrol_srs_on_wrong_answer() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.enrol_srs_on_wrong_answer() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                           BEGIN
@@ -507,7 +525,9 @@ CREATE FUNCTION public.enrol_srs_on_wrong_answer() RETURNS trigger
 
 
 
-CREATE FUNCTION public.fn_notify(p_audience text, p_type text, p_title text, p_body text DEFAULT NULL::text, p_link text DEFAULT NULL::text, p_actor_id uuid DEFAULT NULL::uuid) RETURNS void
+
+
+CREATE OR REPLACE FUNCTION public.fn_notify(p_audience text, p_type text, p_title text, p_body text DEFAULT NULL::text, p_link text DEFAULT NULL::text, p_actor_id uuid DEFAULT NULL::uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
             BEGIN
@@ -520,7 +540,9 @@ CREATE FUNCTION public.fn_notify(p_audience text, p_type text, p_title text, p_b
 
 
 
-CREATE FUNCTION public.fn_recent_notification_exists(p_type text, p_audience text, p_title_prefix text, p_window_secs integer DEFAULT 60) RETURNS boolean
+
+
+CREATE OR REPLACE FUNCTION public.fn_recent_notification_exists(p_type text, p_audience text, p_title_prefix text, p_window_secs integer DEFAULT 60) RETURNS boolean
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -538,7 +560,9 @@ $$;
 
 
 
-CREATE FUNCTION public.fn_student_records_touch_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.fn_student_records_touch_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                                                                               BEGIN
@@ -551,7 +575,9 @@ CREATE FUNCTION public.fn_student_records_touch_updated_at() RETURNS trigger
 
 
 
-CREATE FUNCTION public.generate_admission_reference() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.generate_admission_reference() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                                                                                       declare
@@ -571,7 +597,9 @@ CREATE FUNCTION public.generate_admission_reference() RETURNS trigger
 
 
 
-CREATE FUNCTION public.get_admin_stats() RETURNS TABLE(total_students bigint, total_teachers bigint, total_notices bigint, total_news bigint, total_library bigint, total_albums bigint, total_users bigint, total_achievements bigint)
+
+
+CREATE OR REPLACE FUNCTION public.get_admin_stats() RETURNS TABLE(total_students bigint, total_teachers bigint, total_notices bigint, total_news bigint, total_library bigint, total_albums bigint, total_users bigint, total_achievements bigint)
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -592,7 +620,9 @@ $$;
 
 
 
-CREATE FUNCTION public.get_all_fee_structures() RETURNS jsonb
+
+
+CREATE OR REPLACE FUNCTION public.get_all_fee_structures() RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -628,7 +658,9 @@ CREATE FUNCTION public.get_all_fee_structures() RETURNS jsonb
 
 
 
-CREATE FUNCTION public.get_all_vouchers() RETURNS jsonb
+
+
+CREATE OR REPLACE FUNCTION public.get_all_vouchers() RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -677,7 +709,9 @@ begin
 
 
 
-CREATE FUNCTION public.get_applicant_admission(p_admission_id uuid, p_phone text) RETURNS jsonb
+
+
+CREATE OR REPLACE FUNCTION public.get_applicant_admission(p_admission_id uuid, p_phone text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -729,7 +763,9 @@ $$;
 
 
 
-CREATE FUNCTION public.get_my_poll_vote(p_notice_id uuid, p_voter_token text) RETURNS text
+
+
+CREATE OR REPLACE FUNCTION public.get_my_poll_vote(p_notice_id uuid, p_voter_token text) RETURNS text
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -742,7 +778,9 @@ CREATE FUNCTION public.get_my_poll_vote(p_notice_id uuid, p_voter_token text) RE
 
 
 
-CREATE FUNCTION public.get_my_profile() RETURNS json
+
+
+CREATE OR REPLACE FUNCTION public.get_my_profile() RETURNS json
     LANGUAGE sql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -756,7 +794,9 @@ CREATE FUNCTION public.get_my_profile() RETURNS json
 
 
 
-CREATE FUNCTION public.handle_new_auth_user() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -793,7 +833,9 @@ CREATE FUNCTION public.handle_new_auth_user() RETURNS trigger
 
 
 
-CREATE FUNCTION public.handle_new_user() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.handle_new_user() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -815,7 +857,9 @@ $$;
 
 
 
-CREATE FUNCTION public.handle_new_user_profile() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.handle_new_user_profile() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -847,7 +891,9 @@ BEGIN
 
 
 
-CREATE FUNCTION public.increment_download_count(file_id uuid) RETURNS void
+
+
+CREATE OR REPLACE FUNCTION public.increment_download_count(file_id uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -861,7 +907,9 @@ $$;
 
 
 
-CREATE FUNCTION public.is_admin() RETURNS boolean
+
+
+CREATE OR REPLACE FUNCTION public.is_admin() RETURNS boolean
     LANGUAGE sql SECURITY DEFINER
     AS $$
                                                                               SELECT EXISTS (
@@ -873,7 +921,9 @@ CREATE FUNCTION public.is_admin() RETURNS boolean
 
 
 
-CREATE FUNCTION public.mark_overdue_vouchers() RETURNS void
+
+
+CREATE OR REPLACE FUNCTION public.mark_overdue_vouchers() RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                                                                                                                                                                                                                                             BEGIN
@@ -888,7 +938,9 @@ CREATE FUNCTION public.mark_overdue_vouchers() RETURNS void
 
 
 
-CREATE FUNCTION public.normalize_phone(p_phone text) RETURNS text
+
+
+CREATE OR REPLACE FUNCTION public.normalize_phone(p_phone text) RETURNS text
     LANGUAGE sql IMMUTABLE
     AS $$
   select regexp_replace(coalesce(p_phone, ''), '[^0-9+]', '', 'g');
@@ -898,7 +950,9 @@ $$;
 
 
 
-CREATE FUNCTION public.notify_admin_contact(p_name text, p_email text, p_subject text DEFAULT NULL::text) RETURNS void
+
+
+CREATE OR REPLACE FUNCTION public.notify_admin_contact(p_name text, p_email text, p_subject text DEFAULT NULL::text) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
       DECLARE
@@ -936,7 +990,9 @@ CREATE FUNCTION public.notify_admin_contact(p_name text, p_email text, p_subject
 
 
 
-CREATE FUNCTION public.notify_applicant_sms(p_phone text, p_message text) RETURNS void
+
+
+CREATE OR REPLACE FUNCTION public.notify_applicant_sms(p_phone text, p_message text) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 declare
@@ -976,7 +1032,9 @@ $$;
 
 
 
-CREATE FUNCTION public.request_admission_otp(p_contact_number text) RETURNS jsonb
+
+
+CREATE OR REPLACE FUNCTION public.request_admission_otp(p_contact_number text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -1030,7 +1088,9 @@ $$;
 
 
 
-CREATE FUNCTION public.save_admission_docs(p_b_form_no text, p_docs text) RETURNS void
+
+
+CREATE OR REPLACE FUNCTION public.save_admission_docs(p_b_form_no text, p_docs text) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -1052,7 +1112,9 @@ CREATE FUNCTION public.save_admission_docs(p_b_form_no text, p_docs text) RETURN
 
 
 
-CREATE FUNCTION public.set_lab_content_cache_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.set_lab_content_cache_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                     begin
@@ -1065,7 +1127,9 @@ CREATE FUNCTION public.set_lab_content_cache_updated_at() RETURNS trigger
 
 
 
-CREATE FUNCTION public.set_merit_lists_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.set_merit_lists_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                                                                                                                                                                                                             BEGIN
@@ -1078,7 +1142,9 @@ CREATE FUNCTION public.set_merit_lists_updated_at() RETURNS trigger
 
 
 
-CREATE FUNCTION public.set_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.set_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                               BEGIN
@@ -1091,7 +1157,9 @@ CREATE FUNCTION public.set_updated_at() RETURNS trigger
 
 
 
-CREATE FUNCTION public.submit_admission_public(full_name text, father_name text, date_of_birth date, b_form_no text, contact_number text, whatsapp_number text DEFAULT NULL::text, home_address text DEFAULT NULL::text, gender text DEFAULT NULL::text, applying_class text DEFAULT NULL::text, admission_type public.admission_type DEFAULT 'fresh'::public.admission_type, previous_school text DEFAULT NULL::text, previous_class text DEFAULT NULL::text, previous_marks text DEFAULT NULL::text, year_of_passing text DEFAULT NULL::text) RETURNS json
+
+
+CREATE OR REPLACE FUNCTION public.submit_admission_public(full_name text, father_name text, date_of_birth date, b_form_no text, contact_number text, whatsapp_number text DEFAULT NULL::text, home_address text DEFAULT NULL::text, gender text DEFAULT NULL::text, applying_class text DEFAULT NULL::text, admission_type public.admission_type DEFAULT 'fresh'::public.admission_type, previous_school text DEFAULT NULL::text, previous_class text DEFAULT NULL::text, previous_marks text DEFAULT NULL::text, year_of_passing text DEFAULT NULL::text) RETURNS json
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -1122,7 +1190,9 @@ CREATE FUNCTION public.submit_admission_public(full_name text, father_name text,
 
 
 
-CREATE FUNCTION public.submit_admission_public(p_full_name text, p_father_name text, p_date_of_birth text DEFAULT NULL::text, p_b_form_no text DEFAULT NULL::text, p_contact_number text DEFAULT NULL::text, p_whatsapp_number text DEFAULT NULL::text, p_home_address text DEFAULT NULL::text, p_gender text DEFAULT NULL::text, p_applying_class text DEFAULT NULL::text, p_admission_type text DEFAULT 'fresh'::text, p_previous_school text DEFAULT NULL::text, p_previous_class text DEFAULT NULL::text, p_previous_marks text DEFAULT NULL::text, p_year_of_passing text DEFAULT NULL::text) RETURNS json
+
+
+CREATE OR REPLACE FUNCTION public.submit_admission_public(p_full_name text, p_father_name text, p_date_of_birth text DEFAULT NULL::text, p_b_form_no text DEFAULT NULL::text, p_contact_number text DEFAULT NULL::text, p_whatsapp_number text DEFAULT NULL::text, p_home_address text DEFAULT NULL::text, p_gender text DEFAULT NULL::text, p_applying_class text DEFAULT NULL::text, p_admission_type text DEFAULT 'fresh'::text, p_previous_school text DEFAULT NULL::text, p_previous_class text DEFAULT NULL::text, p_previous_marks text DEFAULT NULL::text, p_year_of_passing text DEFAULT NULL::text) RETURNS json
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$ DECLARE new_id uuid; new_ref text; BEGIN INSERT INTO public.admissions(reference_no, full_name, father_name, b_form_no, contact_number, whatsapp_number, home_address, gender, applying_class, admission_type, previous_school, previous_class, previous_marks, year_of_passing) VALUES ('', p_full_name, p_father_name, p_b_form_no, p_contact_number, p_whatsapp_number, p_home_address, p_gender, p_applying_class, p_admission_type::public.admission_type, p_previous_school, p_previous_class, p_previous_marks, p_year_of_passing) RETURNING id, reference_no INTO new_id, new_ref; RETURN json_build_object('id', new_id, 'reference_no', new_ref); END; $$;
@@ -1131,7 +1201,9 @@ CREATE FUNCTION public.submit_admission_public(p_full_name text, p_father_name t
 
 
 
-CREATE FUNCTION public.submit_admission_with_docs(p_full_name text, p_father_name text, p_date_of_birth date, p_b_form_no text, p_contact_number text, p_whatsapp_number text, p_home_address text, p_gender text, p_applying_class text, p_admission_type text, p_previous_school text, p_previous_class text, p_previous_marks text, p_year_of_passing text, p_docs text) RETURNS json
+
+
+CREATE OR REPLACE FUNCTION public.submit_admission_with_docs(p_full_name text, p_father_name text, p_date_of_birth date, p_b_form_no text, p_contact_number text, p_whatsapp_number text, p_home_address text, p_gender text, p_applying_class text, p_admission_type text, p_previous_school text, p_previous_class text, p_previous_marks text, p_year_of_passing text, p_docs text) RETURNS json
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -1181,7 +1253,9 @@ CREATE FUNCTION public.submit_admission_with_docs(p_full_name text, p_father_nam
 
 
 
-CREATE FUNCTION public.touch_admissions_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.touch_admissions_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                                                                                                       begin new.updated_at := now(); return new; end;
@@ -1191,7 +1265,9 @@ CREATE FUNCTION public.touch_admissions_updated_at() RETURNS trigger
 
 
 
-CREATE FUNCTION public.touch_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.touch_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                                                                                       begin
@@ -1203,7 +1279,9 @@ CREATE FUNCTION public.touch_updated_at() RETURNS trigger
 
 
 
-CREATE FUNCTION public.track_admission(p_query text) RETURNS SETOF public.admissions
+
+
+CREATE OR REPLACE FUNCTION public.track_admission(p_query text) RETURNS SETOF public.admissions
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -1222,7 +1300,9 @@ CREATE FUNCTION public.track_admission(p_query text) RETURNS SETOF public.admiss
 
 
 
-CREATE FUNCTION public.trg_fn_achievement_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_achievement_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                           BEGIN
@@ -1240,7 +1320,9 @@ CREATE FUNCTION public.trg_fn_achievement_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_admission_application_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_admission_application_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                                                                       BEGIN
@@ -1258,7 +1340,9 @@ CREATE FUNCTION public.trg_fn_admission_application_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_admission_doc_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_admission_doc_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                                                                                             BEGIN
@@ -1276,7 +1360,9 @@ CREATE FUNCTION public.trg_fn_admission_doc_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_admission_open_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_admission_open_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -1302,7 +1388,9 @@ $$;
 
 
 
-CREATE FUNCTION public.trg_fn_chapter_question_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_chapter_question_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                         DECLARE
@@ -1333,7 +1421,9 @@ CREATE FUNCTION public.trg_fn_chapter_question_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_contact_message_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_contact_message_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                   BEGIN
@@ -1352,7 +1442,9 @@ CREATE FUNCTION public.trg_fn_contact_message_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_event_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_event_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -1379,7 +1471,9 @@ $$;
 
 
 
-CREATE FUNCTION public.trg_fn_exam_roll_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_exam_roll_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -1399,7 +1493,9 @@ BEGIN
 
 
 
-CREATE FUNCTION public.trg_fn_exam_seating_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_exam_seating_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 DECLARE
@@ -1480,7 +1576,9 @@ DECLARE
 
 
 
-CREATE FUNCTION public.trg_fn_fee_voucher_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_fee_voucher_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                       BEGIN
@@ -1498,7 +1596,9 @@ CREATE FUNCTION public.trg_fn_fee_voucher_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_gallery_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_gallery_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       DECLARE
@@ -1523,7 +1623,9 @@ CREATE FUNCTION public.trg_fn_gallery_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_homework_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_homework_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                                                 BEGIN
@@ -1541,7 +1643,9 @@ CREATE FUNCTION public.trg_fn_homework_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_id_card_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_id_card_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                             BEGIN
@@ -1561,7 +1665,9 @@ CREATE FUNCTION public.trg_fn_id_card_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_library_book_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_library_book_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -1585,7 +1691,9 @@ $$;
 
 
 
-CREATE FUNCTION public.trg_fn_mistake_report_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_mistake_report_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                   DECLARE
@@ -1616,7 +1724,9 @@ CREATE FUNCTION public.trg_fn_mistake_report_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_news_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_news_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -1643,7 +1753,9 @@ $$;
 
 
 
-CREATE FUNCTION public.trg_fn_notes_chapter_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_notes_chapter_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 DECLARE
@@ -1674,7 +1786,9 @@ CREATE FUNCTION public.trg_fn_notes_chapter_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_notes_feedback_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_notes_feedback_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     DECLARE
@@ -1698,7 +1812,9 @@ CREATE FUNCTION public.trg_fn_notes_feedback_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_notice_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_notice_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 BEGIN
@@ -1719,7 +1835,9 @@ BEGIN
 
 
 
-CREATE FUNCTION public.trg_fn_online_class_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_online_class_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                     BEGIN
@@ -1737,7 +1855,9 @@ CREATE FUNCTION public.trg_fn_online_class_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_result_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_result_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
 DECLARE
@@ -1775,7 +1895,9 @@ $$;
 
 
 
-CREATE FUNCTION public.trg_fn_set_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_set_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                                                                                                                                                                                               BEGIN
@@ -1788,7 +1910,9 @@ CREATE FUNCTION public.trg_fn_set_updated_at() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_timetable_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_timetable_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                                                                                                                                                                                                                                                                                                                       DECLARE
@@ -1817,7 +1941,9 @@ CREATE FUNCTION public.trg_fn_timetable_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_timetable_notify_dedupe() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_timetable_notify_dedupe() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                   BEGIN
@@ -1842,7 +1968,9 @@ CREATE FUNCTION public.trg_fn_timetable_notify_dedupe() RETURNS trigger
 
 
 
-CREATE FUNCTION public.trg_fn_video_notify() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.trg_fn_video_notify() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
                                                                                                                                                               BEGIN
@@ -1862,7 +1990,9 @@ CREATE FUNCTION public.trg_fn_video_notify() RETURNS trigger
 
 
 
-CREATE FUNCTION public.update_admission_status(p_admission_id uuid, p_new_status public.admission_status, p_note text DEFAULT NULL::text) RETURNS jsonb
+
+
+CREATE OR REPLACE FUNCTION public.update_admission_status(p_admission_id uuid, p_new_status public.admission_status, p_note text DEFAULT NULL::text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     AS $$
       declare
@@ -1914,7 +2044,9 @@ CREATE FUNCTION public.update_admission_status(p_admission_id uuid, p_new_status
 
 
 
-CREATE FUNCTION public.update_attendance_daily_stats_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.update_attendance_daily_stats_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                                                                                                                                  BEGIN
@@ -1927,7 +2059,9 @@ CREATE FUNCTION public.update_attendance_daily_stats_updated_at() RETURNS trigge
 
 
 
-CREATE FUNCTION public.update_attendance_thresholds_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.update_attendance_thresholds_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                                                                                                                                                                                                                                        BEGIN
@@ -1940,7 +2074,9 @@ CREATE FUNCTION public.update_attendance_thresholds_updated_at() RETURNS trigger
 
 
 
-CREATE FUNCTION public.update_duty_board_timestamp() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.update_duty_board_timestamp() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                                                                               BEGIN
@@ -1953,7 +2089,9 @@ CREATE FUNCTION public.update_duty_board_timestamp() RETURNS trigger
 
 
 
-CREATE FUNCTION public.update_school_events_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.update_school_events_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -1966,7 +2104,9 @@ $$;
 
 
 
-CREATE FUNCTION public.update_timetable_settings_updated_at() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.update_timetable_settings_updated_at() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
               BEGIN
@@ -1979,7 +2119,9 @@ CREATE FUNCTION public.update_timetable_settings_updated_at() RETURNS trigger
 
 
 
-CREATE FUNCTION public.update_timetable_timestamp() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.update_timetable_timestamp() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -1992,7 +2134,9 @@ $$;
 
 
 
-CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
+
+
+CREATE OR REPLACE FUNCTION public.update_updated_at_column() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
                                                                                                                                                                                                                                                                                                                                                                                                                                 BEGIN
@@ -2005,7 +2149,9 @@ CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
 
 
 
-CREATE FUNCTION public.verify_admission_otp(p_contact_number text, p_otp_code text) RETURNS jsonb
+
+
+CREATE OR REPLACE FUNCTION public.verify_admission_otp(p_contact_number text, p_otp_code text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -2104,7 +2250,9 @@ $$;
 
 
 
-CREATE VIEW public.srs_due_today AS
+
+
+CREATE OR REPLACE VIEW public.srs_due_today AS
  SELECT sr.id,
     sr.user_id,
     sr.question_id,
@@ -2127,7 +2275,9 @@ CREATE VIEW public.srs_due_today AS
 
 
 
-CREATE VIEW public.v_student_seating AS
+
+
+CREATE OR REPLACE VIEW public.v_student_seating AS
  SELECT a.student_id,
     a.class,
     a.class_roll_no,
@@ -2151,236 +2301,377 @@ CREATE VIEW public.v_student_seating AS
      JOIN public.exam_seating_plans p ON ((p.id = a.plan_id)))
      JOIN public.exam_seating_rooms r ON ((r.id = a.room_id)));
 
+DROP TRIGGER IF EXISTS duty_board_updated_at ON public.duty_board;
+
+
 
 
 
 
 CREATE TRIGGER duty_board_updated_at BEFORE UPDATE ON public.duty_board FOR EACH ROW EXECUTE FUNCTION public.update_duty_board_timestamp();
 
+DROP TRIGGER IF EXISTS set_attendance_daily_stats_updated_at ON public.attendance_daily_stats;
+
+
 
 
 
 CREATE TRIGGER set_attendance_daily_stats_updated_at BEFORE UPDATE ON public.attendance_daily_stats FOR EACH ROW EXECUTE FUNCTION public.update_attendance_daily_stats_updated_at();
+
+DROP TRIGGER IF EXISTS set_attendance_thresholds_updated_at ON public.attendance_thresholds;
+
 
 
 
 
 CREATE TRIGGER set_attendance_thresholds_updated_at BEFORE UPDATE ON public.attendance_thresholds FOR EACH ROW EXECUTE FUNCTION public.update_attendance_thresholds_updated_at();
 
+DROP TRIGGER IF EXISTS set_generated_id_cards_updated_at ON public.generated_id_cards;
+
+
 
 
 
 CREATE TRIGGER set_generated_id_cards_updated_at BEFORE UPDATE ON public.generated_id_cards FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS srs_auto_enrol ON public.note_wrong_answers;
+
 
 
 
 
 CREATE TRIGGER srs_auto_enrol AFTER INSERT ON public.note_wrong_answers FOR EACH ROW EXECUTE FUNCTION public.enrol_srs_on_wrong_answer();
 
+DROP TRIGGER IF EXISTS timetable_updated_at ON public.timetables;
+
+
 
 
 
 CREATE TRIGGER timetable_updated_at BEFORE UPDATE ON public.timetables FOR EACH ROW EXECUTE FUNCTION public.update_timetable_timestamp();
+
+DROP TRIGGER IF EXISTS trg_achievement_notify ON public.achievements;
+
 
 
 
 
 CREATE TRIGGER trg_achievement_notify AFTER INSERT ON public.achievements FOR EACH ROW EXECUTE FUNCTION public.trg_fn_achievement_notify();
 
+DROP TRIGGER IF EXISTS trg_admission_application_notify ON public.admissions;
+
+
 
 
 
 CREATE TRIGGER trg_admission_application_notify AFTER INSERT ON public.admissions FOR EACH ROW EXECUTE FUNCTION public.trg_fn_admission_application_notify();
+
+DROP TRIGGER IF EXISTS trg_admission_doc_notify ON public.admission_documents;
+
 
 
 
 
 CREATE TRIGGER trg_admission_doc_notify AFTER INSERT ON public.admission_documents FOR EACH ROW EXECUTE FUNCTION public.trg_fn_admission_doc_notify();
 
+DROP TRIGGER IF EXISTS trg_admission_open_notify ON public.admission_settings;
+
+
 
 
 
 CREATE TRIGGER trg_admission_open_notify AFTER UPDATE ON public.admission_settings FOR EACH ROW EXECUTE FUNCTION public.trg_fn_admission_open_notify();
+
+DROP TRIGGER IF EXISTS trg_auto_link_student_user_id ON public.students;
+
 
 
 
 
 CREATE TRIGGER trg_auto_link_student_user_id BEFORE INSERT ON public.students FOR EACH ROW EXECUTE FUNCTION public.auto_link_student_user_id();
 
+DROP TRIGGER IF EXISTS trg_chapter_answers_updated_at ON public.chapter_answers;
+
+
 
 
 
 CREATE TRIGGER trg_chapter_answers_updated_at BEFORE UPDATE ON public.chapter_answers FOR EACH ROW EXECUTE FUNCTION public.trg_fn_set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_chapter_question_notify ON public.chapter_questions;
+
 
 
 
 
 CREATE TRIGGER trg_chapter_question_notify AFTER INSERT ON public.chapter_questions FOR EACH ROW EXECUTE FUNCTION public.trg_fn_chapter_question_notify();
 
+DROP TRIGGER IF EXISTS trg_chapter_questions_updated_at ON public.chapter_questions;
+
+
 
 
 
 CREATE TRIGGER trg_chapter_questions_updated_at BEFORE UPDATE ON public.chapter_questions FOR EACH ROW EXECUTE FUNCTION public.trg_fn_set_updated_at();
+
+DROP TRIGGER IF EXISTS trg_contact_message_notify ON public.contact_messages;
+
 
 
 
 
 CREATE TRIGGER trg_contact_message_notify AFTER INSERT ON public.contact_messages FOR EACH ROW EXECUTE FUNCTION public.trg_fn_contact_message_notify();
 
+DROP TRIGGER IF EXISTS trg_event_notify ON public.school_events;
+
+
 
 
 
 CREATE TRIGGER trg_event_notify AFTER INSERT ON public.school_events FOR EACH ROW EXECUTE FUNCTION public.trg_fn_event_notify();
+
+DROP TRIGGER IF EXISTS trg_exam_roll_notify ON public.exam_roll_sessions;
+
 
 
 
 
 CREATE TRIGGER trg_exam_roll_notify AFTER UPDATE ON public.exam_roll_sessions FOR EACH ROW EXECUTE FUNCTION public.trg_fn_exam_roll_notify();
 
+DROP TRIGGER IF EXISTS trg_exam_seating_notify ON public.exam_seating_plans;
+
+
 
 
 
 CREATE TRIGGER trg_exam_seating_notify AFTER INSERT OR UPDATE ON public.exam_seating_plans FOR EACH ROW EXECUTE FUNCTION public.trg_fn_exam_seating_notify();
+
+DROP TRIGGER IF EXISTS trg_fee_structures_updated ON public.fee_structures;
+
 
 
 
 
 CREATE TRIGGER trg_fee_structures_updated BEFORE UPDATE ON public.fee_structures FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trg_fee_voucher_notify ON public.fee_vouchers;
+
+
 
 
 
 CREATE TRIGGER trg_fee_voucher_notify AFTER INSERT ON public.fee_vouchers FOR EACH ROW EXECUTE FUNCTION public.trg_fn_fee_voucher_notify();
+
+DROP TRIGGER IF EXISTS trg_fee_vouchers_updated ON public.fee_vouchers;
+
 
 
 
 
 CREATE TRIGGER trg_fee_vouchers_updated BEFORE UPDATE ON public.fee_vouchers FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trg_gallery_notify ON public.gallery_photos;
+
+
 
 
 
 CREATE TRIGGER trg_gallery_notify AFTER INSERT ON public.gallery_photos FOR EACH ROW EXECUTE FUNCTION public.trg_fn_gallery_notify();
+
+DROP TRIGGER IF EXISTS trg_generate_admission_ref ON public.admissions;
+
 
 
 
 
 CREATE TRIGGER trg_generate_admission_ref BEFORE INSERT ON public.admissions FOR EACH ROW EXECUTE FUNCTION public.generate_admission_reference();
 
+DROP TRIGGER IF EXISTS trg_homework_notify ON public.homework;
+
+
 
 
 
 CREATE TRIGGER trg_homework_notify AFTER INSERT ON public.homework FOR EACH ROW EXECUTE FUNCTION public.trg_fn_homework_notify();
+
+DROP TRIGGER IF EXISTS trg_id_card_notify ON public.generated_id_cards;
+
 
 
 
 
 CREATE TRIGGER trg_id_card_notify AFTER INSERT ON public.generated_id_cards FOR EACH ROW EXECUTE FUNCTION public.trg_fn_id_card_notify();
 
+DROP TRIGGER IF EXISTS trg_interview_slots_touch ON public.interview_slots;
+
+
 
 
 
 CREATE TRIGGER trg_interview_slots_touch BEFORE UPDATE ON public.interview_slots FOR EACH ROW EXECUTE FUNCTION public.touch_admissions_updated_at();
+
+DROP TRIGGER IF EXISTS trg_lab_content_cache_updated_at ON public.lab_content_cache;
+
 
 
 
 
 CREATE TRIGGER trg_lab_content_cache_updated_at BEFORE UPDATE ON public.lab_content_cache FOR EACH ROW EXECUTE FUNCTION public.set_lab_content_cache_updated_at();
 
+DROP TRIGGER IF EXISTS trg_library_book_notify ON public.library_books;
+
+
 
 
 
 CREATE TRIGGER trg_library_book_notify AFTER INSERT ON public.library_books FOR EACH ROW EXECUTE FUNCTION public.trg_fn_library_book_notify();
+
+DROP TRIGGER IF EXISTS trg_merit_lists_updated_at ON public.merit_lists;
+
 
 
 
 
 CREATE TRIGGER trg_merit_lists_updated_at BEFORE UPDATE ON public.merit_lists FOR EACH ROW EXECUTE FUNCTION public.set_merit_lists_updated_at();
 
+DROP TRIGGER IF EXISTS trg_mistake_report_notify ON public.mistake_reports;
+
+
 
 
 
 CREATE TRIGGER trg_mistake_report_notify AFTER INSERT ON public.mistake_reports FOR EACH ROW EXECUTE FUNCTION public.trg_fn_mistake_report_notify();
+
+DROP TRIGGER IF EXISTS trg_mistake_reports_updated_at ON public.mistake_reports;
+
 
 
 
 
 CREATE TRIGGER trg_mistake_reports_updated_at BEFORE UPDATE ON public.mistake_reports FOR EACH ROW EXECUTE FUNCTION public.trg_fn_set_updated_at();
 
+DROP TRIGGER IF EXISTS trg_news_notify ON public.news;
+
+
 
 
 
 CREATE TRIGGER trg_news_notify AFTER INSERT ON public.news FOR EACH ROW EXECUTE FUNCTION public.trg_fn_news_notify();
+
+DROP TRIGGER IF EXISTS trg_note_annotations_updated ON public.note_annotations;
+
 
 
 
 
 CREATE TRIGGER trg_note_annotations_updated BEFORE UPDATE ON public.note_annotations FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trg_notes_chapter_notify ON public.note_chapters;
+
+
 
 
 
 CREATE TRIGGER trg_notes_chapter_notify AFTER INSERT ON public.note_chapters FOR EACH ROW EXECUTE FUNCTION public.trg_fn_notes_chapter_notify();
+
+DROP TRIGGER IF EXISTS trg_notes_feedback_notify ON public.note_annotations;
+
 
 
 
 
 CREATE TRIGGER trg_notes_feedback_notify AFTER INSERT ON public.note_annotations FOR EACH ROW EXECUTE FUNCTION public.trg_fn_notes_feedback_notify();
 
+DROP TRIGGER IF EXISTS trg_notice_notify ON public.notices;
+
+
 
 
 
 CREATE TRIGGER trg_notice_notify AFTER INSERT ON public.notices FOR EACH ROW EXECUTE FUNCTION public.trg_fn_notice_notify();
+
+DROP TRIGGER IF EXISTS trg_online_class_notify ON public.online_classes;
+
 
 
 
 
 CREATE TRIGGER trg_online_class_notify AFTER INSERT ON public.online_classes FOR EACH ROW EXECUTE FUNCTION public.trg_fn_online_class_notify();
 
+DROP TRIGGER IF EXISTS trg_result_notify ON public.results;
+
+
 
 
 
 CREATE TRIGGER trg_result_notify AFTER INSERT OR UPDATE ON public.results FOR EACH ROW EXECUTE FUNCTION public.trg_fn_result_notify();
+
+DROP TRIGGER IF EXISTS trg_rooms_updated_at ON public.rooms;
+
 
 
 
 
 CREATE TRIGGER trg_rooms_updated_at BEFORE UPDATE ON public.rooms FOR EACH ROW EXECUTE FUNCTION public.update_timetable_settings_updated_at();
 
+DROP TRIGGER IF EXISTS trg_school_events_updated_at ON public.school_events;
+
+
 
 
 
 CREATE TRIGGER trg_school_events_updated_at BEFORE UPDATE ON public.school_events FOR EACH ROW EXECUTE FUNCTION public.update_school_events_updated_at();
+
+DROP TRIGGER IF EXISTS trg_seating_plans_touch ON public.exam_seating_plans;
+
 
 
 
 
 CREATE TRIGGER trg_seating_plans_touch BEFORE UPDATE ON public.exam_seating_plans FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
 
+DROP TRIGGER IF EXISTS trg_seating_rooms_touch ON public.exam_seating_rooms;
+
+
 
 
 
 CREATE TRIGGER trg_seating_rooms_touch BEFORE UPDATE ON public.exam_seating_rooms FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
+
+DROP TRIGGER IF EXISTS trg_student_records_touch ON public.student_records;
+
 
 
 
 
 CREATE TRIGGER trg_student_records_touch BEFORE UPDATE ON public.student_records FOR EACH ROW EXECUTE FUNCTION public.fn_student_records_touch_updated_at();
 
+DROP TRIGGER IF EXISTS trg_timetable_notify ON public.timetables;
+
+
 
 
 
 CREATE TRIGGER trg_timetable_notify AFTER INSERT ON public.timetables FOR EACH ROW EXECUTE FUNCTION public.trg_fn_timetable_notify_dedupe();
+
+DROP TRIGGER IF EXISTS trg_touch_admissions ON public.admissions;
+
 
 
 
 
 CREATE TRIGGER trg_touch_admissions BEFORE UPDATE ON public.admissions FOR EACH ROW EXECUTE FUNCTION public.touch_admissions_updated_at();
 
+DROP TRIGGER IF EXISTS trg_video_notify ON public.videos;
+
+
 
 
 
 CREATE TRIGGER trg_video_notify AFTER INSERT ON public.videos FOR EACH ROW EXECUTE FUNCTION public.trg_fn_video_notify();
+
+DROP POLICY IF EXISTS "Admin all chapters" ON public.note_chapters;
+
 
 
 
@@ -2391,6 +2682,9 @@ CREATE POLICY "Admin all chapters" ON public.note_chapters TO authenticated USIN
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admin all questions" ON public.note_questions;
+
+
 
 
 
@@ -2399,6 +2693,9 @@ CREATE POLICY "Admin all questions" ON public.note_questions TO authenticated US
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS "Admin all quizzes" ON public.note_quizzes;
+
 
 
 
@@ -2409,20 +2706,32 @@ CREATE POLICY "Admin all quizzes" ON public.note_quizzes TO authenticated USING 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admin and teachers can insert exam attendance" ON public.exam_attendance;
+
+
 
 
 
 CREATE POLICY "Admin and teachers can insert exam attendance" ON public.exam_attendance FOR INSERT TO authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin and teachers can update exam attendance" ON public.exam_attendance;
+
 
 
 
 
 CREATE POLICY "Admin and teachers can update exam attendance" ON public.exam_attendance FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Admin can delete exam attendance" ON public.exam_attendance;
+
+
 
 
 
 CREATE POLICY "Admin can delete exam attendance" ON public.exam_attendance FOR DELETE TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Admin reads all times" ON public.chapter_reading_times;
+
 
 
 
@@ -2431,6 +2740,9 @@ CREATE POLICY "Admin reads all times" ON public.chapter_reading_times FOR SELECT
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS "Admin reads reports" ON public.mistake_reports;
+
+
 
 
 
@@ -2438,12 +2750,18 @@ CREATE POLICY "Admin reads reports" ON public.mistake_reports FOR SELECT TO auth
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
 
+DROP POLICY IF EXISTS "Admin updates reports" ON public.mistake_reports;
+
+
 
 
 
 CREATE POLICY "Admin updates reports" ON public.mistake_reports FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS "Admin write connections" ON public.chapter_connections;
+
 
 
 
@@ -2454,6 +2772,9 @@ CREATE POLICY "Admin write connections" ON public.chapter_connections TO authent
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admin write daily challenge" ON public.daily_challenge;
+
+
 
 
 
@@ -2462,6 +2783,9 @@ CREATE POLICY "Admin write daily challenge" ON public.daily_challenge TO authent
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS "Admin write flashcards" ON public.note_flashcards;
+
 
 
 
@@ -2472,6 +2796,9 @@ CREATE POLICY "Admin write flashcards" ON public.note_flashcards TO authenticate
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admin write subjects" ON public.note_subjects;
+
+
 
 
 
@@ -2480,6 +2807,9 @@ CREATE POLICY "Admin write subjects" ON public.note_subjects TO authenticated US
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS "Admins and teachers can manage attendance" ON public.attendance;
+
 
 
 
@@ -2490,15 +2820,24 @@ CREATE POLICY "Admins and teachers can manage attendance" ON public.attendance T
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text])) AND (profiles.status = 'approved'::text)))));
 
+DROP POLICY IF EXISTS "Admins and teachers see all annotations" ON public.note_annotations;
+
+
 
 
 
 CREATE POLICY "Admins and teachers see all annotations" ON public.note_annotations FOR SELECT TO authenticated USING (((auth.jwt() ->> 'user_role'::text) = ANY (ARRAY['admin'::text, 'teacher'::text])));
 
+DROP POLICY IF EXISTS "Admins can delete achievements" ON public.achievements;
+
+
 
 
 
 CREATE POLICY "Admins can delete achievements" ON public.achievements FOR DELETE USING ((auth.role() = 'authenticated'::text));
+
+DROP POLICY IF EXISTS "Admins can delete messages" ON public.discussion_messages;
+
 
 
 
@@ -2507,10 +2846,16 @@ CREATE POLICY "Admins can delete messages" ON public.discussion_messages FOR DEL
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admins can delete school_events" ON public.school_events;
+
+
 
 
 
 CREATE POLICY "Admins can delete school_events" ON public.school_events FOR DELETE USING ((auth.role() = 'authenticated'::text));
+
+DROP POLICY IF EXISTS "Admins can manage attendance stats" ON public.attendance_daily_stats;
+
 
 
 
@@ -2521,6 +2866,9 @@ CREATE POLICY "Admins can manage attendance stats" ON public.attendance_daily_st
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS "Admins can manage chapters" ON public.note_chapters;
+
+
 
 
 
@@ -2530,10 +2878,16 @@ CREATE POLICY "Admins can manage chapters" ON public.note_chapters TO authentica
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admins can manage events" ON public.school_events;
+
+
 
 
 
 CREATE POLICY "Admins can manage events" ON public.school_events TO authenticated USING (((auth.jwt() ->> 'user_role'::text) = 'admin'::text)) WITH CHECK (((auth.jwt() ->> 'user_role'::text) = 'admin'::text));
+
+DROP POLICY IF EXISTS "Admins can manage houses" ON public.houses;
+
 
 
 
@@ -2544,6 +2898,9 @@ CREATE POLICY "Admins can manage houses" ON public.houses TO authenticated USING
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admins can manage quizzes" ON public.note_quizzes;
+
+
 
 
 
@@ -2552,6 +2909,9 @@ CREATE POLICY "Admins can manage quizzes" ON public.note_quizzes TO authenticate
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS "Admins can manage subjects" ON public.note_subjects;
+
 
 
 
@@ -2562,6 +2922,9 @@ CREATE POLICY "Admins can manage subjects" ON public.note_subjects TO authentica
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admins full access to id cards" ON public.generated_id_cards;
+
+
 
 
 
@@ -2570,6 +2933,9 @@ CREATE POLICY "Admins full access to id cards" ON public.generated_id_cards TO a
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS "Admins manage attendance" ON public.attendance;
+
 
 
 
@@ -2580,6 +2946,9 @@ CREATE POLICY "Admins manage attendance" ON public.attendance TO authenticated U
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS "Admins manage daily challenge" ON public.daily_challenge;
+
+
 
 
 
@@ -2588,6 +2957,9 @@ CREATE POLICY "Admins manage daily challenge" ON public.daily_challenge TO authe
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS "Admins manage flashcards" ON public.note_flashcards;
+
 
 
 
@@ -2598,15 +2970,24 @@ CREATE POLICY "Admins manage flashcards" ON public.note_flashcards TO authentica
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admins manage house members" ON public.house_members;
+
+
 
 
 
 CREATE POLICY "Admins manage house members" ON public.house_members TO authenticated USING (((auth.jwt() ->> 'user_role'::text) = 'admin'::text)) WITH CHECK (((auth.jwt() ->> 'user_role'::text) = 'admin'::text));
 
+DROP POLICY IF EXISTS "Admins manage houses" ON public.houses;
+
+
 
 
 
 CREATE POLICY "Admins manage houses" ON public.houses TO authenticated USING (((auth.jwt() ->> 'user_role'::text) = 'admin'::text)) WITH CHECK (((auth.jwt() ->> 'user_role'::text) = 'admin'::text));
+
+DROP POLICY IF EXISTS "Admins manage questions" ON public.note_questions;
+
 
 
 
@@ -2617,6 +2998,9 @@ CREATE POLICY "Admins manage questions" ON public.note_questions TO authenticate
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admins manage rooms" ON public.rooms;
+
+
 
 
 
@@ -2625,6 +3009,9 @@ CREATE POLICY "Admins manage rooms" ON public.rooms TO authenticated USING ((EXI
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS "Admins manage thresholds" ON public.attendance_thresholds;
+
 
 
 
@@ -2635,6 +3022,9 @@ CREATE POLICY "Admins manage thresholds" ON public.attendance_thresholds TO auth
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Admins see all progress" ON public.note_progress;
+
+
 
 
 
@@ -2642,385 +3032,616 @@ CREATE POLICY "Admins see all progress" ON public.note_progress FOR SELECT TO au
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "Annotations visible to owner, shared/public to all, admin all" ON public.note_annotations;
+
+
 
 
 
 CREATE POLICY "Annotations visible to owner, shared/public to all, admin all" ON public.note_annotations FOR SELECT TO authenticated USING (((user_id = auth.uid()) OR (visibility = ANY (ARRAY['shared'::text, 'public'::text])) OR ((auth.jwt() ->> 'user_role'::text) = 'admin'::text)));
+
+DROP POLICY IF EXISTS "Anyone authenticated can read exam attendance" ON public.exam_attendance;
+
 
 
 
 
 CREATE POLICY "Anyone authenticated can read exam attendance" ON public.exam_attendance FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Anyone can insert site visits" ON public.site_visits;
+
+
 
 
 
 CREATE POLICY "Anyone can insert site visits" ON public.site_visits FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can read daily quizzes" ON public.daily_quizzes;
+
 
 
 
 
 CREATE POLICY "Anyone can read daily quizzes" ON public.daily_quizzes FOR SELECT TO authenticated, anon USING (true);
 
+DROP POLICY IF EXISTS "Anyone can read discussion" ON public.discussion_messages;
+
+
 
 
 
 CREATE POLICY "Anyone can read discussion" ON public.discussion_messages FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Anyone can read fee_structures" ON public.fee_structures;
+
 
 
 
 
 CREATE POLICY "Anyone can read fee_structures" ON public.fee_structures FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Anyone can view house members" ON public.house_members;
+
+
 
 
 
 CREATE POLICY "Anyone can view house members" ON public.house_members FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Anyone can view houses" ON public.houses;
+
 
 
 
 
 CREATE POLICY "Anyone can view houses" ON public.houses FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Attendance readable by all" ON public.attendance;
+
+
 
 
 
 CREATE POLICY "Attendance readable by all" ON public.attendance FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Attendance readable by authenticated" ON public.attendance;
+
 
 
 
 
 CREATE POLICY "Attendance readable by authenticated" ON public.attendance FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Attendance stats readable by all" ON public.attendance_daily_stats;
+
+
 
 
 
 CREATE POLICY "Attendance stats readable by all" ON public.attendance_daily_stats FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Auth users ask" ON public.chapter_questions;
+
 
 
 
 
 CREATE POLICY "Auth users ask" ON public.chapter_questions FOR INSERT TO authenticated WITH CHECK ((user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Auth users create groups" ON public.study_groups;
+
+
 
 
 
 CREATE POLICY "Auth users create groups" ON public.study_groups FOR INSERT TO authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Authenticated users can delete fee_payments" ON public.fee_payments;
+
 
 
 
 
 CREATE POLICY "Authenticated users can delete fee_payments" ON public.fee_payments FOR DELETE USING ((auth.uid() IS NOT NULL));
 
+DROP POLICY IF EXISTS "Authenticated users can delete fee_structures" ON public.fee_structures;
+
+
 
 
 
 CREATE POLICY "Authenticated users can delete fee_structures" ON public.fee_structures FOR DELETE USING ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS "Authenticated users can delete fee_vouchers" ON public.fee_vouchers;
+
 
 
 
 
 CREATE POLICY "Authenticated users can delete fee_vouchers" ON public.fee_vouchers FOR DELETE USING ((auth.uid() IS NOT NULL));
 
+DROP POLICY IF EXISTS "Authenticated users can insert fee_payments" ON public.fee_payments;
+
+
 
 
 
 CREATE POLICY "Authenticated users can insert fee_payments" ON public.fee_payments FOR INSERT WITH CHECK ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS "Authenticated users can insert fee_structures" ON public.fee_structures;
+
 
 
 
 
 CREATE POLICY "Authenticated users can insert fee_structures" ON public.fee_structures FOR INSERT WITH CHECK ((auth.uid() IS NOT NULL));
 
+DROP POLICY IF EXISTS "Authenticated users can insert fee_vouchers" ON public.fee_vouchers;
+
+
 
 
 
 CREATE POLICY "Authenticated users can insert fee_vouchers" ON public.fee_vouchers FOR INSERT WITH CHECK ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS "Authenticated users can manage achievements" ON public.achievements;
+
 
 
 
 
 CREATE POLICY "Authenticated users can manage achievements" ON public.achievements USING ((auth.role() = 'authenticated'::text));
 
+DROP POLICY IF EXISTS "Authenticated users can manage daily_quotes" ON public.daily_quotes;
+
+
 
 
 
 CREATE POLICY "Authenticated users can manage daily_quotes" ON public.daily_quotes USING ((auth.role() = 'authenticated'::text));
+
+DROP POLICY IF EXISTS "Authenticated users can manage exam_schedule" ON public.exam_schedule;
+
 
 
 
 
 CREATE POLICY "Authenticated users can manage exam_schedule" ON public.exam_schedule USING ((auth.role() = 'authenticated'::text));
 
+DROP POLICY IF EXISTS "Authenticated users can manage honor_roll" ON public.honor_roll;
+
+
 
 
 
 CREATE POLICY "Authenticated users can manage honor_roll" ON public.honor_roll USING ((auth.role() = 'authenticated'::text));
+
+DROP POLICY IF EXISTS "Authenticated users can manage merit lists" ON public.merit_lists;
+
 
 
 
 
 CREATE POLICY "Authenticated users can manage merit lists" ON public.merit_lists USING ((auth.role() = 'authenticated'::text)) WITH CHECK ((auth.role() = 'authenticated'::text));
 
+DROP POLICY IF EXISTS "Authenticated users can manage merit_lists" ON public.merit_lists;
+
+
 
 
 
 CREATE POLICY "Authenticated users can manage merit_lists" ON public.merit_lists USING ((auth.role() = 'authenticated'::text));
+
+DROP POLICY IF EXISTS "Authenticated users can read fee_payments" ON public.fee_payments;
+
 
 
 
 
 CREATE POLICY "Authenticated users can read fee_payments" ON public.fee_payments FOR SELECT USING ((auth.uid() IS NOT NULL));
 
+DROP POLICY IF EXISTS "Authenticated users can read fee_vouchers" ON public.fee_vouchers;
+
+
 
 
 
 CREATE POLICY "Authenticated users can read fee_vouchers" ON public.fee_vouchers FOR SELECT USING ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS "Authenticated users can read site visits" ON public.site_visits;
+
 
 
 
 
 CREATE POLICY "Authenticated users can read site visits" ON public.site_visits FOR SELECT USING ((auth.uid() IS NOT NULL));
 
+DROP POLICY IF EXISTS "Authenticated users can read students" ON public.students;
+
+
 
 
 
 CREATE POLICY "Authenticated users can read students" ON public.students FOR SELECT USING ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS "Authenticated users can seed daily quiz" ON public.daily_quizzes;
+
 
 
 
 
 CREATE POLICY "Authenticated users can seed daily quiz" ON public.daily_quizzes FOR INSERT TO authenticated WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can update fee_payments" ON public.fee_payments;
+
+
 
 
 
 CREATE POLICY "Authenticated users can update fee_payments" ON public.fee_payments FOR UPDATE USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS "Authenticated users can update fee_structures" ON public.fee_structures;
+
 
 
 
 
 CREATE POLICY "Authenticated users can update fee_structures" ON public.fee_structures FOR UPDATE USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
 
+DROP POLICY IF EXISTS "Authenticated users can update fee_vouchers" ON public.fee_vouchers;
+
+
 
 
 
 CREATE POLICY "Authenticated users can update fee_vouchers" ON public.fee_vouchers FOR UPDATE USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS "Authenticated users can update house points" ON public.houses;
+
 
 
 
 
 CREATE POLICY "Authenticated users can update house points" ON public.houses FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Authenticated users can view" ON public.students;
+
+
 
 
 
 CREATE POLICY "Authenticated users can view" ON public.students FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users see leaderboard" ON public.student_gamification;
+
 
 
 
 
 CREATE POLICY "Authenticated users see leaderboard" ON public.student_gamification FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "House members visible to all" ON public.house_members;
+
+
 
 
 
 CREATE POLICY "House members visible to all" ON public.house_members FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Houses visible to all" ON public.houses;
+
 
 
 
 
 CREATE POLICY "Houses visible to all" ON public.houses FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Logged in users can post" ON public.discussion_messages;
+
+
 
 
 
 CREATE POLICY "Logged in users can post" ON public.discussion_messages FOR INSERT TO authenticated WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Members see group" ON public.study_group_members;
+
 
 
 
 
 CREATE POLICY "Members see group" ON public.study_group_members FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Members visible to authenticated" ON public.house_members;
+
+
 
 
 
 CREATE POLICY "Members visible to authenticated" ON public.house_members FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "No anonymous access" ON public.results;
+
 
 
 
 
 CREATE POLICY "No anonymous access" ON public.results TO anon USING (false);
 
+DROP POLICY IF EXISTS "No anonymous access" ON public.students;
+
+
 
 
 
 CREATE POLICY "No anonymous access" ON public.students TO anon USING (false);
+
+DROP POLICY IF EXISTS "No anonymous access" ON public.teachers;
+
 
 
 
 
 CREATE POLICY "No anonymous access" ON public.teachers TO anon USING (false);
 
+DROP POLICY IF EXISTS "No one can delete site visits" ON public.site_visits;
+
+
 
 
 
 CREATE POLICY "No one can delete site visits" ON public.site_visits FOR DELETE USING (false);
+
+DROP POLICY IF EXISTS "No one can update site visits" ON public.site_visits;
+
 
 
 
 
 CREATE POLICY "No one can update site visits" ON public.site_visits FOR UPDATE USING (false) WITH CHECK (false);
 
+DROP POLICY IF EXISTS "Owner or admin can delete annotation" ON public.note_annotations;
+
+
 
 
 
 CREATE POLICY "Owner or admin can delete annotation" ON public.note_annotations FOR DELETE TO authenticated USING (((user_id = auth.uid()) OR ((auth.jwt() ->> 'user_role'::text) = 'admin'::text)));
+
+DROP POLICY IF EXISTS "Owner or admin can update annotation" ON public.note_annotations;
+
 
 
 
 
 CREATE POLICY "Owner or admin can update annotation" ON public.note_annotations FOR UPDATE TO authenticated USING (((user_id = auth.uid()) OR ((auth.jwt() ->> 'user_role'::text) = 'admin'::text) OR (visibility = ANY (ARRAY['shared'::text, 'public'::text])))) WITH CHECK (((user_id = auth.uid()) OR ((auth.jwt() ->> 'user_role'::text) = 'admin'::text) OR (visibility = ANY (ARRAY['shared'::text, 'public'::text]))));
 
+DROP POLICY IF EXISTS "Public can read achievements" ON public.achievements;
+
+
 
 
 
 CREATE POLICY "Public can read achievements" ON public.achievements FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public can read daily_quotes" ON public.daily_quotes;
+
 
 
 
 
 CREATE POLICY "Public can read daily_quotes" ON public.daily_quotes FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Public can read published exam_schedule" ON public.exam_schedule;
+
+
 
 
 
 CREATE POLICY "Public can read published exam_schedule" ON public.exam_schedule FOR SELECT USING ((is_published = true));
+
+DROP POLICY IF EXISTS "Public can read published honor_roll" ON public.honor_roll;
+
 
 
 
 
 CREATE POLICY "Public can read published honor_roll" ON public.honor_roll FOR SELECT USING ((is_published = true));
 
+DROP POLICY IF EXISTS "Public can read published merit_lists" ON public.merit_lists;
+
+
 
 
 
 CREATE POLICY "Public can read published merit_lists" ON public.merit_lists FOR SELECT USING ((is_published = true));
+
+DROP POLICY IF EXISTS "Public leaderboard read" ON public.student_gamification;
+
 
 
 
 
 CREATE POLICY "Public leaderboard read" ON public.student_gamification FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Public read answers" ON public.chapter_answers;
+
+
 
 
 
 CREATE POLICY "Public read answers" ON public.chapter_answers FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read chapters" ON public.note_chapters;
+
 
 
 
 
 CREATE POLICY "Public read chapters" ON public.note_chapters FOR SELECT USING ((is_published = true));
 
+DROP POLICY IF EXISTS "Public read connections" ON public.chapter_connections;
+
+
 
 
 
 CREATE POLICY "Public read connections" ON public.chapter_connections FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read daily challenge" ON public.daily_challenge;
+
 
 
 
 
 CREATE POLICY "Public read daily challenge" ON public.daily_challenge FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Public read flashcards" ON public.note_flashcards;
+
+
 
 
 
 CREATE POLICY "Public read flashcards" ON public.note_flashcards FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read groups" ON public.study_groups;
+
 
 
 
 
 CREATE POLICY "Public read groups" ON public.study_groups FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Public read questions" ON public.chapter_questions;
+
+
 
 
 
 CREATE POLICY "Public read questions" ON public.chapter_questions FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read questions" ON public.note_questions;
+
 
 
 
 
 CREATE POLICY "Public read questions" ON public.note_questions FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Public read quizzes" ON public.note_quizzes;
+
+
 
 
 
 CREATE POLICY "Public read quizzes" ON public.note_quizzes FOR SELECT USING ((is_active = true));
+
+DROP POLICY IF EXISTS "Public read ratings" ON public.note_ratings;
+
 
 
 
 
 CREATE POLICY "Public read ratings" ON public.note_ratings FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Public read subjects" ON public.note_subjects;
+
+
 
 
 
 CREATE POLICY "Public read subjects" ON public.note_subjects FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Published events visible to all" ON public.school_events;
+
 
 
 
 
 CREATE POLICY "Published events visible to all" ON public.school_events FOR SELECT USING ((is_published = true));
 
+DROP POLICY IF EXISTS "Published merit lists are viewable by everyone" ON public.merit_lists;
+
+
 
 
 
 CREATE POLICY "Published merit lists are viewable by everyone" ON public.merit_lists FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Rooms readable by all" ON public.rooms;
+
 
 
 
 
 CREATE POLICY "Rooms readable by all" ON public.rooms FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Shared annotations visible" ON public.note_annotations;
+
+
 
 
 
 CREATE POLICY "Shared annotations visible" ON public.note_annotations FOR SELECT TO authenticated USING ((visibility = ANY (ARRAY['shared'::text, 'public'::text])));
+
+DROP POLICY IF EXISTS "Students can view all generated id cards" ON public.generated_id_cards;
+
 
 
 
 
 CREATE POLICY "Students can view all generated id cards" ON public.generated_id_cards FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Students create annotations" ON public.note_annotations;
+
+
 
 
 
 CREATE POLICY "Students create annotations" ON public.note_annotations FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS "Students delete own annotations" ON public.note_annotations;
+
 
 
 
 
 CREATE POLICY "Students delete own annotations" ON public.note_annotations FOR DELETE TO authenticated USING ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS "Students join a house" ON public.house_members;
+
+
 
 
 
 CREATE POLICY "Students join a house" ON public.house_members FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS "Students see own annotations" ON public.note_annotations;
+
 
 
 
 
 CREATE POLICY "Students see own annotations" ON public.note_annotations FOR SELECT TO authenticated USING ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS "Students switch their own house" ON public.house_members;
+
+
 
 
 
 CREATE POLICY "Students switch their own house" ON public.house_members FOR DELETE TO authenticated USING ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS "Students update own annotations" ON public.note_annotations;
+
+
 
 
 
 CREATE POLICY "Students update own annotations" ON public.note_annotations FOR UPDATE TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS "Teachers answer" ON public.chapter_answers;
+
 
 
 
@@ -3029,6 +3650,9 @@ CREATE POLICY "Teachers answer" ON public.chapter_answers FOR INSERT TO authenti
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text])))))));
 
+DROP POLICY IF EXISTS "Teachers see student results" ON public.note_quiz_results;
+
+
 
 
 
@@ -3036,35 +3660,56 @@ CREATE POLICY "Teachers see student results" ON public.note_quiz_results FOR SEL
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'teacher'::text)))));
 
+DROP POLICY IF EXISTS "Thresholds readable by all" ON public.attendance_thresholds;
+
+
 
 
 
 CREATE POLICY "Thresholds readable by all" ON public.attendance_thresholds FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Upvotes visible to all authenticated" ON public.annotation_upvotes;
+
 
 
 
 
 CREATE POLICY "Upvotes visible to all authenticated" ON public.annotation_upvotes FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Users can create their own annotations" ON public.note_annotations;
+
+
 
 
 
 CREATE POLICY "Users can create their own annotations" ON public.note_annotations FOR INSERT TO authenticated WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users can insert their own daily quiz attempt" ON public.daily_quiz_attempts;
+
 
 
 
 
 CREATE POLICY "Users can insert their own daily quiz attempt" ON public.daily_quiz_attempts FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS "Users can manage own membership" ON public.house_members;
+
+
 
 
 
 CREATE POLICY "Users can manage own membership" ON public.house_members TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS "Users can read all daily quiz attempts" ON public.daily_quiz_attempts;
+
+
 
 
 
 CREATE POLICY "Users can read all daily quiz attempts" ON public.daily_quiz_attempts FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Users can read own messages" ON public.user_messages;
+
 
 
 
@@ -3073,10 +3718,16 @@ CREATE POLICY "Users can read own messages" ON public.user_messages FOR SELECT T
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
 
+DROP POLICY IF EXISTS "Users can report" ON public.mistake_reports;
+
+
 
 
 
 CREATE POLICY "Users can report" ON public.mistake_reports FOR INSERT TO authenticated WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users can send messages" ON public.user_messages;
+
 
 
 
@@ -3085,50 +3736,80 @@ CREATE POLICY "Users can send messages" ON public.user_messages FOR INSERT TO au
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
 
+DROP POLICY IF EXISTS "Users create upvotes" ON public.annotation_upvotes;
+
+
 
 
 
 CREATE POLICY "Users create upvotes" ON public.annotation_upvotes FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS "Users delete own upvotes" ON public.annotation_upvotes;
+
 
 
 
 
 CREATE POLICY "Users delete own upvotes" ON public.annotation_upvotes FOR DELETE TO authenticated USING ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS "Users join houses" ON public.house_members;
+
+
 
 
 
 CREATE POLICY "Users join houses" ON public.house_members FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS "Users manage their own upvote" ON public.annotation_upvotes;
+
 
 
 
 
 CREATE POLICY "Users manage their own upvote" ON public.annotation_upvotes TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users own challenge answers" ON public.daily_challenge_answers;
+
+
 
 
 
 CREATE POLICY "Users own challenge answers" ON public.daily_challenge_answers TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users own flashcard progress" ON public.note_flashcard_progress;
+
 
 
 
 
 CREATE POLICY "Users own flashcard progress" ON public.note_flashcard_progress TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users own gamification" ON public.student_gamification;
+
+
 
 
 
 CREATE POLICY "Users own gamification" ON public.student_gamification TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users own highlights" ON public.note_highlights;
+
 
 
 
 
 CREATE POLICY "Users own highlights" ON public.note_highlights TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users own membership" ON public.study_group_members;
+
+
 
 
 
 CREATE POLICY "Users own membership" ON public.study_group_members TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users own quiz results" ON public.note_quiz_results;
+
 
 
 
@@ -3137,45 +3818,72 @@ CREATE POLICY "Users own quiz results" ON public.note_quiz_results TO authentica
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))))) WITH CHECK ((user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users own ratings" ON public.note_ratings;
+
+
 
 
 
 CREATE POLICY "Users own ratings" ON public.note_ratings TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users own reading times" ON public.chapter_reading_times;
+
 
 
 
 
 CREATE POLICY "Users own reading times" ON public.chapter_reading_times TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users own reminders" ON public.revision_reminders;
+
+
 
 
 
 CREATE POLICY "Users own reminders" ON public.revision_reminders TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users own wrong answers" ON public.note_wrong_answers;
+
 
 
 
 
 CREATE POLICY "Users own wrong answers" ON public.note_wrong_answers TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users read own progress" ON public.note_progress;
+
+
 
 
 
 CREATE POLICY "Users read own progress" ON public.note_progress FOR SELECT TO authenticated USING ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users see upvotes" ON public.annotation_upvotes;
+
 
 
 
 
 CREATE POLICY "Users see upvotes" ON public.annotation_upvotes FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Users update upvotes" ON public.chapter_questions;
+
+
 
 
 
 CREATE POLICY "Users update upvotes" ON public.chapter_questions FOR UPDATE TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Users write own progress" ON public.note_progress;
+
+
 
 
 
 CREATE POLICY "Users write own progress" ON public.note_progress TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS achievements_admin_all ON public.achievements;
+
 
 
 
@@ -3186,55 +3894,88 @@ CREATE POLICY achievements_admin_all ON public.achievements TO authenticated USI
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS achievements_public_read ON public.achievements;
+
+
 
 
 
 CREATE POLICY achievements_public_read ON public.achievements FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS admin_all_profiles ON public.profiles;
+
 
 
 
 
 CREATE POLICY admin_all_profiles ON public.profiles TO authenticated USING ((((auth.jwt() ->> 'user_role'::text) = 'admin'::text) OR (((auth.jwt() -> 'user_metadata'::text) ->> 'role'::text) = 'admin'::text) OR (((auth.jwt() -> 'app_metadata'::text) ->> 'role'::text) = 'admin'::text))) WITH CHECK ((((auth.jwt() ->> 'user_role'::text) = 'admin'::text) OR (((auth.jwt() -> 'user_metadata'::text) ->> 'role'::text) = 'admin'::text) OR (((auth.jwt() -> 'app_metadata'::text) ->> 'role'::text) = 'admin'::text)));
 
+DROP POLICY IF EXISTS admin_read_all_profiles ON public.profiles;
+
+
 
 
 
 CREATE POLICY admin_read_all_profiles ON public.profiles FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS admin_update_all_profiles ON public.profiles;
+
 
 
 
 
 CREATE POLICY admin_update_all_profiles ON public.profiles FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS admin_update_school_settings ON public.school_settings;
+
+
 
 
 
 CREATE POLICY admin_update_school_settings ON public.school_settings TO authenticated USING ((((auth.jwt() ->> 'user_role'::text) = 'admin'::text) OR (((auth.jwt() -> 'user_metadata'::text) ->> 'role'::text) = 'admin'::text) OR (((auth.jwt() -> 'app_metadata'::text) ->> 'role'::text) = 'admin'::text))) WITH CHECK ((((auth.jwt() ->> 'user_role'::text) = 'admin'::text) OR (((auth.jwt() -> 'user_metadata'::text) ->> 'role'::text) = 'admin'::text) OR (((auth.jwt() -> 'app_metadata'::text) ->> 'role'::text) = 'admin'::text)));
+
+DROP POLICY IF EXISTS admins_manage_charges ON public.student_charges;
+
 
 
 
 
 CREATE POLICY admins_manage_charges ON public.student_charges USING (public.is_admin());
 
+DROP POLICY IF EXISTS admins_manage_fee_types ON public.fee_types;
+
+
 
 
 
 CREATE POLICY admins_manage_fee_types ON public.fee_types USING (public.is_admin());
+
+DROP POLICY IF EXISTS admins_manage_items ON public.payment_items;
+
 
 
 
 
 CREATE POLICY admins_manage_items ON public.payment_items USING (public.is_admin());
 
+DROP POLICY IF EXISTS admins_manage_payments ON public.payments;
+
+
 
 
 
 CREATE POLICY admins_manage_payments ON public.payments USING (public.is_admin());
 
+DROP POLICY IF EXISTS admins_manage_receipts ON public.receipts;
+
+
 
 
 
 CREATE POLICY admins_manage_receipts ON public.receipts USING (public.is_admin());
+
+DROP POLICY IF EXISTS admission_docs_admin_all ON public.admission_documents;
+
 
 
 
@@ -3243,15 +3984,24 @@ CREATE POLICY admission_docs_admin_all ON public.admission_documents USING ((EXI
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS admission_docs_public_insert ON public.admission_documents;
+
+
 
 
 
 CREATE POLICY admission_docs_public_insert ON public.admission_documents FOR INSERT TO authenticated, anon WITH CHECK (true);
 
+DROP POLICY IF EXISTS admission_docs_public_select ON public.admission_documents;
+
+
 
 
 
 CREATE POLICY admission_docs_public_select ON public.admission_documents FOR SELECT TO authenticated, anon USING (true);
+
+DROP POLICY IF EXISTS admissions_admin_all ON public.admissions;
+
 
 
 
@@ -3260,25 +4010,40 @@ CREATE POLICY admissions_admin_all ON public.admissions USING ((EXISTS ( SELECT 
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS admissions_public_insert ON public.admissions;
+
+
 
 
 
 CREATE POLICY admissions_public_insert ON public.admissions FOR INSERT TO authenticated, anon WITH CHECK (true);
+
+DROP POLICY IF EXISTS admissions_public_select ON public.admissions;
+
 
 
 
 
 CREATE POLICY admissions_public_select ON public.admissions FOR SELECT TO authenticated, anon USING (true);
 
+DROP POLICY IF EXISTS admissions_public_select_own ON public.admissions;
+
+
 
 
 
 CREATE POLICY admissions_public_select_own ON public.admissions FOR SELECT TO authenticated, anon USING (true);
 
+DROP POLICY IF EXISTS admissions_self_select ON public.admissions;
+
+
 
 
 
 CREATE POLICY admissions_self_select ON public.admissions FOR SELECT TO authenticated, anon USING (true);
+
+DROP POLICY IF EXISTS "attempts admin teacher read" ON public.test_attempts;
+
 
 
 
@@ -3287,15 +4052,24 @@ CREATE POLICY "attempts admin teacher read" ON public.test_attempts FOR SELECT U
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS "attempts own" ON public.test_attempts;
+
+
 
 
 
 CREATE POLICY "attempts own" ON public.test_attempts USING ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS attendance_auth_read ON public.attendance;
+
+
 
 
 
 CREATE POLICY attendance_auth_read ON public.attendance FOR SELECT USING ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS attendance_student_own ON public.attendance;
+
 
 
 
@@ -3304,15 +4078,24 @@ CREATE POLICY attendance_student_own ON public.attendance FOR SELECT TO authenti
    FROM public.students
   WHERE ((students.user_id = auth.uid()) AND (students.id = attendance.student_id)))));
 
+DROP POLICY IF EXISTS bookings_insert_anon ON public.interview_bookings;
+
+
 
 
 
 CREATE POLICY bookings_insert_anon ON public.interview_bookings FOR INSERT TO authenticated, anon WITH CHECK (true);
 
+DROP POLICY IF EXISTS bookings_read_public_own ON public.interview_bookings;
+
+
 
 
 
 CREATE POLICY bookings_read_public_own ON public.interview_bookings FOR SELECT TO authenticated, anon USING ((cancelled_at IS NULL));
+
+DROP POLICY IF EXISTS bookings_read_staff ON public.interview_bookings;
+
 
 
 
@@ -3321,10 +4104,16 @@ CREATE POLICY bookings_read_staff ON public.interview_bookings FOR SELECT TO aut
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS bookings_update_anon ON public.interview_bookings;
+
+
 
 
 
 CREATE POLICY bookings_update_anon ON public.interview_bookings FOR UPDATE TO authenticated, anon USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS chapter_answers_admin_delete ON public.chapter_answers;
+
 
 
 
@@ -3333,6 +4122,9 @@ CREATE POLICY chapter_answers_admin_delete ON public.chapter_answers FOR DELETE 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS chapter_answers_delete_own_or_admin ON public.chapter_answers;
+
+
 
 
 
@@ -3340,10 +4132,16 @@ CREATE POLICY chapter_answers_delete_own_or_admin ON public.chapter_answers FOR 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
 
+DROP POLICY IF EXISTS chapter_answers_insert_own ON public.chapter_answers;
+
+
 
 
 
 CREATE POLICY chapter_answers_insert_own ON public.chapter_answers FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS chapter_answers_insert_staff ON public.chapter_answers;
+
 
 
 
@@ -3351,6 +4149,9 @@ CREATE POLICY chapter_answers_insert_own ON public.chapter_answers FOR INSERT TO
 CREATE POLICY chapter_answers_insert_staff ON public.chapter_answers FOR INSERT TO authenticated WITH CHECK (((auth.uid() = user_id) AND (EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text])))))));
+
+DROP POLICY IF EXISTS chapter_answers_modify_own_or_admin ON public.chapter_answers;
+
 
 
 
@@ -3361,15 +4162,24 @@ CREATE POLICY chapter_answers_modify_own_or_admin ON public.chapter_answers FOR 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
 
+DROP POLICY IF EXISTS chapter_answers_read_all ON public.chapter_answers;
+
+
 
 
 
 CREATE POLICY chapter_answers_read_all ON public.chapter_answers FOR SELECT TO authenticated, anon USING (true);
 
+DROP POLICY IF EXISTS chapter_answers_select_all ON public.chapter_answers;
+
+
 
 
 
 CREATE POLICY chapter_answers_select_all ON public.chapter_answers FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS chapter_questions_admin_delete ON public.chapter_questions;
+
 
 
 
@@ -3378,6 +4188,9 @@ CREATE POLICY chapter_questions_admin_delete ON public.chapter_questions FOR DEL
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS chapter_questions_delete_own_or_admin ON public.chapter_questions;
+
+
 
 
 
@@ -3385,20 +4198,32 @@ CREATE POLICY chapter_questions_delete_own_or_admin ON public.chapter_questions 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))));
 
+DROP POLICY IF EXISTS chapter_questions_insert_own ON public.chapter_questions;
+
+
 
 
 
 CREATE POLICY chapter_questions_insert_own ON public.chapter_questions FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS chapter_questions_read_all ON public.chapter_questions;
+
 
 
 
 
 CREATE POLICY chapter_questions_read_all ON public.chapter_questions FOR SELECT TO authenticated, anon USING (true);
 
+DROP POLICY IF EXISTS chapter_questions_select_all ON public.chapter_questions;
+
+
 
 
 
 CREATE POLICY chapter_questions_select_all ON public.chapter_questions FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS chapter_questions_update_own_or_staff ON public.chapter_questions;
+
 
 
 
@@ -3409,10 +4234,16 @@ CREATE POLICY chapter_questions_update_own_or_staff ON public.chapter_questions 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text])))))));
 
+DROP POLICY IF EXISTS chapter_questions_update_upvote ON public.chapter_questions;
+
+
 
 
 
 CREATE POLICY chapter_questions_update_upvote ON public.chapter_questions FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS completion_all ON public.homework_completions;
+
 
 
 
@@ -3423,6 +4254,9 @@ CREATE POLICY completion_all ON public.homework_completions TO authenticated USI
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text])))))));
 
+DROP POLICY IF EXISTS contact_messages_admin_delete ON public.contact_messages;
+
+
 
 
 
@@ -3430,12 +4264,18 @@ CREATE POLICY contact_messages_admin_delete ON public.contact_messages FOR DELET
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS contact_messages_admin_select ON public.contact_messages;
+
+
 
 
 
 CREATE POLICY contact_messages_admin_select ON public.contact_messages FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS contact_messages_admin_update ON public.contact_messages;
+
 
 
 
@@ -3446,35 +4286,56 @@ CREATE POLICY contact_messages_admin_update ON public.contact_messages FOR UPDAT
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS contact_messages_insert_anyone ON public.contact_messages;
+
+
 
 
 
 CREATE POLICY contact_messages_insert_anyone ON public.contact_messages FOR INSERT TO authenticated, anon WITH CHECK (true);
+
+DROP POLICY IF EXISTS daily_quotes_public ON public.daily_quotes;
+
 
 
 
 
 CREATE POLICY daily_quotes_public ON public.daily_quotes FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS dismissals_own_delete ON public.notification_dismissals;
+
+
 
 
 
 CREATE POLICY dismissals_own_delete ON public.notification_dismissals FOR DELETE TO authenticated USING ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS dismissals_own_insert ON public.notification_dismissals;
+
 
 
 
 
 CREATE POLICY dismissals_own_insert ON public.notification_dismissals FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS dismissals_own_select ON public.notification_dismissals;
+
+
 
 
 
 CREATE POLICY dismissals_own_select ON public.notification_dismissals FOR SELECT TO authenticated USING ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS dismissed_notifications_owner_all ON public.dismissed_notifications;
+
+
 
 
 
 CREATE POLICY dismissed_notifications_owner_all ON public.dismissed_notifications TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS duty_board_admin_write ON public.duty_board;
+
 
 
 
@@ -3483,10 +4344,16 @@ CREATE POLICY duty_board_admin_write ON public.duty_board USING ((EXISTS ( SELEC
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS duty_board_public_read ON public.duty_board;
+
+
 
 
 
 CREATE POLICY duty_board_public_read ON public.duty_board FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS exam_rollnumbers_admin_all ON public.exam_roll_numbers;
+
 
 
 
@@ -3495,10 +4362,16 @@ CREATE POLICY exam_rollnumbers_admin_all ON public.exam_roll_numbers USING ((EXI
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS exam_rollnumbers_auth_read ON public.exam_roll_numbers;
+
+
 
 
 
 CREATE POLICY exam_rollnumbers_auth_read ON public.exam_roll_numbers FOR SELECT USING ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS exam_rollnumbers_public_read ON public.exam_roll_numbers;
+
 
 
 
@@ -3507,10 +4380,16 @@ CREATE POLICY exam_rollnumbers_public_read ON public.exam_roll_numbers FOR SELEC
    FROM public.exam_roll_sessions s
   WHERE ((s.id = exam_roll_numbers.session_id) AND (s.is_published = true)))));
 
+DROP POLICY IF EXISTS exam_schedule_public ON public.exam_schedule;
+
+
 
 
 
 CREATE POLICY exam_schedule_public ON public.exam_schedule FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS exam_sessions_admin_all ON public.exam_roll_sessions;
+
 
 
 
@@ -3519,15 +4398,24 @@ CREATE POLICY exam_sessions_admin_all ON public.exam_roll_sessions USING ((EXIST
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS exam_sessions_auth_read ON public.exam_roll_sessions;
+
+
 
 
 
 CREATE POLICY exam_sessions_auth_read ON public.exam_roll_sessions FOR SELECT USING ((auth.uid() IS NOT NULL));
 
+DROP POLICY IF EXISTS exam_sessions_public_read ON public.exam_roll_sessions;
+
+
 
 
 
 CREATE POLICY exam_sessions_public_read ON public.exam_roll_sessions FOR SELECT USING ((is_published = true));
+
+DROP POLICY IF EXISTS fp_admin_all ON public.fee_payments;
+
 
 
 
@@ -3538,10 +4426,16 @@ CREATE POLICY fp_admin_all ON public.fee_payments USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS fp_any_user_read ON public.fee_payments;
+
+
 
 
 
 CREATE POLICY fp_any_user_read ON public.fee_payments FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS fp_student_class_read ON public.fee_payments;
+
 
 
 
@@ -3551,12 +4445,18 @@ CREATE POLICY fp_student_class_read ON public.fee_payments FOR SELECT USING ((EX
      JOIN public.profiles p ON ((p.id = auth.uid())))
   WHERE ((fv.id = fee_payments.voucher_id) AND (fv.class = p.class)))));
 
+DROP POLICY IF EXISTS fp_student_own ON public.fee_payments;
+
+
 
 
 
 CREATE POLICY fp_student_own ON public.fee_payments FOR SELECT USING ((student_id IN ( SELECT students.id
    FROM public.students
   WHERE (students.user_id = auth.uid()))));
+
+DROP POLICY IF EXISTS fs_admin_all ON public.fee_structures;
+
 
 
 
@@ -3567,15 +4467,24 @@ CREATE POLICY fs_admin_all ON public.fee_structures USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS fs_any_user_read ON public.fee_structures;
+
+
 
 
 
 CREATE POLICY fs_any_user_read ON public.fee_structures FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS fs_read_all ON public.fee_structures;
+
+
 
 
 
 CREATE POLICY fs_read_all ON public.fee_structures FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS fs_student_class_read ON public.fee_structures;
+
 
 
 
@@ -3583,6 +4492,9 @@ CREATE POLICY fs_read_all ON public.fee_structures FOR SELECT TO authenticated U
 CREATE POLICY fs_student_class_read ON public.fee_structures FOR SELECT USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.class IS NOT NULL) AND (profiles.class = fee_structures.class)))));
+
+DROP POLICY IF EXISTS fs_student_read ON public.fee_structures;
+
 
 
 
@@ -3595,6 +4507,9 @@ CREATE POLICY fs_student_read ON public.fee_structures FOR SELECT USING (((EXIST
    FROM public.students
   WHERE (students.user_id = auth.uid()))))));
 
+DROP POLICY IF EXISTS fv_admin_all ON public.fee_vouchers;
+
+
 
 
 
@@ -3604,20 +4519,32 @@ CREATE POLICY fv_admin_all ON public.fee_vouchers USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS fv_anon_admission_read ON public.fee_vouchers;
+
+
 
 
 
 CREATE POLICY fv_anon_admission_read ON public.fee_vouchers FOR SELECT TO authenticated, anon USING (((fee_period = 'one_off'::text) AND (status IS NOT NULL)));
+
+DROP POLICY IF EXISTS fv_anon_tracker_read ON public.fee_vouchers;
+
 
 
 
 
 CREATE POLICY fv_anon_tracker_read ON public.fee_vouchers FOR SELECT TO anon USING (true);
 
+DROP POLICY IF EXISTS fv_any_user_read ON public.fee_vouchers;
+
+
 
 
 
 CREATE POLICY fv_any_user_read ON public.fee_vouchers FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS fv_public_admission_tracker_read ON public.fee_vouchers;
+
 
 
 
@@ -3625,6 +4552,9 @@ CREATE POLICY fv_any_user_read ON public.fee_vouchers FOR SELECT TO authenticate
 CREATE POLICY fv_public_admission_tracker_read ON public.fee_vouchers FOR SELECT TO anon USING (((fee_period = 'one_off'::text) AND (EXISTS ( SELECT 1
    FROM jsonb_array_elements(fee_vouchers.fee_items) item(value)
   WHERE ((item.value ->> 'fee_type'::text) = ANY (ARRAY['admission'::text, 'migration'::text]))))));
+
+DROP POLICY IF EXISTS fv_student_class_read ON public.fee_vouchers;
+
 
 
 
@@ -3637,12 +4567,18 @@ CREATE POLICY fv_student_class_read ON public.fee_vouchers FOR SELECT TO authent
    FROM public.students
   WHERE (students.user_id = auth.uid()))))));
 
+DROP POLICY IF EXISTS fv_student_own ON public.fee_vouchers;
+
+
 
 
 
 CREATE POLICY fv_student_own ON public.fee_vouchers FOR SELECT USING ((student_id IN ( SELECT students.id
    FROM public.students
   WHERE (students.user_id = auth.uid()))));
+
+DROP POLICY IF EXISTS gallery_admin_all ON public.gallery_albums;
+
 
 
 
@@ -3653,6 +4589,9 @@ CREATE POLICY gallery_admin_all ON public.gallery_albums TO authenticated USING 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS gallery_albums_admin_all ON public.gallery_albums;
+
+
 
 
 
@@ -3660,15 +4599,24 @@ CREATE POLICY gallery_albums_admin_all ON public.gallery_albums USING ((EXISTS (
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS gallery_albums_public ON public.gallery_albums;
+
+
 
 
 
 CREATE POLICY gallery_albums_public ON public.gallery_albums FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS gallery_albums_public_read ON public.gallery_albums;
+
+
 
 
 
 CREATE POLICY gallery_albums_public_read ON public.gallery_albums FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS gallery_photos_admin_all ON public.gallery_photos;
+
 
 
 
@@ -3679,15 +4627,24 @@ CREATE POLICY gallery_photos_admin_all ON public.gallery_photos TO authenticated
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS gallery_photos_public ON public.gallery_photos;
+
+
 
 
 
 CREATE POLICY gallery_photos_public ON public.gallery_photos FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS gallery_photos_public_read ON public.gallery_photos;
+
+
 
 
 
 CREATE POLICY gallery_photos_public_read ON public.gallery_photos FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS homework_admin_teacher_all ON public.homework;
+
 
 
 
@@ -3698,15 +4655,24 @@ CREATE POLICY homework_admin_teacher_all ON public.homework TO authenticated USI
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS homework_authenticated_read ON public.homework;
+
+
 
 
 
 CREATE POLICY homework_authenticated_read ON public.homework FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS homework_read ON public.homework;
+
+
 
 
 
 CREATE POLICY homework_read ON public.homework FOR SELECT TO authenticated USING ((is_active = true));
+
+DROP POLICY IF EXISTS homework_write ON public.homework;
+
 
 
 
@@ -3717,15 +4683,24 @@ CREATE POLICY homework_write ON public.homework TO authenticated USING ((EXISTS 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS honor_read ON public.honor_roll;
+
+
 
 
 
 CREATE POLICY honor_read ON public.honor_roll FOR SELECT USING ((is_published = true));
 
+DROP POLICY IF EXISTS honor_roll_public ON public.honor_roll;
+
+
 
 
 
 CREATE POLICY honor_roll_public ON public.honor_roll FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS honor_write ON public.honor_roll;
+
 
 
 
@@ -3736,10 +4711,16 @@ CREATE POLICY honor_write ON public.honor_roll TO authenticated USING ((EXISTS (
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS lab_content_cache_public_read ON public.lab_content_cache;
+
+
 
 
 
 CREATE POLICY lab_content_cache_public_read ON public.lab_content_cache FOR SELECT TO authenticated, anon USING (true);
+
+DROP POLICY IF EXISTS library_admin_all ON public.library_files;
+
 
 
 
@@ -3750,6 +4731,9 @@ CREATE POLICY library_admin_all ON public.library_files TO authenticated USING (
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS library_files_admin_all ON public.library_files;
+
+
 
 
 
@@ -3757,20 +4741,32 @@ CREATE POLICY library_files_admin_all ON public.library_files USING ((EXISTS ( S
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS library_files_auth_update_downloads ON public.library_files;
+
+
 
 
 
 CREATE POLICY library_files_auth_update_downloads ON public.library_files FOR UPDATE USING ((auth.uid() IS NOT NULL)) WITH CHECK ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS library_files_public_read ON public.library_files;
+
 
 
 
 
 CREATE POLICY library_files_public_read ON public.library_files FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS library_public_read ON public.library_files;
+
+
 
 
 
 CREATE POLICY library_public_read ON public.library_files FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS merit_lists_admin_all ON public.merit_lists;
+
 
 
 
@@ -3781,15 +4777,24 @@ CREATE POLICY merit_lists_admin_all ON public.merit_lists TO authenticated USING
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS merit_lists_public_read ON public.merit_lists;
+
+
 
 
 
 CREATE POLICY merit_lists_public_read ON public.merit_lists FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS merit_read ON public.merit_lists;
+
+
 
 
 
 CREATE POLICY merit_read ON public.merit_lists FOR SELECT TO authenticated USING ((is_published = true));
+
+DROP POLICY IF EXISTS merit_write ON public.merit_lists;
+
 
 
 
@@ -3800,12 +4805,18 @@ CREATE POLICY merit_write ON public.merit_lists TO authenticated USING ((EXISTS 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS mistake_reports_admin_delete ON public.mistake_reports;
+
+
 
 
 
 CREATE POLICY mistake_reports_admin_delete ON public.mistake_reports FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS mistake_reports_delete_admin ON public.mistake_reports;
+
 
 
 
@@ -3814,15 +4825,24 @@ CREATE POLICY mistake_reports_delete_admin ON public.mistake_reports FOR DELETE 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS mistake_reports_insert_own ON public.mistake_reports;
+
+
 
 
 
 CREATE POLICY mistake_reports_insert_own ON public.mistake_reports FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS mistake_reports_read_all ON public.mistake_reports;
+
+
 
 
 
 CREATE POLICY mistake_reports_read_all ON public.mistake_reports FOR SELECT TO authenticated, anon USING (true);
+
+DROP POLICY IF EXISTS mistake_reports_staff_select ON public.mistake_reports;
+
 
 
 
@@ -3830,6 +4850,9 @@ CREATE POLICY mistake_reports_read_all ON public.mistake_reports FOR SELECT TO a
 CREATE POLICY mistake_reports_staff_select ON public.mistake_reports FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
+
+DROP POLICY IF EXISTS mistake_reports_staff_update ON public.mistake_reports;
+
 
 
 
@@ -3840,6 +4863,9 @@ CREATE POLICY mistake_reports_staff_update ON public.mistake_reports FOR UPDATE 
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS mistake_reports_update_staff ON public.mistake_reports;
+
+
 
 
 
@@ -3848,6 +4874,9 @@ CREATE POLICY mistake_reports_update_staff ON public.mistake_reports FOR UPDATE 
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text])))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
+
+DROP POLICY IF EXISTS news_admin_all ON public.news;
+
 
 
 
@@ -3858,12 +4887,18 @@ CREATE POLICY news_admin_all ON public.news TO authenticated USING ((EXISTS ( SE
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS news_admin_read_all ON public.news;
+
+
 
 
 
 CREATE POLICY news_admin_read_all ON public.news FOR SELECT USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS news_admin_write ON public.news;
+
 
 
 
@@ -3872,10 +4907,16 @@ CREATE POLICY news_admin_write ON public.news USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS news_public_read ON public.news;
+
+
 
 
 
 CREATE POLICY news_public_read ON public.news FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS notices_admin_all ON public.notices;
+
 
 
 
@@ -3886,12 +4927,18 @@ CREATE POLICY notices_admin_all ON public.notices TO authenticated USING ((EXIST
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS notices_admin_read_all ON public.notices;
+
+
 
 
 
 CREATE POLICY notices_admin_read_all ON public.notices FOR SELECT USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS notices_admin_write ON public.notices;
+
 
 
 
@@ -3900,15 +4947,24 @@ CREATE POLICY notices_admin_write ON public.notices USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS notices_public_read ON public.notices;
+
+
 
 
 
 CREATE POLICY notices_public_read ON public.notices FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS notification_dismissals_own ON public.notification_dismissals;
+
+
 
 
 
 CREATE POLICY notification_dismissals_own ON public.notification_dismissals TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS notifications_admin_delete ON public.notifications;
+
 
 
 
@@ -3916,6 +4972,9 @@ CREATE POLICY notification_dismissals_own ON public.notification_dismissals TO a
 CREATE POLICY notifications_admin_delete ON public.notifications FOR DELETE TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS notifications_admin_write ON public.notifications;
+
 
 
 
@@ -3925,6 +4984,9 @@ CREATE POLICY notifications_admin_write ON public.notifications TO authenticated
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS notifications_select_v2 ON public.notifications;
+
 
 
 
@@ -3941,10 +5003,16 @@ CREATE POLICY notifications_select_v2 ON public.notifications FOR SELECT TO auth
    FROM public.dismissed_notifications dn
   WHERE ((dn.notification_id = notifications.id) AND (dn.user_id = auth.uid())))))));
 
+DROP POLICY IF EXISTS notifications_user_insert ON public.notifications;
+
+
 
 
 
 CREATE POLICY notifications_user_insert ON public.notifications FOR INSERT TO authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS notifications_user_update_read ON public.notifications;
+
 
 
 
@@ -3959,30 +5027,48 @@ CREATE POLICY notifications_user_update_read ON public.notifications FOR UPDATE 
    FROM public.profiles
   WHERE (profiles.id = auth.uid()))))) OR ((audience ~~ 'user:%'::text) AND (audience = ('user:'::text || (auth.uid())::text))))) WITH CHECK (true);
 
+DROP POLICY IF EXISTS otp_insert_anon ON public.admission_otp_codes;
+
+
 
 
 
 CREATE POLICY otp_insert_anon ON public.admission_otp_codes FOR INSERT TO authenticated, anon WITH CHECK (true);
+
+DROP POLICY IF EXISTS otp_update_anon ON public.admission_otp_codes;
+
 
 
 
 
 CREATE POLICY otp_update_anon ON public.admission_otp_codes FOR UPDATE TO authenticated, anon USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS own_profile_insert ON public.profiles;
+
+
 
 
 
 CREATE POLICY own_profile_insert ON public.profiles FOR INSERT TO authenticated WITH CHECK ((auth.uid() = id));
+
+DROP POLICY IF EXISTS own_profile_select ON public.profiles;
+
 
 
 
 
 CREATE POLICY own_profile_select ON public.profiles FOR SELECT TO authenticated USING ((auth.uid() = id));
 
+DROP POLICY IF EXISTS own_profile_update ON public.profiles;
+
+
 
 
 
 CREATE POLICY own_profile_update ON public.profiles FOR UPDATE TO authenticated USING ((auth.uid() = id)) WITH CHECK ((auth.uid() = id));
+
+DROP POLICY IF EXISTS poll_votes_admin_all ON public.poll_votes;
+
 
 
 
@@ -3993,20 +5079,32 @@ CREATE POLICY poll_votes_admin_all ON public.poll_votes TO authenticated USING (
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS poll_votes_no_direct_insert ON public.poll_votes;
+
+
 
 
 
 CREATE POLICY poll_votes_no_direct_insert ON public.poll_votes FOR INSERT TO authenticated, anon WITH CHECK (false);
+
+DROP POLICY IF EXISTS poll_votes_select_all ON public.poll_votes;
+
 
 
 
 
 CREATE POLICY poll_votes_select_all ON public.poll_votes FOR SELECT TO authenticated, anon USING (true);
 
+DROP POLICY IF EXISTS public_read_school_settings ON public.school_settings;
+
+
 
 
 
 CREATE POLICY public_read_school_settings ON public.school_settings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "questions admin teacher all" ON public.test_questions;
+
 
 
 
@@ -4017,15 +5115,24 @@ CREATE POLICY "questions admin teacher all" ON public.test_questions USING ((EXI
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS "questions auth read" ON public.test_questions;
+
+
 
 
 
 CREATE POLICY "questions auth read" ON public.test_questions FOR SELECT USING ((auth.role() = 'authenticated'::text));
 
+DROP POLICY IF EXISTS quotes_read ON public.daily_quotes;
+
+
 
 
 
 CREATE POLICY quotes_read ON public.daily_quotes FOR SELECT USING ((is_active = true));
+
+DROP POLICY IF EXISTS quotes_write ON public.daily_quotes;
+
 
 
 
@@ -4036,6 +5143,9 @@ CREATE POLICY quotes_write ON public.daily_quotes TO authenticated USING ((EXIST
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS results_admin_all ON public.results;
+
+
 
 
 
@@ -4045,20 +5155,32 @@ CREATE POLICY results_admin_all ON public.results TO authenticated USING ((EXIST
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS results_public_read ON public.results;
+
+
 
 
 
 CREATE POLICY results_public_read ON public.results FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS results_published_public ON public.results;
+
 
 
 
 
 CREATE POLICY results_published_public ON public.results FOR SELECT USING ((is_published = true));
 
+DROP POLICY IF EXISTS schedule_read ON public.exam_schedule;
+
+
 
 
 
 CREATE POLICY schedule_read ON public.exam_schedule FOR SELECT USING ((is_published = true));
+
+DROP POLICY IF EXISTS schedule_write ON public.exam_schedule;
+
 
 
 
@@ -4069,25 +5191,40 @@ CREATE POLICY schedule_write ON public.exam_schedule TO authenticated USING ((EX
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS school_settings_authenticated_write ON public.school_settings;
+
+
 
 
 
 CREATE POLICY school_settings_authenticated_write ON public.school_settings TO authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS school_settings_public_read ON public.school_settings;
+
 
 
 
 
 CREATE POLICY school_settings_public_read ON public.school_settings FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS school_settings_read_all ON public.school_settings;
+
+
 
 
 
 CREATE POLICY school_settings_read_all ON public.school_settings FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS seating_assign_read ON public.exam_seating_assignments;
+
+
 
 
 
 CREATE POLICY seating_assign_read ON public.exam_seating_assignments FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS seating_assign_write ON public.exam_seating_assignments;
+
 
 
 
@@ -4098,10 +5235,16 @@ CREATE POLICY seating_assign_write ON public.exam_seating_assignments USING ((EX
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS seating_plans_read ON public.exam_seating_plans;
+
+
 
 
 
 CREATE POLICY seating_plans_read ON public.exam_seating_plans FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS seating_plans_write ON public.exam_seating_plans;
+
 
 
 
@@ -4112,10 +5255,16 @@ CREATE POLICY seating_plans_write ON public.exam_seating_plans USING ((EXISTS ( 
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS seating_rooms_read ON public.exam_seating_rooms;
+
+
 
 
 
 CREATE POLICY seating_rooms_read ON public.exam_seating_rooms FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS seating_rooms_write ON public.exam_seating_rooms;
+
 
 
 
@@ -4126,6 +5275,9 @@ CREATE POLICY seating_rooms_write ON public.exam_seating_rooms USING ((EXISTS ( 
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS settings_admin_all ON public.admission_settings;
+
+
 
 
 
@@ -4135,15 +5287,24 @@ CREATE POLICY settings_admin_all ON public.admission_settings USING ((EXISTS ( S
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS settings_read_all ON public.admission_settings;
+
+
 
 
 
 CREATE POLICY settings_read_all ON public.admission_settings FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS slots_read_public ON public.interview_slots;
+
+
 
 
 
 CREATE POLICY slots_read_public ON public.interview_slots FOR SELECT TO authenticated, anon USING ((is_active = true));
+
+DROP POLICY IF EXISTS slots_read_staff_all ON public.interview_slots;
+
 
 
 
@@ -4151,6 +5312,9 @@ CREATE POLICY slots_read_public ON public.interview_slots FOR SELECT TO authenti
 CREATE POLICY slots_read_staff_all ON public.interview_slots FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
+
+DROP POLICY IF EXISTS slots_write_staff ON public.interview_slots;
+
 
 
 
@@ -4161,6 +5325,9 @@ CREATE POLICY slots_write_staff ON public.interview_slots TO authenticated USING
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS sms_outbox_admin_all ON public.sms_outbox;
+
+
 
 
 
@@ -4169,6 +5336,9 @@ CREATE POLICY sms_outbox_admin_all ON public.sms_outbox TO authenticated USING (
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS sr_admin_all ON public.student_records;
+
 
 
 
@@ -4179,6 +5349,9 @@ CREATE POLICY sr_admin_all ON public.student_records USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS srs_reviews_admin_all ON public.srs_reviews;
+
+
 
 
 
@@ -4186,15 +5359,24 @@ CREATE POLICY srs_reviews_admin_all ON public.srs_reviews USING ((EXISTS ( SELEC
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS srs_reviews_delete_own ON public.srs_reviews;
+
+
 
 
 
 CREATE POLICY srs_reviews_delete_own ON public.srs_reviews FOR DELETE TO authenticated USING ((user_id = auth.uid()));
 
+DROP POLICY IF EXISTS srs_reviews_insert_own ON public.srs_reviews;
+
+
 
 
 
 CREATE POLICY srs_reviews_insert_own ON public.srs_reviews FOR INSERT TO authenticated WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS srs_reviews_read_own_or_staff ON public.srs_reviews;
+
 
 
 
@@ -4203,15 +5385,24 @@ CREATE POLICY srs_reviews_read_own_or_staff ON public.srs_reviews FOR SELECT TO 
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'teacher'::text])))))));
 
+DROP POLICY IF EXISTS srs_reviews_select_own ON public.srs_reviews;
+
+
 
 
 
 CREATE POLICY srs_reviews_select_own ON public.srs_reviews FOR SELECT USING ((auth.uid() = user_id));
 
+DROP POLICY IF EXISTS srs_reviews_update_own ON public.srs_reviews;
+
+
 
 
 
 CREATE POLICY srs_reviews_update_own ON public.srs_reviews FOR UPDATE TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS students_admin_all ON public.students;
+
 
 
 
@@ -4222,20 +5413,32 @@ CREATE POLICY students_admin_all ON public.students TO authenticated USING ((EXI
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS students_auth_read ON public.students;
+
+
 
 
 
 CREATE POLICY students_auth_read ON public.students FOR SELECT USING ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS students_insert_payments ON public.payments;
+
 
 
 
 
 CREATE POLICY students_insert_payments ON public.payments FOR INSERT WITH CHECK ((student_id = auth.uid()));
 
+DROP POLICY IF EXISTS students_own_charges ON public.student_charges;
+
+
 
 
 
 CREATE POLICY students_own_charges ON public.student_charges FOR SELECT USING ((student_id = auth.uid()));
+
+DROP POLICY IF EXISTS students_own_items ON public.payment_items;
+
 
 
 
@@ -4244,10 +5447,16 @@ CREATE POLICY students_own_items ON public.payment_items FOR SELECT USING ((EXIS
    FROM public.payments p
   WHERE ((p.id = payment_items.payment_id) AND (p.student_id = auth.uid())))));
 
+DROP POLICY IF EXISTS students_own_payments ON public.payments;
+
+
 
 
 
 CREATE POLICY students_own_payments ON public.payments FOR SELECT USING ((student_id = auth.uid()));
+
+DROP POLICY IF EXISTS students_own_receipts ON public.receipts;
+
 
 
 
@@ -4256,30 +5465,48 @@ CREATE POLICY students_own_receipts ON public.receipts FOR SELECT USING ((EXISTS
    FROM public.payments p
   WHERE ((p.id = receipts.payment_id) AND (p.student_id = auth.uid())))));
 
+DROP POLICY IF EXISTS students_public_read ON public.students;
+
+
 
 
 
 CREATE POLICY students_public_read ON public.students FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS students_self_read_by_id ON public.students;
+
 
 
 
 
 CREATE POLICY students_self_read_by_id ON public.students FOR SELECT TO authenticated USING ((id = auth.uid()));
 
+DROP POLICY IF EXISTS students_self_read_by_user_id ON public.students;
+
+
 
 
 
 CREATE POLICY students_self_read_by_user_id ON public.students FOR SELECT TO authenticated USING ((user_id = auth.uid()));
+
+DROP POLICY IF EXISTS students_self_update_user_id ON public.students;
+
 
 
 
 
 CREATE POLICY students_self_update_user_id ON public.students FOR UPDATE TO authenticated USING (((user_id = auth.uid()) OR (user_id IS NULL))) WITH CHECK ((user_id = auth.uid()));
 
+DROP POLICY IF EXISTS teacher_view_profiles ON public.profiles;
+
+
 
 
 
 CREATE POLICY teacher_view_profiles ON public.profiles FOR SELECT TO authenticated USING ((((auth.jwt() ->> 'user_role'::text) = 'teacher'::text) OR (((auth.jwt() -> 'user_metadata'::text) ->> 'role'::text) = 'teacher'::text)));
+
+DROP POLICY IF EXISTS teachers_admin_all ON public.teachers;
+
 
 
 
@@ -4290,15 +5517,24 @@ CREATE POLICY teachers_admin_all ON public.teachers TO authenticated USING ((EXI
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS teachers_public_read ON public.teachers;
+
+
 
 
 
 CREATE POLICY teachers_public_read ON public.teachers FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS test_attempts_own ON public.test_attempts;
+
+
 
 
 
 CREATE POLICY test_attempts_own ON public.test_attempts TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+
+DROP POLICY IF EXISTS "tests admin teacher all" ON public.tests;
+
 
 
 
@@ -4309,15 +5545,24 @@ CREATE POLICY "tests admin teacher all" ON public.tests USING ((EXISTS ( SELECT 
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS "tests public read published" ON public.tests;
+
+
 
 
 
 CREATE POLICY "tests public read published" ON public.tests FOR SELECT USING ((is_published = true));
 
+DROP POLICY IF EXISTS tests_public_read ON public.tests;
+
+
 
 
 
 CREATE POLICY tests_public_read ON public.tests FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS timeline_read_staff ON public.admission_status_timeline;
+
 
 
 
@@ -4326,12 +5571,18 @@ CREATE POLICY timeline_read_staff ON public.admission_status_timeline FOR SELECT
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
 
+DROP POLICY IF EXISTS timeline_write_staff ON public.admission_status_timeline;
+
+
 
 
 
 CREATE POLICY timeline_write_staff ON public.admission_status_timeline FOR INSERT TO authenticated WITH CHECK ((EXISTS ( SELECT 1
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = ANY (ARRAY['admin'::text, 'teacher'::text]))))));
+
+DROP POLICY IF EXISTS timetable_overrides_delete ON public.timetable_overrides;
+
 
 
 
@@ -4340,6 +5591,9 @@ CREATE POLICY timetable_overrides_delete ON public.timetable_overrides FOR DELET
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS timetable_overrides_insert ON public.timetable_overrides;
+
+
 
 
 
@@ -4347,10 +5601,16 @@ CREATE POLICY timetable_overrides_insert ON public.timetable_overrides FOR INSER
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS timetable_overrides_select ON public.timetable_overrides;
+
+
 
 
 
 CREATE POLICY timetable_overrides_select ON public.timetable_overrides FOR SELECT TO authenticated, anon USING (true);
+
+DROP POLICY IF EXISTS timetable_overrides_update ON public.timetable_overrides;
+
 
 
 
@@ -4358,6 +5618,9 @@ CREATE POLICY timetable_overrides_select ON public.timetable_overrides FOR SELEC
 CREATE POLICY timetable_overrides_update ON public.timetable_overrides FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS timetables_admin_all ON public.timetables;
+
 
 
 
@@ -4368,25 +5631,40 @@ CREATE POLICY timetables_admin_all ON public.timetables TO authenticated USING (
    FROM public.profiles
   WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS timetables_public_read ON public.timetables;
+
+
 
 
 
 CREATE POLICY timetables_public_read ON public.timetables FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS users_can_insert_own_profile ON public.profiles;
+
 
 
 
 
 CREATE POLICY users_can_insert_own_profile ON public.profiles FOR INSERT TO authenticated WITH CHECK ((auth.uid() = id));
 
+DROP POLICY IF EXISTS users_can_update_own_profile ON public.profiles;
+
+
 
 
 
 CREATE POLICY users_can_update_own_profile ON public.profiles FOR UPDATE TO authenticated USING ((auth.uid() = id)) WITH CHECK ((auth.uid() = id));
 
+DROP POLICY IF EXISTS users_read_fee_types ON public.fee_types;
+
+
 
 
 
 CREATE POLICY users_read_fee_types ON public.fee_types FOR SELECT USING ((auth.uid() IS NOT NULL));
+
+DROP POLICY IF EXISTS "videos admin all" ON public.videos;
+
 
 
 
@@ -4395,15 +5673,24 @@ CREATE POLICY "videos admin all" ON public.videos USING ((EXISTS ( SELECT 1
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
 
+DROP POLICY IF EXISTS "videos auth read" ON public.videos;
+
+
 
 
 
 CREATE POLICY "videos auth read" ON public.videos FOR SELECT USING ((auth.role() = 'authenticated'::text));
 
+DROP POLICY IF EXISTS "videos public read" ON public.videos;
+
+
 
 
 
 CREATE POLICY "videos public read" ON public.videos FOR SELECT USING ((is_published = true));
+
+DROP POLICY IF EXISTS videos_admin_all ON public.videos;
+
 
 
 
@@ -4411,6 +5698,9 @@ CREATE POLICY "videos public read" ON public.videos FOR SELECT USING ((is_publis
 CREATE POLICY videos_admin_all ON public.videos USING ((EXISTS ( SELECT 1
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text)))));
+
+DROP POLICY IF EXISTS videos_public_read ON public.videos;
+
 
 
 
