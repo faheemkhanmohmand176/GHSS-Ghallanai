@@ -1,0 +1,192 @@
+/**
+ * AdminAdmissionPrograms — Programs & Seats control for the Inter admission
+ * system (GHSS Ghallanai: exactly four faculties — Pre-Medical,
+ * Pre-Engineering, ICS (Computer Sciences), Arts/Humanities; Intermediate
+ * only, no BS/ADP/D.Com/DIT).
+ *
+ * Seats are editable per program (inter_admin_set_program) and a faculty can
+ * be temporarily closed for admission (is_active) — e.g. when seats are full.
+ * The faculty list itself is fixed by migration 20 and never editable here.
+ */
+
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Landmark, Loader2, Save, Info } from "lucide-react";
+import toast from "react-hot-toast";
+
+interface InterProgram {
+  id: number; name: string; study_level: string; seats: number;
+  allowed_gender: string; is_active?: boolean;
+  subject_groups?: Array<{ id: number; name: string }>;
+}
+
+export default function AdminAdmissionPrograms() {
+  const qc = useQueryClient();
+  const [draftSeats, setDraftSeats] = useState<Record<number, number>>({});
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["inter-admin-programs"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("inter_programs_list", {
+        p_include_inactive: true,   // admin sees closed faculties too
+      });
+      if (error) throw error;
+      return (Array.isArray(data) ? data : []) as InterProgram[];
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const programs = data ?? [];
+
+  // Seed the editable seats draft whenever the list loads
+  useEffect(() => {
+    if (programs.length) {
+      setDraftSeats(Object.fromEntries(programs.map((p) => [p.id, p.seats])));
+    }
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const save = useMutation({
+    mutationFn: async ({ id, seats }: { id: number; seats: number }) => {
+      const { data, error } = await supabase.rpc("inter_admin_set_program", {
+        p_program_id: id, p_seats: seats,
+      });
+      if (error) throw error;
+      const d = data as { ok?: boolean; error?: string };
+      if (d?.ok === false) throw new Error(d?.error || "Save failed.");
+      return d;
+    },
+    onSuccess: () => {
+      toast.success("Seats updated.");
+      qc.invalidateQueries({ queryKey: ["inter-admin-programs"] });
+      qc.invalidateQueries({ queryKey: ["inter-programs"] });
+      qc.invalidateQueries({ queryKey: ["inter-programs-public"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const toggleActive = useMutation({
+    mutationFn: async ({ id, active }: { id: number; active: boolean }) => {
+      const { data, error } = await supabase.rpc("inter_admin_set_program", {
+        p_program_id: id, p_is_active: active,
+      });
+      if (error) throw error;
+      const d = data as { ok?: boolean; error?: string };
+      if (d?.ok === false) throw new Error(d?.error || "Update failed.");
+      return d;
+    },
+    onSuccess: (_d, v) => {
+      toast.success(v.active ? "Program re-opened for admission." : "Program closed for admission.");
+      qc.invalidateQueries({ queryKey: ["inter-admin-programs"] });
+      qc.invalidateQueries({ queryKey: ["inter-programs"] });
+      qc.invalidateQueries({ queryKey: ["inter-programs-public"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-start gap-2.5 rounded-xl border border-azure/25 bg-azure-soft/60 dark:bg-azure-soft/20 p-3.5 text-[13px] text-muted-foreground">
+        <Info className="w-5 h-5 shrink-0 text-azure-strong dark:text-azure mt-0.5" />
+        <p>
+          GHSS Ghallanai offers <strong className="text-foreground">Intermediate (1st / 2nd Year)</strong> admission in
+          exactly four faculties — Pre-Medical, Pre-Engineering, ICS (Computer Sciences) and Arts/Humanities.
+          The faculty list is fixed (no BS / ADP / D.Com / DIT); here you only control the
+          <strong className="text-foreground"> sanctioned seats</strong> and whether a faculty is currently
+          <strong className="text-foreground"> open for admission</strong>.
+        </p>
+      </div>
+
+      <Card className="border-border/80">
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-5 space-y-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 rounded-xl" />)}</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px] min-w-[760px]">
+                <thead className="bg-muted/60 border-b border-border">
+                  <tr className="text-left">
+                    <th className="px-4 py-3 font-semibold">Faculty (Program)</th>
+                    <th className="px-4 py-3 font-semibold">Level</th>
+                    <th className="px-4 py-3 font-semibold">Subject Group(s)</th>
+                    <th className="px-4 py-3 font-semibold">Seats</th>
+                    <th className="px-4 py-3 font-semibold text-right">Open for Admission</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {programs.map((p) => {
+                    const seats = draftSeats[p.id] ?? p.seats;
+                    const dirty = seats !== p.seats;
+                    return (
+                      <tr key={p.id} className="border-b border-border/60 hover:bg-muted/30">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <Landmark className="w-4 h-4 text-primary shrink-0" />
+                            <span className="font-semibold text-foreground">{p.name}</span>
+                            {p.is_active === false && (
+                              <Badge variant="secondary" className="bg-red-500/10 text-red-600">Closed</Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{p.study_level}</td>
+                        <td className="px-4 py-3 text-[12px] text-muted-foreground max-w-[280px]">
+                          {(p.subject_groups ?? []).map((g) => (
+                            <span key={g.id} className="block truncate" title={g.name}>{g.name}</span>
+                          )) || "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number" min={0} max={10000}
+                              value={seats}
+                              onChange={(e) => setDraftSeats((s) => ({ ...s, [p.id]: Number(e.target.value) || 0 }))}
+                              className="h-9 w-24"
+                              aria-label={`Seats for ${p.name}`}
+                            />
+                            {dirty && (
+                              <Button size="sm" className="h-8 text-xs font-semibold"
+                                disabled={save.isPending}
+                                onClick={() => save.mutate({ id: p.id, seats })}>
+                                {save.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                Save
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="inline-flex items-center gap-2.5">
+                            <Badge variant="secondary" className={p.allowed_gender === "both" ? "bg-muted" : "capitalize"}>
+                              {p.allowed_gender === "both" ? "Boys & Girls" : p.allowed_gender}
+                            </Badge>
+                            <Switch
+                              checked={p.is_active !== false}
+                              onCheckedChange={(checked) => toggleActive.mutate({ id: p.id, active: checked })}
+                              disabled={toggleActive.isPending}
+                              aria-label={`Toggle admission for ${p.name}`}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <p className="text-[12px] text-muted-foreground flex items-center gap-1.5">
+        <Label className="text-[12px]">Note:</Label>
+        Closing a faculty hides it from the public program list and the apply form; submitted applications stay intact.
+      </p>
+    </div>
+  );
+}

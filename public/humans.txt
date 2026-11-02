@@ -1,0 +1,12 @@
+/* TEAM */
+School: Government Higher Secondary School Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan
+Site: https://ghssghallanai.dpdns.org
+
+/* THANKS */
+District Mohmand community and the Government of Khyber Pakhtunkhwa.
+
+/* SITE */
+Standards: HTML5, JSON-LD, llms.txt
+Components: React, Vite, Tailwind CSS
+Software: Supabase, Vercel
+Machine-readable data: https://ghssghallanai.dpdns.org/llms.txt , https://ghssghallanai.dpdns.org/api/ai-data
