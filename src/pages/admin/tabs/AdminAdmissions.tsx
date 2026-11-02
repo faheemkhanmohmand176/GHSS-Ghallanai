@@ -15,7 +15,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAdmissionSettings } from "@/hooks/useAdmission";
+import { useAdmissionSettings, getAdmissionState, formatAdmissionDate, ADMISSION_SETTINGS_KEY, type AdmissionSettings } from "@/hooks/useAdmission";
+import type { PaymentMethod } from "@/hooks/useFees";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,9 +28,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ClipboardList, RefreshCw, Search, Loader2, Wallet, CheckCircle2,
-  XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark,
+  XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark, Plus, Trash2, Download, FileSpreadsheet,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { exportApplicationsExcel, type ExportRow } from "@/lib/admissionExcel";
 import AdminMeritLists from "./AdminMeritLists";
 import AdminAdmissionPrograms from "./AdminAdmissionPrograms";
 
@@ -77,6 +79,8 @@ export default function AdminAdmissions() {
   const [statusValue, setStatusValue] = useState("under_review");
   const [statusNote, setStatusNote] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [delApp, setDelApp] = useState<AdminApp | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // debounce search
   const onSearch = (v: string) => {
@@ -133,17 +137,61 @@ export default function AdminAdmissions() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const saveSettings = useMutation({
-    mutationFn: async ({ is_open, session_year }: { is_open: boolean; session_year: string }) => {
-      const { error } = await supabase
-        .from("admission_settings")
-        .update({ is_open, session_year, updated_at: new Date().toISOString() })
-        .eq("id", 1);
+  const deleteApp = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.rpc("inter_admin_delete_application", { p_application_id: id });
       if (error) throw error;
+      const d = data as { ok?: boolean; error?: string };
+      if (d?.ok === false) throw new Error(d?.error || "Delete failed.");
+      return d;
     },
-    onSuccess: () => { toast.success("Admission settings saved."); qc.invalidateQueries({ queryKey: ["admission-settings"] }); },
+    onSuccess: () => {
+      toast.success("Application deleted.");
+      setDelApp(null);
+      qc.invalidateQueries({ queryKey: ["inter-admin-apps"] });
+      qc.invalidateQueries({ queryKey: ["inter-admin-merit-lists"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  async function exportExcel() {
+    setExporting(true);
+    try {
+      const { data, error } = await supabase.rpc("inter_admin_export");
+      if (error) throw error;
+      const d = data as { ok?: boolean; error?: string; rows?: ExportRow[] };
+      if (d?.ok === false) throw new Error(d?.error || "Export failed.");
+      const rows = d?.rows ?? [];
+      if (rows.length === 0) { toast("There are no applications to export."); return; }
+      await exportApplicationsExcel(rows, settings?.session_year ?? "");
+      toast.success(`${rows.length} application(s) exported.`);
+    } catch (e) {
+      toast.error((e as Error).message || "Export failed.");
+    } finally { setExporting(false); }
+  }
+
+  const saveSettings = useMutation({
+    mutationFn: async (v: Pick<AdmissionSettings, "is_open" | "session_year" | "open_date" | "last_date" | "processing_fee" | "payment_methods">) => {
+      // upsert: the old UPDATE ... WHERE id = 1 silently changed 0 rows when the row did not exist
+      const { data, error } = await supabase
+        .from("admission_settings")
+        .upsert({ id: 1, ...v, updated_at: new Date().toISOString() }, { onConflict: "id" })
+        .select("*")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Settings were not saved. Please check your admin permission.");
+      return data as AdmissionSettings;
+    },
+    onSuccess: (row) => {
+      toast.success("Admission settings saved.");
+      qc.setQueryData(ADMISSION_SETTINGS_KEY, row);
+      qc.invalidateQueries({ queryKey: ADMISSION_SETTINGS_KEY });
+      setSettingsOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const admState = getAdmissionState(settings);
 
   const paid = apps.filter((a) => a.payment_status === "paid").length;
   const pendingFee = apps.filter((a) => a.payment_status === "pending").length;
@@ -179,7 +227,7 @@ export default function AdminAdmissions() {
           { icon: ClipboardList, label: "Total Applications", value: apps.length, color: "text-primary" },
           { icon: Wallet, label: "Fee Pending", value: pendingFee, color: "text-amber-600" },
           { icon: BadgeCheck, label: "Fee Paid", value: paid, color: "text-green-600" },
-          { icon: Users, label: "Session", value: settings?.session_year ?? "2026", color: "text-azure-strong dark:text-azure" },
+          { icon: Users, label: "Session", value: settings?.session_year ?? "N/A", color: "text-azure-strong dark:text-azure" },
         ].map((s) => (
           <Card key={s.label} className="border-border/80">
             <CardContent className="p-4 flex items-center gap-3">
@@ -196,24 +244,30 @@ export default function AdminAdmissions() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2.5">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder="Search by Tracking ID, name or CNIC…"
-            className="pl-9 h-10"
+            placeholder="Search Tracking ID, name or CNIC"
+            className="pl-9 h-9 text-[13px]"
           />
         </div>
-        <Button variant="outline" size="sm" className="h-10" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} /> Refresh
+        <Button variant="outline" size="sm" className="h-9 px-3 text-[12.5px] whitespace-nowrap" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} /> Refresh
         </Button>
-        <Button variant="outline" size="sm" className="h-10" onClick={() => setSettingsOpen(true)}>
-          <Settings2 className="w-4 h-4" /> Settings
+        <Button variant="outline" size="sm" className="h-9 px-3 text-[12.5px] whitespace-nowrap" onClick={() => setSettingsOpen(true)}>
+          <Settings2 className="w-3.5 h-3.5" /> Settings
         </Button>
-        <Badge variant="secondary" className={settings?.is_open ? "bg-green-500/15 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-600"}>
-          {settings?.is_open ? "Admissions Open" : "Admissions Closed"}
+        <Button size="sm" className="h-9 px-3 text-[12.5px] whitespace-nowrap bg-green-700 hover:bg-green-800 text-white" onClick={exportExcel} disabled={exporting}>
+          {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />} Export Excel
+        </Button>
+        <Badge variant="secondary" className={`whitespace-nowrap ${admState.open ? "bg-green-500/15 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-600"}`}>
+          {admState.open
+            ? `Admissions Open${admState.daysLeft !== null ? `, ${admState.daysLeft} day${admState.daysLeft === 1 ? "" : "s"} left` : ""}`
+            : admState.reason === "not_started" ? `Opens ${formatAdmissionDate(admState.openDate)}`
+            : admState.reason === "ended" ? "Admissions Ended" : "Admissions Closed"}
         </Badge>
       </div>
 
@@ -226,97 +280,163 @@ export default function AdminAdmissions() {
             <div className="p-10 text-center">
               <GraduationCap className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">
-                {debounced ? "No applications match your search." : "No applications yet — they will appear here as students apply."}
+                {debounced ? "No applications match your search." : "No applications yet, they will appear here as students apply."}
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px] min-w-[1050px]">
-                <thead className="bg-muted/60 border-b border-border">
-                  <tr className="text-left">
-                    <th className="px-4 py-3 font-semibold">Tracking ID</th>
-                    <th className="px-4 py-3 font-semibold">Applicant</th>
-                    <th className="px-4 py-3 font-semibold">Program</th>
-                    <th className="px-4 py-3 font-semibold">Quota</th>
-                    <th className="px-4 py-3 font-semibold">Marks</th>
-                    <th className="px-4 py-3 font-semibold">Token</th>
-                    <th className="px-4 py-3 font-semibold">Fee</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {apps.map((a) => (
-                    <tr key={a.id} className="border-b border-border/60 hover:bg-muted/30">
-                      <td className="px-4 py-3 font-mono font-bold text-primary whitespace-nowrap">{a.tracking_id}</td>
-                      <td className="px-4 py-3">
-                        <p className="font-semibold text-foreground">{a.name ?? "—"}</p>
-                        <p className="text-[11px] text-muted-foreground font-mono">{a.applicant_cnic} · {a.applicant_mobile}</p>
-                      </td>
-                      <td className="px-4 py-3">{a.program}</td>
-                      <td className="px-4 py-3">
-                        {QUOTA_LABELS[a.quota] ?? a.quota}
-                        <p className="text-[11px] text-muted-foreground">{a.domicile ?? ""} {a.uc ? `· ${a.uc}` : ""}</p>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {a.marks ?? "—"}
-                        {a.grade && <Badge variant="secondary" className="ml-1.5">{a.grade}</Badge>}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-[11px]">{a.jazzcash_token ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant="secondary" className={
-                          a.payment_status === "paid" ? "bg-green-500/15 text-green-700 dark:text-green-400"
-                          : a.payment_status === "rejected" ? "bg-red-500/10 text-red-600" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                        }>
-                          {a.payment_status === "pending" ? "Pending" : a.payment_status === "paid" ? "Paid" : "Rejected"}
-                        </Badge>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">by {a.fee_deadline}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline" className="capitalize">{a.status.replace(/_/g, " ")}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <Button size="sm" variant="outline" className="h-8 text-xs"
-                          onClick={() => { setPayDialog(a); setPayRef(""); }}>
-                          <Wallet className="w-3.5 h-3.5" /> Fee
-                        </Button>{" "}
-                        <Button size="sm" variant="outline" className="h-8 text-xs"
-                          onClick={() => { setStatusDialog(a); setStatusValue(a.status === "submitted" || a.status === "fee_pending" ? "under_review" : a.status); setStatusNote(""); }}>
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Status
-                        </Button>
-                      </td>
+            <>
+              {/* Mobile cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {apps.map((a) => (
+                  <div key={a.id} className="flex flex-col items-center gap-1.5 px-4 py-4 text-center">
+                    <p className="font-mono text-[13px] font-bold text-primary">{a.tracking_id}</p>
+                    <p className="text-[14px] font-semibold text-foreground">{a.name ?? "N/A"}</p>
+                    <p className="font-mono text-[11px] text-muted-foreground">{a.applicant_cnic} {a.applicant_mobile}</p>
+                    <p className="text-[12.5px] text-muted-foreground">
+                      {a.program}, {QUOTA_LABELS[a.quota] ?? a.quota}
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-1.5">
+                      <Badge variant="secondary" className={
+                        a.payment_status === "paid" ? "bg-green-500/15 text-green-700 dark:text-green-400"
+                        : a.payment_status === "rejected" ? "bg-red-500/10 text-red-600" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                      }>
+                        Fee {a.payment_status === "pending" ? "Pending" : a.payment_status === "paid" ? "Paid" : "Rejected"}
+                      </Badge>
+                      <Badge variant="outline" className="capitalize">{a.status.replace(/_/g, " ")}</Badge>
+                      {a.marks && <Badge variant="secondary">{a.marks}</Badge>}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+                      <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
+                        onClick={() => { setPayDialog(a); setPayRef(""); }}>
+                        <Wallet className="w-3 h-3" /> Fee
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
+                        onClick={() => { setStatusDialog(a); setStatusValue(a.status === "submitted" || a.status === "fee_pending" ? "under_review" : a.status); setStatusNote(""); }}>
+                        <CheckCircle2 className="w-3 h-3" /> Status
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px] text-red-600 border-red-200 hover:bg-red-500/5"
+                        onClick={() => setDelApp(a)} aria-label={`Delete ${a.tracking_id}`}>
+                        <Trash2 className="w-3 h-3" /> Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-[13px] min-w-[1000px]">
+                  <thead className="bg-muted/60 border-b border-border">
+                    <tr>
+                      {["Tracking ID", "Applicant", "Program", "Category", "Marks", "Reference", "Fee", "Status", "Actions"].map((h) => (
+                        <th key={h} className="px-3 py-3 text-center align-middle font-semibold whitespace-nowrap">{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {apps.map((a) => (
+                      <tr key={a.id} className="border-b border-border/60 hover:bg-muted/30">
+                        <td className="px-3 py-3 text-center align-middle font-mono font-bold text-primary whitespace-nowrap">{a.tracking_id}</td>
+                        <td className="px-3 py-3 text-center align-middle">
+                          <p className="font-semibold text-foreground">{a.name ?? "N/A"}</p>
+                          <p className="text-[11px] text-muted-foreground font-mono">{a.applicant_cnic} {a.applicant_mobile}</p>
+                        </td>
+                        <td className="px-3 py-3 text-center align-middle">{a.program}</td>
+                        <td className="px-3 py-3 text-center align-middle">
+                          {QUOTA_LABELS[a.quota] ?? a.quota}
+                          <p className="text-[11px] text-muted-foreground">{[a.domicile, a.uc].filter(Boolean).join(", ")}</p>
+                        </td>
+                        <td className="px-3 py-3 text-center align-middle whitespace-nowrap">
+                          {a.marks ?? "N/A"}
+                          {a.grade && <Badge variant="secondary" className="ml-1.5">{a.grade}</Badge>}
+                        </td>
+                        <td className="px-3 py-3 text-center align-middle font-mono text-[11px]">{a.jazzcash_token ?? "N/A"}</td>
+                        <td className="px-3 py-3 text-center align-middle">
+                          <Badge variant="secondary" className={
+                            a.payment_status === "paid" ? "bg-green-500/15 text-green-700 dark:text-green-400"
+                            : a.payment_status === "rejected" ? "bg-red-500/10 text-red-600" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                          }>
+                            {a.payment_status === "pending" ? "Pending" : a.payment_status === "paid" ? "Paid" : "Rejected"}
+                          </Badge>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">by {a.fee_deadline}</p>
+                        </td>
+                        <td className="px-3 py-3 text-center align-middle">
+                          <Badge variant="outline" className="capitalize whitespace-nowrap">{a.status.replace(/_/g, " ")}</Badge>
+                        </td>
+                        <td className="px-3 py-3 text-center align-middle">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
+                              onClick={() => { setPayDialog(a); setPayRef(""); }}>
+                              <Wallet className="w-3 h-3" /> Fee
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
+                              onClick={() => { setStatusDialog(a); setStatusValue(a.status === "submitted" || a.status === "fee_pending" ? "under_review" : a.status); setStatusNote(""); }}>
+                              <CheckCircle2 className="w-3 h-3" /> Status
+                            </Button>
+                            <Button size="icon" variant="outline" className="h-7 w-7 text-red-600 border-red-200 hover:bg-red-500/5"
+                              onClick={() => setDelApp(a)} aria-label={`Delete ${a.tracking_id}`} title="Delete application">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
+
+      {/* Delete confirm */}
+      <Dialog open={Boolean(delApp)} onOpenChange={(o) => !o && setDelApp(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center">Delete Application</DialogTitle>
+          </DialogHeader>
+          {delApp && (
+            <div className="space-y-4 text-center">
+              <p className="text-[13px] text-muted-foreground">
+                Delete <span className="font-mono font-bold text-foreground">{delApp.tracking_id}</span>
+                {delApp.name ? <> of <span className="font-semibold text-foreground">{delApp.name}</span></> : null}?
+                Its timeline is removed too. This cannot be undone.
+              </p>
+              <div className="flex gap-2.5">
+                <Button variant="outline" className="h-10 flex-1 font-semibold" onClick={() => setDelApp(null)}>Cancel</Button>
+                <Button className="h-10 flex-1 font-semibold bg-red-600 hover:bg-red-700 text-white" disabled={deleteApp.isPending}
+                  onClick={() => deleteApp.mutate(delApp.id)}>
+                  {deleteApp.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Fee dialog */}
       <Dialog open={Boolean(payDialog)} onOpenChange={(o) => !o && setPayDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Processing Fee — {payDialog?.tracking_id}</DialogTitle>
+            <DialogTitle>Processing Fee: {payDialog?.tracking_id}</DialogTitle>
           </DialogHeader>
           {payDialog && (
             <div className="space-y-4">
               <div className="rounded-xl border border-border bg-muted/40 p-3.5 text-[13px] space-y-1">
                 <p><span className="text-muted-foreground">Applicant:</span> <span className="font-semibold">{payDialog.name}</span></p>
-                <p><span className="text-muted-foreground">JazzCash Token:</span> <span className="font-mono font-bold">{payDialog.jazzcash_token ?? "not generated"}</span></p>
+                <p><span className="text-muted-foreground">Payment Reference:</span> <span className="font-mono font-bold">{payDialog.jazzcash_token ?? "not generated"}</span></p>
                 <p><span className="text-muted-foreground">Deadline:</span> <span className="font-semibold">{payDialog.fee_deadline}</span></p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[13px] font-semibold">Payment reference (optional)</Label>
-                <Input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="JazzCash transaction / receipt no." className="h-10" />
+                <Input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="Bank or wallet receipt number" className="h-10" />
               </div>
               <div className="flex flex-col sm:flex-row gap-2.5">
-                <Button className="flex-1 h-11 font-semibold bg-green-600 hover:bg-green-700"
+                <Button className="flex-1 h-10 font-semibold bg-green-600 hover:bg-green-700"
                   disabled={setPayment.isPending}
                   onClick={() => setPayment.mutate({ id: payDialog.id, status: "paid", ref: payRef })}>
                   {setPayment.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  Mark Fee Paid (Rs 100)
+                  Mark Fee Paid (Rs {settings?.processing_fee ?? 100})
                 </Button>
                 <Button variant="outline" className="flex-1 h-11 font-semibold text-red-600 border-red-200 hover:bg-red-500/5"
                   disabled={setPayment.isPending}
@@ -333,7 +453,7 @@ export default function AdminAdmissions() {
       <Dialog open={Boolean(statusDialog)} onOpenChange={(o) => !o && setStatusDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Update Status — {statusDialog?.tracking_id}</DialogTitle>
+            <DialogTitle>Update Status: {statusDialog?.tracking_id}</DialogTitle>
           </DialogHeader>
           {statusDialog && (
             <div className="space-y-4">
@@ -364,13 +484,13 @@ export default function AdminAdmissions() {
 
       {/* Settings dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Admission Settings</DialogTitle>
           </DialogHeader>
           <SettingsBody
-            isOpen={Boolean(settings?.is_open)}
-            sessionYear={settings?.session_year ?? "2026"}
+            key={settings?.updated_at ?? "new"}
+            settings={settings ?? null}
             onSave={(v) => saveSettings.mutate(v)}
             saving={saveSettings.isPending}
           />
@@ -382,29 +502,150 @@ export default function AdminAdmissions() {
   );
 }
 
+const PM_TYPES: { value: PaymentMethod["type"]; label: string }[] = [
+  { value: "bank", label: "Bank" }, { value: "easypaisa", label: "EasyPaisa" },
+  { value: "jazzcash", label: "JazzCash" }, { value: "cash", label: "Cash at School" },
+  { value: "other", label: "Other" },
+];
+
 function SettingsBody({
-  isOpen, sessionYear, onSave, saving,
+  settings, onSave, saving,
 }: {
-  isOpen: boolean; sessionYear: string;
-  onSave: (v: { is_open: boolean; session_year: string }) => void;
+  settings: AdmissionSettings | null;
+  onSave: (v: Pick<AdmissionSettings, "is_open" | "session_year" | "open_date" | "last_date" | "processing_fee" | "payment_methods">) => void;
   saving: boolean;
 }) {
-  const [open, setOpen] = useState(isOpen);
-  const [year, setYear] = useState(sessionYear);
+  const [open, setOpen] = useState(Boolean(settings?.is_open));
+  const [year, setYear] = useState(settings?.session_year ?? String(new Date().getFullYear()));
+  const [openDate, setOpenDate] = useState(settings?.open_date ?? "");
+  const [lastDate, setLastDate] = useState(settings?.last_date ?? "");
+  const [fee, setFee] = useState(String(settings?.processing_fee ?? 100));
+  const [methods, setMethods] = useState<PaymentMethod[]>(settings?.payment_methods ?? []);
+  const [importing, setImporting] = useState(false);
+
+  const setPm = (i: number, k: keyof PaymentMethod, v: string) =>
+    setMethods((m) => m.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+
+  async function importFromFees() {
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.from("fee_structures").select("payment_methods");
+      if (error) throw error;
+      const seen = new Set(methods.map((m) => JSON.stringify(m)));
+      const found: PaymentMethod[] = [];
+      (data ?? []).forEach((r: { payment_methods: PaymentMethod[] | null }) =>
+        (r.payment_methods ?? []).forEach((m) => {
+          const k = JSON.stringify(m);
+          if (!seen.has(k)) { seen.add(k); found.push(m); }
+        }));
+      if (found.length === 0) toast("No payment accounts found in Fee Management.");
+      else { setMethods((m) => [...m, ...found]); toast.success(`${found.length} account(s) imported.`); }
+    } catch (e) {
+      toast.error((e as Error).message || "Could not import.");
+    } finally { setImporting(false); }
+  }
+
+  function submit() {
+    const f = Math.round(Number(fee));
+    if (!year.trim()) { toast.error("Please enter the session year."); return; }
+    if (!f || f < 0) { toast.error("Please enter a valid processing fee."); return; }
+    if (openDate && lastDate && lastDate < openDate) { toast.error("Last date cannot be before the start date."); return; }
+    onSave({
+      is_open: open, session_year: year.trim(),
+      open_date: openDate || null, last_date: lastDate || null,
+      processing_fee: f, payment_methods: methods,
+    });
+  }
+
+  const field = "h-10";
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between rounded-xl border border-border p-4">
-        <div>
+        <div className="pr-3">
           <p className="font-semibold text-sm text-foreground">Admissions Open</p>
-          <p className="text-[12px] text-muted-foreground">Controls the “Admissions Open” pill on the homepage ticker.</p>
+          <p className="text-[12px] text-muted-foreground">When off, the whole public admission is locked.</p>
         </div>
         <Switch checked={open} onCheckedChange={setOpen} />
       </div>
-      <div className="space-y-1.5">
-        <Label className="text-[13px] font-semibold">Session Year</Label>
-        <Input value={year} onChange={(e) => setYear(e.target.value)} className="h-10" placeholder="2026" />
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-[13px] font-semibold">Session Year</Label>
+          <Input value={year} onChange={(e) => setYear(e.target.value)} className={field} placeholder="2026" />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[13px] font-semibold">Processing Fee (Rs)</Label>
+          <Input type="number" min={0} value={fee} onChange={(e) => setFee(e.target.value)} className={field} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[13px] font-semibold">Start Date</Label>
+          <Input type="date" value={openDate} onChange={(e) => setOpenDate(e.target.value)} className={field} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[13px] font-semibold">Last Date</Label>
+          <Input type="date" value={lastDate} onChange={(e) => setLastDate(e.target.value)} className={field} />
+        </div>
       </div>
-      <Button className="w-full h-11 font-semibold" disabled={saving} onClick={() => onSave({ is_open: open, session_year: year })}>
+      <p className="text-[11.5px] text-muted-foreground -mt-1">
+        Admission stays open until the last date. The homepage shows the days remaining and closes automatically after it.
+      </p>
+
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-[13px] font-semibold">School Payment Accounts</Label>
+          <div className="flex gap-1.5">
+            <Button type="button" variant="outline" size="sm" className="h-8 text-xs" disabled={importing} onClick={importFromFees}>
+              {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} From Fee Management
+            </Button>
+            <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => setMethods((m) => [...m, { type: "bank" }])}>
+              <Plus className="w-3.5 h-3.5" /> Add
+            </Button>
+          </div>
+        </div>
+        {methods.length === 0 && (
+          <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-[12.5px] text-muted-foreground">
+            No account added. Applicants will be told to pay at the school office.
+          </p>
+        )}
+        {methods.map((m, i) => (
+          <div key={i} className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+            <div className="flex items-center gap-2">
+              <select
+                value={m.type}
+                onChange={(e) => setPm(i, "type", e.target.value)}
+                className="h-9 flex-1 rounded-lg border border-input bg-background px-2 text-sm"
+              >
+                {PM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={() => setMethods((x) => x.filter((_, j) => j !== i))}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+            {m.type === "bank" && (
+              <div className="grid grid-cols-2 gap-2">
+                <Input className="h-9 text-sm" placeholder="Bank name" value={m.bank_name ?? ""} onChange={(e) => setPm(i, "bank_name", e.target.value)} />
+                <Input className="h-9 text-sm" placeholder="Account title" value={m.account_title ?? ""} onChange={(e) => setPm(i, "account_title", e.target.value)} />
+                <Input className="h-9 text-sm" placeholder="Account number" value={m.account_number ?? ""} onChange={(e) => setPm(i, "account_number", e.target.value)} />
+                <Input className="h-9 text-sm" placeholder="IBAN" value={m.iban ?? ""} onChange={(e) => setPm(i, "iban", e.target.value)} />
+              </div>
+            )}
+            {(m.type === "easypaisa" || m.type === "jazzcash") && (
+              <div className="grid grid-cols-2 gap-2">
+                <Input className="h-9 text-sm" placeholder="Account name" value={m.account_name ?? ""} onChange={(e) => setPm(i, "account_name", e.target.value)} />
+                <Input className="h-9 text-sm" placeholder="Mobile number" value={m.phone ?? ""} onChange={(e) => setPm(i, "phone", e.target.value)} />
+              </div>
+            )}
+            {(m.type === "cash" || m.type === "other") && (
+              <div className="space-y-2">
+                {m.type === "other" && <Input className="h-9 text-sm" placeholder="Method name" value={m.label ?? ""} onChange={(e) => setPm(i, "label", e.target.value)} />}
+                <Input className="h-9 text-sm" placeholder="Instructions" value={m.instructions ?? ""} onChange={(e) => setPm(i, "instructions", e.target.value)} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <Button className="w-full h-11 font-semibold" disabled={saving} onClick={submit}>
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Save Settings
       </Button>
     </div>

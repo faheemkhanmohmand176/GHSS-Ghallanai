@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Loader2, Save, UserRound, BadgeCheck } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
-import { useQuery } from "@tanstack/react-query";
+import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
   interApi, PROVINCES, RELIGIONS, GENDERS, MOHMAND_TEHSILS, DISTRICTS,
@@ -41,12 +42,14 @@ const EMPTY: PersonalProfileData = {
 };
 
 export default function PersonalProfileForm() {
-  const { session, loading, token, refresh } = useInterSession();
+  const { session, loading, token } = useInterSession();
   const [form, setForm] = useState<PersonalProfileData>(EMPTY);
   const [dobDay, setDobDay] = useState("");
   const [dobMonth, setDobMonth] = useState("");
   const [dobYear, setDobYear] = useState("");
   const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Hydrate from session (once)
   useEffect(() => {
@@ -101,7 +104,8 @@ export default function PersonalProfileForm() {
       };
       if (res?.ok) {
         toast.success("Personal profile saved.");
-        refresh();
+        await queryClient.invalidateQueries({ queryKey: ["inter-session"] });
+        navigate("/admission/portal", { replace: true });
       } else {
         toast.error(res?.error || "Could not save your profile.");
       }
@@ -112,12 +116,13 @@ export default function PersonalProfileForm() {
     }
   }
 
-  const F = "space-y-1.5";
+  const F = "space-y-1.5 min-w-0";
   const inp = "h-11";
 
   return (
     <PageLayout>
-      <div className="container mx-auto px-4 py-10 sm:py-12 max-w-3xl">
+      <div className="container mx-auto px-4 py-8 sm:py-12 max-w-3xl">
+        <AdmissionBackBar to="/admission/portal" />
         <div className="mb-6">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -125,7 +130,7 @@ export default function PersonalProfileForm() {
             </div>
             <div>
               <h1 className="font-heading text-2xl font-bold text-foreground">Personal Information</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">Complete your personal profile. It is required before you can apply.</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Required before you can apply.</p>
             </div>
             {session?.personal && (
               <BadgeCheck className="w-5 h-5 text-green-600 ml-auto shrink-0" />
@@ -154,15 +159,15 @@ export default function PersonalProfileForm() {
                 <div className={F}>
                   <Label className="font-semibold text-[13px]">Date of Birth <span className="text-red-500">*</span></Label>
                   <div className="grid grid-cols-3 gap-2.5">
-                    <select className={`${inp} rounded-xl border border-input bg-background px-3 text-sm`} value={dobYear} onChange={(e) => setDobYear(e.target.value)} required>
+                    <select className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`} value={dobYear} onChange={(e) => setDobYear(e.target.value)} required>
                       <option value="">Year</option>
                       {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                     </select>
-                    <select className={`${inp} rounded-xl border border-input bg-background px-3 text-sm`} value={dobMonth} onChange={(e) => setDobMonth(e.target.value)} required>
+                    <select className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`} value={dobMonth} onChange={(e) => setDobMonth(e.target.value)} required>
                       <option value="">Month</option>
                       {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
                     </select>
-                    <select className={`${inp} rounded-xl border border-input bg-background px-3 text-sm`} value={dobDay} onChange={(e) => setDobDay(e.target.value)} required>
+                    <select className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`} value={dobDay} onChange={(e) => setDobDay(e.target.value)} required>
                       <option value="">Day</option>
                       {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
                     </select>
@@ -192,7 +197,6 @@ export default function PersonalProfileForm() {
                       onChange={(e) => set("mobile_number", e.target.value.replace(/\D/g, "").slice(0, 11))}
                       readOnly={Boolean(session?.applicant)}
                       required />
-                    {session?.applicant && <p className="text-[11px] text-muted-foreground">Locked. Your registered mobile number (used for fee payment and SMS alerts).</p>}
                   </div>
                   <div className={F}>
                     <Label className="font-semibold text-[13px]">Landline Number</Label>
@@ -207,7 +211,7 @@ export default function PersonalProfileForm() {
                   </div>
                   <div className={F}>
                     <Label className="font-semibold text-[13px]">Religion <span className="text-red-500">*</span></Label>
-                    <select className={`${inp} rounded-xl border border-input bg-background px-3 text-sm`} value={form.religion} onChange={(e) => set("religion", e.target.value)} required>
+                    <select className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`} value={form.religion} onChange={(e) => set("religion", e.target.value)} required>
                       {RELIGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
@@ -217,13 +221,13 @@ export default function PersonalProfileForm() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className={F}>
                     <Label className="font-semibold text-[13px]">Domicile Province <span className="text-red-500">*</span></Label>
-                    <select className={`${inp} rounded-xl border border-input bg-background px-3 text-sm`} value={form.domicile_province} onChange={(e) => set("domicile_province", e.target.value)} required>
+                    <select className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`} value={form.domicile_province} onChange={(e) => set("domicile_province", e.target.value)} required>
                       {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
                   <div className={F}>
                     <Label className="font-semibold text-[13px]">Domicile District <span className="text-red-500">*</span></Label>
-                    <select className={`${inp} rounded-xl border border-input bg-background px-3 text-sm`} value={form.domicile_district} onChange={(e) => set("domicile_district", e.target.value)} required>
+                    <select className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`} value={form.domicile_district} onChange={(e) => set("domicile_district", e.target.value)} required>
                       {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
@@ -233,7 +237,7 @@ export default function PersonalProfileForm() {
                   <div className={F}>
                     <Label className="font-semibold text-[13px]">Tehsil <span className="text-red-500">*</span></Label>
                     {isMohmand ? (
-                      <select className={`${inp} rounded-xl border border-input bg-background px-3 text-sm`} value={form.tehsil} onChange={(e) => set("tehsil", e.target.value)} required>
+                      <select className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`} value={form.tehsil} onChange={(e) => set("tehsil", e.target.value)} required>
                         <option value="">Select Tehsil</option>
                         {MOHMAND_TEHSILS.map((t) => <option key={t} value={t}>{t}</option>)}
                       </select>
@@ -245,7 +249,7 @@ export default function PersonalProfileForm() {
                     <Label className="font-semibold text-[13px]">Union Council <span className="text-red-500">*</span></Label>
                     {isMohmand ? (
                       <select
-                        className={`${inp} rounded-xl border border-input bg-background px-3 text-sm`}
+                        className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`}
                         value={form.union_council}
                         onChange={(e) => set("union_council", e.target.value)}
                         required
@@ -259,7 +263,6 @@ export default function PersonalProfileForm() {
                       <Input className={inp} placeholder="Enter your union council"
                         value={form.union_council} onChange={(e) => set("union_council", e.target.value)} required />
                     )}
-                    {isMohmand && <p className="text-[11px] text-muted-foreground">Union councils of District Mohmand (college jurisdiction). Select yours exactly as on your domicile.</p>}
                   </div>
                 </div>
 
@@ -296,7 +299,7 @@ export default function PersonalProfileForm() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className={F}>
                     <Label className="font-semibold text-[13px]">Blood Group</Label>
-                    <select className={`${inp} rounded-xl border border-input bg-background px-3 text-sm`} value={form.blood_group} onChange={(e) => set("blood_group", e.target.value)}>
+                    <select className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`} value={form.blood_group} onChange={(e) => set("blood_group", e.target.value)}>
                       <option value="">Select</option>
                       {BLOOD_GROUPS.map((b) => <option key={b} value={b}>{b}</option>)}
                     </select>
@@ -311,7 +314,6 @@ export default function PersonalProfileForm() {
                           }`}>{o.l}</button>
                       ))}
                     </div>
-                    <p className="text-[11px] text-muted-foreground">If Yes, 20 additional marks are added to your SSC percentage for merit.</p>
                   </div>
                 </div>
 

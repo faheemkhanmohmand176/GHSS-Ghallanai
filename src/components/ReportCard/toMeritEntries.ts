@@ -2,13 +2,13 @@
 //
 // Converts BISE Peshawar bulk-fetch results (NormalizedResult[]) into the
 // same MeritEntry shape the school's own Merit List feature uses
-// (AdminMeritList.tsx), so Class 1st Year/2nd Year BISE board results can be
+// (AdminMeritList.tsx), so Class 9th/10th and 1st Year/2nd Year BISE board results can be
 // ranked together with school-administered results in one combined
 // School Merit List.
 //
 // CRITICAL — why this exists at all:
-//   1st Year and 2nd Year papers both total 550 marks for the standard BISE
-//   Peshawar groups. Even though the maximums match, every field this file
+//   9th totals 600, 10th 1200, 1st Year 600 and 2nd Year 1200. Raw
+//   totals are not comparable across classes, so every field this file
 //   produces is built from `percentage` (see classMaxMarks.ts), never from
 //   raw totalMarks, so downstream sorting is always correct regardless of
 //   which class a student is in.
@@ -18,8 +18,18 @@
 // so re-converting the same roll later (e.g. re-publishing after a
 // correction) produces the SAME id instead of a new one each time.
 
-import type { NormalizedResult } from "./types";
+import type { ClassName, NormalizedResult } from "./types";
+import { CLASS_MAX_MARKS } from "./classMaxMarks";
+
 import { getGradeFromPercentage } from "@/hooks/useResults";
+
+/** MeritEntry `class` value per Report Card class (9/10 school, 11/12 college). */
+const CLASS_LABELS: Record<ClassName, string> = {
+  "9th": "9",
+  "10th": "10",
+  "1st Year": "11",
+  "2nd Year": "12",
+};
 
 /** Minimal shape matching AdminMeritList.tsx's MeritEntry interface.
  *  Duplicated here (rather than imported) because MeritEntry is a local
@@ -52,9 +62,9 @@ export interface BiseMeritEntry {
  */
 export function biseResultsToMeritEntries(
   results: NormalizedResult[],
-  opts: { className: "1st Year" | "2nd Year"; examType: string; year: number }
+  opts: { className: ClassName; examType: string; year: number }
 ): BiseMeritEntry[] {
-  const classLabel = opts.className === "1st Year" ? "11" : "12";
+  const classLabel = CLASS_LABELS[opts.className];
   return results
     .filter((r) => r.found && r.name)
     .map((r) => {
@@ -69,7 +79,7 @@ export function biseResultsToMeritEntries(
         exam_type: opts.examType,
         photo_url: null,
         obtained_marks: r.totalMarks,
-        total_marks: 550,
+        total_marks: CLASS_MAX_MARKS[opts.className],
         percentage,
         grade,
         is_pass: !r.isFail,

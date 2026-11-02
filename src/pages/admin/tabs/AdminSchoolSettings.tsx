@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from "react";
-import { useSchoolSettings } from "@/hooks/useSchoolSettings";
+import { useSchoolSettings, applySavedSettings, SETTINGS_COLUMNS, type SchoolSettings } from "@/hooks/useSchoolSettings";
 import { supabase } from "@/lib/supabase";
 import { uploadToCloudinary, type UploadProgress } from "@/lib/cloudinary";
 import { useQueryClient } from "@tanstack/react-query";
@@ -592,12 +592,23 @@ const AdminSchoolSettings = () => {
         }
       }
 
-      const { error } = await Promise.race([
-        supabase.from("school_settings").upsert({ ...form, id: 1 }, { onConflict: "id" }),
-        new Promise<{ error: Error }>((_, reject) =>
+      // .select() makes the database send back the row it actually stored.
+      // Before, a write that was silently blocked (0 rows changed, no error)
+      // still looked like a success — "Saved!" — but nothing was kept.
+      const { data: savedRow, error: upsertError } = await Promise.race([
+        supabase
+          .from("school_settings")
+          .upsert({ ...form, id: 1 }, { onConflict: "id" })
+          .select(SETTINGS_COLUMNS)
+          .maybeSingle(),
+        new Promise<{ data: null; error: Error }>((_, reject) =>
           setTimeout(() => reject(new Error("Timed out after 15s. Check internet.")), 15000)
         ),
-      ]) as { error: any };
+      ]) as { data: SchoolSettings | null; error: any };
+
+      const error = upsertError ?? (!savedRow
+        ? { message: "The database did not store the changes (no row returned). Your admin account may not have permission to edit School Settings." }
+        : null);
 
       if (error) {
         // Show the FULL error — code, message, hint — so we know exactly what Supabase says
@@ -614,6 +625,8 @@ const AdminSchoolSettings = () => {
         setSaveError(null);
         setBaseline(JSON.stringify(form));
         toast.success("Settings saved!");
+        // Use the row the database confirmed, so nothing older can overwrite it.
+        applySavedSettings(queryClient, savedRow as SchoolSettings);
         await queryClient.invalidateQueries({ queryKey: ["school-settings"] });
         setTimeout(() => setSaved(false), 3000);
       }
@@ -646,9 +659,15 @@ const AdminSchoolSettings = () => {
         }
       }
 
-      const { error } = await supabase
+      const { data: savedRow, error: upsertError } = await supabase
         .from("school_settings")
-        .upsert(formToSave, { onConflict: "id" });
+        .upsert(formToSave, { onConflict: "id" })
+        .select(SETTINGS_COLUMNS)
+        .maybeSingle();
+
+      const error = upsertError ?? (!savedRow
+        ? { message: "The database did not store the changes (no row returned). Your admin account may not have permission to edit School Settings.", code: undefined, details: undefined, hint: undefined }
+        : null);
 
       if (error) {
         const full = [
@@ -664,6 +683,7 @@ const AdminSchoolSettings = () => {
         toast.success("Saved to database!");
         setSaveError(null);
         setBaseline(JSON.stringify({ ...form, [field]: url }));
+        applySavedSettings(queryClient, savedRow as SchoolSettings);
         await queryClient.invalidateQueries({ queryKey: ["school-settings"] });
       }
     } catch (err) {

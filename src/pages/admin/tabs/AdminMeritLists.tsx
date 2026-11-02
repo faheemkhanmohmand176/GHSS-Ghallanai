@@ -85,7 +85,7 @@ export default function AdminMeritLists() {
   const viewQ = useQuery({
     queryKey: ["inter-admin-merit-view", viewId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("inter_merit_list_view", {
+      const { data, error } = await supabase.rpc("inter_admin_merit_view", {
         p_merit_list_id: viewId,
       });
       if (error) throw error;
@@ -142,7 +142,7 @@ export default function AdminMeritLists() {
       return d;
     },
     onSuccess: (d) => {
-      toast.success(`Merit list generated — ${d?.entries ?? 0} entr${d?.entries === 1 ? "y" : "ies"}. Review it below, then publish.`);
+      toast.success(`Merit list generated, ${d?.entries ?? 0} entr${d?.entries === 1 ? "y" : "ies"}. Review it below, then publish.`);
       setGenOpen(false);
       setGStart(""); setGLast(""); setGInstructions("");
       invalidate();
@@ -161,7 +161,7 @@ export default function AdminMeritLists() {
       return d;
     },
     onSuccess: (_d, v) => {
-      toast.success(v.published ? "Merit list published — it is now visible on the public Admission page." : "Merit list unpublished.");
+      toast.success(v.published ? "Merit list published, it is now visible on the public Admission page." : "Merit list unpublished.");
       invalidate();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -189,10 +189,10 @@ export default function AdminMeritLists() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex-1 min-w-[200px]" />
-        <Button variant="outline" size="sm" className="h-10" onClick={() => listsQ.refetch()} disabled={listsQ.isFetching}>
+        <Button variant="outline" size="sm" className="h-9 text-[12.5px]" onClick={() => listsQ.refetch()} disabled={listsQ.isFetching}>
           <RefreshCw className={`w-4 h-4 ${listsQ.isFetching ? "animate-spin" : ""}`} /> Refresh
         </Button>
-        <Button size="sm" className="h-10 font-semibold" onClick={() => setGenOpen(true)}>
+        <Button size="sm" className="h-9 text-[12.5px] font-semibold" onClick={() => setGenOpen(true)}>
           <Plus className="w-4 h-4" /> Generate Merit List
         </Button>
       </div>
@@ -207,7 +207,7 @@ export default function AdminMeritLists() {
               <Trophy className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm font-semibold text-foreground">No merit list generated yet.</p>
               <p className="text-[13px] text-muted-foreground mt-1">
-                Click <span className="font-semibold">Generate Merit List</span> — the list is built from
+                Click <span className="font-semibold">Generate Merit List</span>, the list is built from
                 fee-paid applications of the chosen program and quota, ordered by net marks
                 (SSC obtained + 20 if Hafiz e Quran).
               </p>
@@ -216,27 +216,27 @@ export default function AdminMeritLists() {
             <div className="overflow-x-auto">
               <table className="w-full text-[13px] min-w-[860px]">
                 <thead className="bg-muted/60 border-b border-border">
-                  <tr className="text-left">
-                    <th className="px-4 py-3 font-semibold">Program</th>
-                    <th className="px-4 py-3 font-semibold">Quota</th>
-                    <th className="px-4 py-3 font-semibold">List #</th>
-                    <th className="px-4 py-3 font-semibold">Applicants</th>
-                    <th className="px-4 py-3 font-semibold">Dates</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                  <tr>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Program</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Quota</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">List #</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Applicants</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Dates</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Status</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lists.map((m) => (
                     <tr key={m.id} className="border-b border-border/60 hover:bg-muted/30">
-                      <td className="px-4 py-3 font-semibold text-foreground">{m.program}</td>
-                      <td className="px-4 py-3">{QUOTA_LABEL[m.quota.toLowerCase().replace(/ /g, "_")] ?? m.quota}</td>
-                      <td className="px-4 py-3">{m.list_no}</td>
-                      <td className="px-4 py-3 font-semibold">{m.no_of_applicants}</td>
-                      <td className="px-4 py-3 text-[12px] text-muted-foreground whitespace-nowrap">
-                        {m.admission_start_date ?? "—"} → {m.admission_last_date ?? "—"}
+                      <td className="text-center align-middle px-4 py-3 font-semibold text-foreground">{m.program}</td>
+                      <td className="text-center align-middle px-4 py-3">{QUOTA_LABEL[m.quota.toLowerCase().replace(/ /g, "_")] ?? m.quota}</td>
+                      <td className="text-center align-middle px-4 py-3">{m.list_no}</td>
+                      <td className="text-center align-middle px-4 py-3 font-semibold">{m.no_of_applicants}</td>
+                      <td className="text-center align-middle px-4 py-3 text-[12px] text-muted-foreground whitespace-nowrap">
+                        {m.admission_start_date ?? "N/A"} → {m.admission_last_date ?? "N/A"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="text-center align-middle px-4 py-3">
                         <Badge variant="secondary" className={
                           m.is_published
                             ? "bg-green-500/15 text-green-700 dark:text-green-400"
@@ -245,23 +245,22 @@ export default function AdminMeritLists() {
                           {m.is_published ? `Published ${m.published_at ?? ""}` : "Draft"}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        {m.is_published && (
-                          <Button size="sm" variant="outline" className="h-8 text-xs"
-                            onClick={() => setViewId(m.id)}>
-                            <Eye className="w-3.5 h-3.5" /> View
-                          </Button>
-                        )}{" "}
-                        <Button size="sm" variant="outline" className="h-8 text-xs"
+                      <td className="text-center align-middle px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-center gap-1.5">
+                        <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
+                          onClick={() => setViewId(m.id)}>
+                          <Eye className="w-3 h-3" /> View
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
                           disabled={publish.isPending}
                           onClick={() => publish.mutate({ id: m.id, published: !m.is_published })}>
                           {publish.isPending
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             : m.is_published ? <GlobeLock className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
                           {m.is_published ? "Unpublish" : "Publish"}
-                        </Button>{" "}
+                        </Button>
                         {!m.is_published && (
-                          <Button size="sm" variant="outline" className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-500/5"
+                          <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px] text-red-600 border-red-200 hover:bg-red-500/5"
                             disabled={remove.isPending}
                             onClick={() => {
                               if (window.confirm(`Delete the draft merit list for ${m.program} (${m.quota})?`)) {
@@ -271,6 +270,7 @@ export default function AdminMeritLists() {
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                           </Button>
                         )}
+                      </div>
                       </td>
                     </tr>
                   ))}
@@ -328,7 +328,7 @@ export default function AdminMeritLists() {
             <div className="rounded-xl border border-border bg-muted/40 p-3 text-[12px] text-muted-foreground">
               Only applications with <span className="font-semibold text-foreground">Paid</span> processing fee are
               included. Entries are ordered by net marks (SSC obtained + 20 if Hafiz e Quran).
-              The list is created as a <span className="font-semibold text-foreground">Draft</span> — publish it
+              The list is created as a <span className="font-semibold text-foreground">Draft</span>, publish it
               when ready to show it publicly.
             </div>
             <Button className="w-full h-11 font-semibold" disabled={generate.isPending || !gProgram}
@@ -351,21 +351,21 @@ export default function AdminMeritLists() {
           ) : viewQ.data?.ok ? (
             <div className="space-y-2">
             <p className="text-[11px] text-muted-foreground">
-              Remarks are editable (e.g. “2 Session(s) Missed”) — they appear on the public merit list.
+              Remarks are editable (e.g. “2 Session(s) Missed”), they appear on the public merit list.
             </p>
             <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-[12.5px]">
                 <thead className="bg-muted/60">
-                  <tr className="text-left">
-                    <th className="px-2.5 py-2.5 font-semibold">#</th>
-                    <th className="px-2.5 py-2.5 font-semibold">Tracking ID</th>
-                    <th className="px-2.5 py-2.5 font-semibold">Name</th>
-                    <th className="px-2.5 py-2.5 font-semibold">Father</th>
-                    <th className="px-2.5 py-2.5 font-semibold">Total</th>
-                    <th className="px-2.5 py-2.5 font-semibold">Obtained</th>
-                    <th className="px-2.5 py-2.5 font-semibold">Net</th>
-                    <th className="px-2.5 py-2.5 font-semibold">%</th>
-                    <th className="px-2.5 py-2.5 font-semibold">Remarks</th>
+                  <tr>
+                    <th className="text-center align-middle px-2.5 py-2.5 font-semibold">#</th>
+                    <th className="text-center align-middle px-2.5 py-2.5 font-semibold">Tracking ID</th>
+                    <th className="text-center align-middle px-2.5 py-2.5 font-semibold">Name</th>
+                    <th className="text-center align-middle px-2.5 py-2.5 font-semibold">Father</th>
+                    <th className="text-center align-middle px-2.5 py-2.5 font-semibold">Total</th>
+                    <th className="text-center align-middle px-2.5 py-2.5 font-semibold">Obtained</th>
+                    <th className="text-center align-middle px-2.5 py-2.5 font-semibold">Net</th>
+                    <th className="text-center align-middle px-2.5 py-2.5 font-semibold">%</th>
+                    <th className="text-center align-middle px-2.5 py-2.5 font-semibold">Remarks</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -375,20 +375,20 @@ export default function AdminMeritLists() {
                     const dirty = draft !== undefined && draft !== (e.remarks ?? "");
                     return (
                     <tr key={e.tracking_id} className="border-t border-border">
-                      <td className="px-2.5 py-2.5">{e.position}</td>
-                      <td className="px-2.5 py-2.5 font-mono font-semibold">{e.tracking_id}</td>
-                      <td className="px-2.5 py-2.5 font-semibold text-foreground">{e.name}</td>
-                      <td className="px-2.5 py-2.5">{e.father_name}</td>
-                      <td className="px-2.5 py-2.5">{e.total_marks}</td>
-                      <td className="px-2.5 py-2.5">{e.obtained_marks}</td>
-                      <td className="px-2.5 py-2.5 font-semibold">{e.net_marks}</td>
-                      <td className="px-2.5 py-2.5 font-semibold text-primary">{e.percentage}%</td>
-                      <td className="px-2.5 py-2.5">
+                      <td className="text-center align-middle px-2.5 py-2.5">{e.position}</td>
+                      <td className="text-center align-middle px-2.5 py-2.5 font-mono font-semibold">{e.tracking_id}</td>
+                      <td className="text-center align-middle px-2.5 py-2.5 font-semibold text-foreground">{e.name}</td>
+                      <td className="text-center align-middle px-2.5 py-2.5">{e.father_name}</td>
+                      <td className="text-center align-middle px-2.5 py-2.5">{e.total_marks}</td>
+                      <td className="text-center align-middle px-2.5 py-2.5">{e.obtained_marks}</td>
+                      <td className="text-center align-middle px-2.5 py-2.5 font-semibold">{e.net_marks}</td>
+                      <td className="text-center align-middle px-2.5 py-2.5 font-semibold text-primary">{e.percentage}%</td>
+                      <td className="text-center align-middle px-2.5 py-2.5">
                         <div className="flex items-center gap-1.5">
                           <input
                             value={draft ?? e.remarks ?? ""}
                             onChange={(ev) => setRemarkDraft((r) => ({ ...r, [key]: ev.target.value }))}
-                            placeholder="—"
+                            placeholder="N/A"
                             className="h-8 w-28 rounded-lg border border-input bg-background px-2 text-[12px]"
                             aria-label={`Remarks for ${e.name}`}
                           />

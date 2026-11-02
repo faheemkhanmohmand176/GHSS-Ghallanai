@@ -97,7 +97,7 @@ export default function AdminAdmissionPrograms() {
         <Info className="w-5 h-5 shrink-0 text-azure-strong dark:text-azure mt-0.5" />
         <p>
           GHSS Ghallanai offers <strong className="text-foreground">Intermediate (1st / 2nd Year)</strong> admission in
-          exactly four faculties — Pre-Medical, Pre-Engineering, ICS (Computer Sciences) and Arts/Humanities.
+          exactly four faculties, Pre-Medical, Pre-Engineering, ICS (Computer Sciences) and Arts/Humanities.
           The faculty list is fixed (no BS / ADP / D.Com / DIT); here you only control the
           <strong className="text-foreground"> sanctioned seats</strong> and whether a faculty is currently
           <strong className="text-foreground"> open for admission</strong>.
@@ -112,12 +112,12 @@ export default function AdminAdmissionPrograms() {
             <div className="overflow-x-auto">
               <table className="w-full text-[13px] min-w-[760px]">
                 <thead className="bg-muted/60 border-b border-border">
-                  <tr className="text-left">
-                    <th className="px-4 py-3 font-semibold">Faculty (Program)</th>
-                    <th className="px-4 py-3 font-semibold">Level</th>
-                    <th className="px-4 py-3 font-semibold">Subject Group(s)</th>
-                    <th className="px-4 py-3 font-semibold">Seats</th>
-                    <th className="px-4 py-3 font-semibold text-right">Open for Admission</th>
+                  <tr>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Faculty (Program)</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Level</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Subject Group(s)</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Seats</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Open for Admission</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -126,8 +126,8 @@ export default function AdminAdmissionPrograms() {
                     const dirty = seats !== p.seats;
                     return (
                       <tr key={p.id} className="border-b border-border/60 hover:bg-muted/30">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2.5">
+                        <td className="text-center align-middle px-4 py-3">
+                          <div className="flex items-center justify-center gap-2.5">
                             <Landmark className="w-4 h-4 text-primary shrink-0" />
                             <span className="font-semibold text-foreground">{p.name}</span>
                             {p.is_active === false && (
@@ -135,14 +135,14 @@ export default function AdminAdmissionPrograms() {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{p.study_level}</td>
-                        <td className="px-4 py-3 text-[12px] text-muted-foreground max-w-[280px]">
-                          {(p.subject_groups ?? []).map((g) => (
-                            <span key={g.id} className="block truncate" title={g.name}>{g.name}</span>
-                          )) || "—"}
+                        <td className="text-center align-middle px-4 py-3 text-muted-foreground">{p.study_level}</td>
+                        <td className="text-center align-middle px-4 py-3 text-[12px] text-muted-foreground min-w-[200px]">
+                          {(p.subject_groups ?? []).length === 0 ? "N/A" : (p.subject_groups ?? []).map((g) => (
+                            <span key={g.id} className="block" title={g.name}>{g.name}</span>
+                          ))}
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
+                        <td className="text-center align-middle px-4 py-3">
+                          <div className="flex items-center justify-center gap-2">
                             <Input
                               type="number" min={0} max={10000}
                               value={seats}
@@ -160,8 +160,8 @@ export default function AdminAdmissionPrograms() {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="inline-flex items-center gap-2.5">
+                        <td className="text-center align-middle px-4 py-3">
+                          <div className="inline-flex items-center justify-center gap-2.5">
                             <Badge variant="secondary" className={p.allowed_gender === "both" ? "bg-muted" : "capitalize"}>
                               {p.allowed_gender === "both" ? "Boys & Girls" : p.allowed_gender}
                             </Badge>

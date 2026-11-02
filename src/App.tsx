@@ -87,7 +87,6 @@ const About            = lazyWithRetry(() => import("./pages/About"));
 const Teachers         = lazyWithRetry(() => import("./pages/Teachers"));
 const Notices          = lazyWithRetry(() => import("./pages/Notices"));
 const Results          = lazyWithRetry(() => import("./pages/Results"));
-const Gallery          = lazyWithRetry(() => import("./pages/Gallery"));
 const Library          = lazyWithRetry(() => import("./pages/Library"));
 const SignIn           = lazyWithRetry(() => import("./pages/auth/SignIn"));
 const ForgotPassword   = lazyWithRetry(() => import("./pages/auth/ForgotPassword"));
@@ -97,6 +96,7 @@ const AdminDashboard   = lazyWithRetry(() => import("./pages/admin/AdminDashboar
 const RollNoSlip       = lazyWithRetry(() => import("./pages/ExamRollNumbers"));
 const NotFound         = lazyWithRetry(() => import("./pages/NotFound"));
 const Admission        = lazyWithRetry(() => import("./pages/Admission"));
+import AdmissionGate from "@/components/shared/AdmissionGate";
 // Inter admission portal (HED-mirror applicant flow)
 const AdmissionAuth    = lazyWithRetry(() => import("./pages/admission/AdmissionAuth"));
 const AdmissionPortal  = lazyWithRetry(() => import("./pages/admission/AdmissionPortal"));
@@ -246,7 +246,6 @@ const App = () => (
                 <Route path="/search"               element={<Search />} />
                 <Route path="/results"              element={<Results />} />
                 <Route path="/merit-list"           element={<MeritList />} />
-                <Route path="/gallery"              element={<Gallery />} />
                 <Route path="/library"              element={<Library />} />
                 <Route path="/auth/signin"          element={<SignIn />} />
                 <Route path="/auth/forgot-password" element={<ForgotPassword />} />
@@ -262,13 +261,13 @@ const App = () => (
                 />
                 <Route path="/roll-no-slip"            element={<RollNoSlip />} />
                 <Route path="/admission"               element={<Admission />} />
-                <Route path="/admission/register"        element={<AdmissionAuth />} />
-                <Route path="/admission/login"           element={<AdmissionAuth key="login" />} />
-                <Route path="/admission/portal"          element={<AdmissionPortal />} />
-                <Route path="/admission/profile"         element={<PersonalProfileForm />} />
-                <Route path="/admission/ssc"             element={<SscProfileForm />} />
-                <Route path="/admission/apply"           element={<ApplyFlow />} />
-                <Route path="/admission/application/:id" element={<ApplicationView />} />
+                <Route path="/admission/register"        element={<AdmissionGate><AdmissionAuth /></AdmissionGate>} />
+                <Route path="/admission/login"           element={<AdmissionGate><AdmissionAuth key="login" /></AdmissionGate>} />
+                <Route path="/admission/portal"          element={<AdmissionGate><AdmissionPortal /></AdmissionGate>} />
+                <Route path="/admission/profile"         element={<AdmissionGate><PersonalProfileForm /></AdmissionGate>} />
+                <Route path="/admission/ssc"             element={<AdmissionGate><SscProfileForm /></AdmissionGate>} />
+                <Route path="/admission/apply"           element={<AdmissionGate><ApplyFlow /></AdmissionGate>} />
+                <Route path="/admission/application/:id" element={<AdmissionGate><ApplicationView /></AdmissionGate>} />
                 <Route path="/faq"                    element={<FAQ />} />
                 <Route path="*"                        element={<NotFound />} />
               </Routes>

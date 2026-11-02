@@ -163,12 +163,32 @@ function writeCache(s: SchoolSettings) {
   }
 }
 
+export const SETTINGS_COLUMNS =
+  "id, school_name, tagline, description, about_text, logo_url, banner_url, address, phone, email, established_year, total_students, total_teachers, pass_percentage, board_results, location_lat, location_lng, principal_name, principal_message, principal_photo_url";
+
+/** Called by the admin right after a REAL, confirmed save. Puts the row the
+ *  database just returned straight into the on-device cache and the React
+ *  Query cache, so the site (and the admin form itself) never shows an older
+ *  copy — whatever the CDN or a previous visit may still be holding. */
+export function applySavedSettings(
+  queryClient: { setQueryData: (key: unknown[], data: unknown) => void },
+  row: SchoolSettings
+) {
+  try {
+    window.localStorage.setItem(CACHE_KEY, JSON.stringify(row));
+  } catch { /* ignore quota */ }
+  queryClient.setQueryData(["school-settings"], {
+    ...row,
+    logo_url: safeMediaUrl(row.logo_url),
+    banner_url: safeMediaUrl(row.banner_url),
+    principal_photo_url: safeMediaUrl(row.principal_photo_url),
+  });
+}
+
 async function fetchSettings(client: typeof supabase) {
   const { data, error } = await client
     .from("school_settings")
-    .select(
-      "id, school_name, tagline, description, about_text, logo_url, banner_url, address, phone, email, established_year, total_students, total_teachers, pass_percentage, board_results, location_lat, location_lng, principal_name, principal_message, principal_photo_url"
-    )
+    .select(SETTINGS_COLUMNS)
     .eq("id", 1)
     .single();
 
@@ -225,15 +245,25 @@ export function useSchoolSettings() {
   return useQuery<SchoolSettings>({
     queryKey: ["school-settings"],
     queryFn: async () => {
-      // Attempt 1 (Phase 5): CDN-cached copy — one DB read per 5 min for all
-      // visitors. Falls back to the previous public-client fetch inside.
+      // Attempt 1: read the row straight from the database. It is a single
+      // tiny primary-key row, and reading it live is what guarantees that
+      // what the admin saved is what every visitor sees. (The CDN copy below
+      // can be up to ~15 minutes old, which made saved values look "erased"
+      // after a refresh.)
+      try {
+        return await fetchSettings(supabasePublic);
+      } catch (directErr) {
+        if (import.meta.env.DEV) console.warn("[useSchoolSettings] Direct public read failed:", directErr);
+      }
+
+      // Attempt 2: CDN-cached copy — only used if the direct read failed.
       try {
         return await fetchSettingsCached();
       } catch (publicErr) {
         if (import.meta.env.DEV) console.warn("[useSchoolSettings] Cached/public client failed:", publicErr);
       }
 
-      // Attempt 2: authenticated client
+      // Attempt 3: authenticated client
       try {
         const fresh = await fetchSettings(supabase);
         return fresh;
@@ -251,7 +281,12 @@ export function useSchoolSettings() {
     // very first paint — even before Supabase responds. This is what
     // makes sign-in / sign-out smooth on mobile Chrome.
     initialData: () => readCache() ?? undefined,
-    staleTime: 10 * 60 * 1000,
+    // The cached copy is only for the first paint. Without this, React Query
+    // treats it as "fresh" for the whole staleTime and NEVER asks the database
+    // after a reload — so saved changes did not show up until the cache
+    // happened to be cleared. 0 = stale → refetch immediately in background.
+    initialDataUpdatedAt: 0,
+    staleTime: 60 * 1000,
     gcTime: 60 * 60 * 1000,
     retry: 2,
     refetchOnWindowFocus: false,
@@ -260,4 +295,3 @@ export function useSchoolSettings() {
     placeholderData: (previousData) => previousData ?? readCache() ?? fallbackSettings,
   });
 }
-

@@ -454,60 +454,6 @@ async function fetchRollSlipSessions(limit = 10) {
   });
 }
 
-// ── Gallery (public albums + photos — shown on the public /gallery page) ────
-// Previously /gallery had NO fetcher at all: every AI crawler only ever read
-// a generic two-paragraph description while real albums and photos existed.
-async function fetchGallery(limit = 10) {
-  const albums = await safeQuery("gallery_albums", (sb) =>
-    sb
-      .from("gallery_albums")
-      .select("id, title, description, cover_url, created_at")
-      .order("created_at", { ascending: false })
-      .limit(limit)
-  );
-  if (!albums.length) return { albums: [], photos: [] };
-
-  // Photo counts + recent captions per album (one lightweight query).
-  const photos = await safeQuery("gallery_photos", (sb) =>
-    sb
-      .from("gallery_photos")
-      .select("id, album_id, photo_url, caption, media_type, created_at")
-      .order("created_at", { ascending: false })
-      .limit(120)
-  );
-  const byAlbum = new Map();
-  for (const p of photos) {
-    if (!byAlbum.has(p.album_id)) byAlbum.set(p.album_id, []);
-    byAlbum.get(p.album_id).push(p);
-  }
-  return {
-    albums: albums.map((a) => {
-      const list = byAlbum.get(a.id) || [];
-      return {
-        id: a.id,
-        title: a.title,
-        description: a.description || null,
-        cover_url: a.cover_url || null,
-        photo_count: list.length,
-        video_count: list.filter((p) => p.media_type === "video").length,
-        // First few captions give AI tools real context about the photos.
-        sample_captions: list
-          .slice(0, 5)
-          .map((p) => p.caption)
-          .filter(Boolean),
-        added_at: a.created_at,
-        url: `${SITE_URL}/gallery`,
-      };
-    }),
-    photos: photos.slice(0, 30).map((p) => ({
-      album_id: p.album_id,
-      url: p.photo_url,
-      caption: p.caption || null,
-      type: p.media_type || "image",
-    })),
-  };
-}
-
 async function fetchExamInfo() {
   // Which exams exist (names + years only — NO student rows, NO marks).
   // The results table is PII-sensitive; this metadata alone is safe and is
@@ -567,7 +513,6 @@ const SECTION_FETCHERS = {
   meritLists: () => fetchMeritLists(10),
   rollSlips: () => fetchRollSlipSessions(10),
   exams: fetchExamInfo,
-  gallery: () => fetchGallery(10),
 };
 
 // Which sections each public route needs. PER-ROUTE FETCHING (2026-08):
@@ -583,7 +528,6 @@ const ROUTE_SECTIONS = {
   "/merit-list":      ["school", "exams", "meritLists"],
   "/roll-no-slip":    ["school", "exams", "rollSlips"],
   "/teachers":        ["school", "teachers"],
-  "/gallery":         ["school", "gallery"],
   "/library":         ["school", "library"],
   "/faq":             ["school"],
   "/about":           ["school"],
@@ -645,7 +589,6 @@ async function getLiveSiteData(sections) {
   data.meritLists = data.meritLists || [];
   data.rollSlips = data.rollSlips || [];
   data.exams = data.exams || { published_exams: [], grading: {} };
-  data.gallery = data.gallery || { albums: [], photos: [] };
   data.faq = { categories: FAQ_CATEGORIES, items: FAQ_ITEMS };
   return data;
 }
@@ -704,7 +647,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // Static routes this renderer accepts (mirrors prerender STATIC_ROUTES).
 const STATIC_ROUTES = new Set([
   "/", "/about", "/contact", "/admission", "/notices", "/results",
-  "/merit-list", "/roll-no-slip", "/teachers", "/gallery", "/library",
+  "/merit-list", "/roll-no-slip", "/teachers", "/library",
   "/faq",
 ]);
 
@@ -797,7 +740,7 @@ function admissionFilesHtml(admissionFiles) {
 /** Route-specific LIVE sections appended after the static blocks. */
 function liveSections(route, data) {
   const parts = [];
-  const { admission, admissionFiles, notices, exams, teachers, library, meritLists, rollSlips, gallery, school } = data;
+  const { admission, admissionFiles, notices, exams, teachers, library, meritLists, rollSlips, school } = data;
 
   switch (true) {
     case route === "/": {
@@ -985,30 +928,6 @@ function liveSections(route, data) {
       }
       break;
     }
-    case route === "/gallery": {
-      if (gallery.albums.length) {
-        parts.push("<h2>Photo albums (live)</h2>");
-        parts.push(
-          gallery.albums
-            .map((a) => {
-              const captions = (a.sample_captions || []).length
-                ? `<p class="meta">Photos include: ${esc(a.sample_captions.join("; "))}</p>`
-                : "";
-              return `<article>
-<h3>${esc(a.title)}</h3>
-${a.cover_url ? `<p><img src="${esc(a.cover_url)}" alt="${esc(a.title)} — photo album of Government Higher Secondary School Ghallanai" style="max-width:320px;border-radius:8px" /></p>` : ""}
-${a.description ? `<p>${esc(a.description)}</p>` : ""}
-<p class="meta">${a.photo_count} photo${a.photo_count === 1 ? "" : "s"}${a.video_count ? ` · ${a.video_count} video${a.video_count === 1 ? "" : "s"}` : ""}${a.added_at ? ` · added ${esc(prettyDate(a.added_at))}` : ""}</p>
-${captions}
-</article>`;
-            })
-            .join("")
-        );
-      } else {
-        parts.push(`<p class="meta">No photo albums have been published yet. Albums added by the school administration (sports days, science fairs, study tours, national days) will appear here.</p>`);
-      }
-      break;
-    }
     case route === "/faq": {
       // Grouped Q&A — the full FAQ with every answer inline.
       const byCat = new Map();
@@ -1118,12 +1037,11 @@ function jsonLdFor(route, data, detail, pageName) {
   //    route to its section + page name; detail routes use the item's title.
   //    Drives BreadcrumbList schema for /about, /contact, /notices,
   //    /results, /merit-list, /roll-no-slip, /teachers, /library,
-  //    /gallery, /faq, /admission, /notices/<id>.
+  //    /faq, /admission, /notices/<id>.
   const BREADCRUMB_MAP = {
     "/about":        ["Our School",      "About"],
     "/contact":      ["Our School",      "Contact"],
     "/faq":          ["Our School",      "FAQ"],
-    "/gallery":      ["Our School",      "Gallery"],
     "/notices":      ["Notices",         "Notices"],
     "/results":      ["Results",         "Exam Results"],
     "/merit-list":   ["Results",         "Merit List"],
@@ -1160,19 +1078,6 @@ function jsonLdFor(route, data, detail, pageName) {
   }
 
   if (route === "/faq") graph.push(buildFaqJsonLd());
-
-  if (route === "/gallery" && data.gallery?.albums?.length) {
-    graph.push({
-      "@type": "ImageGallery",
-      name: "Photo gallery — GHSS Ghallanai",
-      associatedMedia: data.gallery.albums.slice(0, 10).map((a) => ({
-        "@type": "ImageObject",
-        name: a.title,
-        contentUrl: a.cover_url || undefined,
-        description: a.description || a.title,
-      })),
-    });
-  }
 
   if (route === "/notices" && data.notices.length) {
     graph.push({
@@ -1211,7 +1116,6 @@ const PAGES_GUIDE = [
   { path: "/notices", purpose: "Official notices — exams, holidays, fee deadlines, parent-teacher meetings" },
   { path: "/teachers", purpose: "Teaching staff directory" },
   { path: "/library", purpose: "Downloadable books and past papers (each item links to its file)" },
-  { path: "/gallery", purpose: "Photo albums of school events — sports day, science fair, study tours, national days" },
   { path: "/contact", purpose: "Contact details, map, WhatsApp and contact form" },
   { path: "/about", purpose: "School history, mission and vision" },
   { path: "/faq", purpose: "Frequently asked questions — admissions, results, contact, website usage" },
@@ -1262,7 +1166,7 @@ async function aiDataHandler(req, res) {
     meta: {
       name: "GHSS Ghallanai — AI data feed",
       description:
-        "Live, machine-readable snapshot of Government Higher Secondary School Ghallanai (District Mohmand, KPK, Pakistan): school profile with real statistics, admission status and procedure, results info, published merit lists, roll-number-slip sessions, latest notices, teachers, library files, photo gallery albums, and the full FAQ. Generated on request from the school's own database — safe to quote.",
+        "Live, machine-readable snapshot of Government Higher Secondary School Ghallanai (District Mohmand, KPK, Pakistan): school profile with real statistics, admission status and procedure, results info, published merit lists, roll-number-slip sessions, latest notices, teachers, library files, and the full FAQ. Generated on request from the school's own database — safe to quote.",
       generated_at: new Date().toISOString(),
       generated_at_display: `${nowInSchoolTz()} (PKT)`,
       timezone: "Asia/Karachi",
@@ -1321,13 +1225,6 @@ async function aiDataHandler(req, res) {
       page_url: "https://ghssghallanai.dpdns.org/roll-no-slip",
       note: "Roll number slips are private per student: the student picks their class and types their full name to view/download their own slip (PDF with QR code, exam date sheet and exam-day instructions). Only session metadata is included here — never student rows or roll numbers.",
       sessions: data.rollSlips,
-    },
-
-    // ── Photo gallery (live albums + recent photos) ────────────────────────
-    gallery: {
-      page_url: "https://ghssghallanai.dpdns.org/gallery",
-      albums: data.gallery.albums,
-      recent_photos: data.gallery.photos,
     },
 
     // ── FAQ (complete, categorised) ─────────────────────────────────────────

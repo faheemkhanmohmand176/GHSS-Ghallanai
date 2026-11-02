@@ -1,6 +1,6 @@
 // src/components/ReportCard/generateCombinedPDF.ts
 // Combined two-class BISE Peshawar report — A4 portrait, 2 pages, green & gold.
-// (1st Year + 2nd Year for college results.)
+// (9th + 10th for school results, 1st Year + 2nd Year for college results.)
 //
 // Page 1 — Overview & position holders
 //   header band · 5 combined KPI tiles · two class cards (stats + top-3 holders)
@@ -125,7 +125,9 @@ export async function generateCombinedReportPDF(opts: CombinedPDFOpts): Promise<
   if (!A || !B) throw new Error(`Both ${keyA} and ${keyB} data are required for combined report.`);
 
   const school = opts.schoolName || "GHSS Ghallanai, District Mohmand";
-  const pairTitle = isCollegeClass(keyA) ? `${keyA} & ${keyB}` : `${keyA} & ${keyB}`;
+  const pairTitle = isCollegeClass(keyA)
+    ? `${keyA} & ${keyB}`
+    : `${classDisplayName(keyA)} & ${classDisplayName(keyB)}`;
   const examLine = `${pairTitle}  ·  ${opts.examType}  ·  ${opts.year}`;
   const cx = A4_W / 2;
   const lastY = () => (doc as any).lastAutoTable.finalY as number;

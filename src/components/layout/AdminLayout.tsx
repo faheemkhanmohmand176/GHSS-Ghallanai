@@ -54,12 +54,6 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    heading: "CONTENT",
-    items: [
-      { id: "videos",   label: "Gallery",          short: "Gallery" },
-    ],
-  },
-  {
     heading: "ADMIN ACCESS",
     items: [
       { id: "users",  label: "Manage Users", short: "Users" },

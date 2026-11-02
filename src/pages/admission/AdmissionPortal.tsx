@@ -3,13 +3,14 @@
  * "All Applications" table with the exact HED columns:
  *   # | Tracking ID | Program | Quota | Hafiz e Quran | Fee Submission Deadline | Action
  * plus the sidebar menu (New Admission Request, Personal Information,
- * Matric Profile, Alerts, Logout) and profile-completion prompts.
+ * Matric Profile, Logout) and profile-completion prompts.
  */
 
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
-  LayoutDashboard, ClipboardList, UserRound, BookOpen, BellRing,
-  LogOut, Plus, Loader2, Search, AlertCircle, BadgeCheck, Wallet,
+  LayoutDashboard, ClipboardList, UserRound, BookOpen,
+  LogOut, Plus, Search, AlertCircle, BadgeCheck, Wallet,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -18,34 +19,37 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import { formatCnic, QUOTA_LABEL, formatDeadline } from "@/lib/interAdmission";
-import { useQuery } from "@tanstack/react-query";
-import { interApi } from "@/lib/interAdmission";
-
-const MENU = [
-  { to: "/admission/portal",    icon: Plus,           label: "New Admission Request" },
-  { to: "/admission/portal",    icon: LayoutDashboard, label: "All Applications", dashboard: true },
-  { to: "/admission/profile",   icon: UserRound,      label: "Personal Information" },
-  { to: "/admission/ssc",       icon: BookOpen,       label: "Matric Profile" },
-];
+import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 
 export default function AdmissionPortal() {
   const { session, loading, logout } = useInterSession();
-  const [params] = useSearchParams();
-  const isWelcome = params.get("welcome") === "1";
+  const navigate = useNavigate();
 
   const personalDone = Boolean(session?.personal);
   const sscDone = Boolean(session?.ssc);
+  const profilesDone = personalDone && sscDone;
   const apps = session?.applications ?? [];
 
-  const { data: alerts } = useQuery({
-    queryKey: ["inter-portal-alerts"],
-    queryFn: async () => [] as Array<Record<string, string>>,
-    enabled: false, // Alerts page placeholder (HED: "No alerts found....")
-  });
+  const itemCls = "w-full flex items-center gap-2.5 rounded-lg px-3 h-10 text-[13px] font-semibold text-muted-foreground hover:bg-primary/5 hover:text-primary transition-colors text-left";
+
+  function goNewApplication() {
+    if (!profilesDone) {
+      toast.error("Please complete your profiles before applying.");
+      document.getElementById("complete-profile")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    navigate("/admission/apply");
+  }
+
+  function goAllApplications() {
+    document.getElementById("all-applications")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
 
   return (
     <PageLayout>
-      <div className="container mx-auto px-4 py-10 sm:py-12 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 sm:py-12 max-w-6xl">
+        <AdmissionBackBar to="/admission" />
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-7">
           <div>
@@ -61,32 +65,57 @@ export default function AdmissionPortal() {
           </Button>
         </div>
 
+        {/* Profile completion — shown first, only while something is missing */}
+        {!profilesDone && (
+          <Card id="complete-profile" className="border-azure/30 bg-azure-soft/50 dark:bg-azure-soft/15 mb-6">
+            <CardContent className="p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-azure-strong dark:text-azure shrink-0 mt-0.5" />
+                <div className="text-sm space-y-2 w-full min-w-0">
+                  <p className="font-bold text-foreground">Complete your profile before applying</p>
+                  <div className="flex flex-wrap gap-2">
+                    {!personalDone && (
+                      <Link to="/admission/profile">
+                        <Button size="sm" className="h-9 font-semibold">
+                          <UserRound className="w-4 h-4" /> Personal Information
+                        </Button>
+                      </Link>
+                    )}
+                    {!sscDone && (
+                      <Link to="/admission/ssc">
+                        <Button size="sm" className="h-9 font-semibold">
+                          <BookOpen className="w-4 h-4" /> Matric (SSC) Profile
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid lg:grid-cols-[240px_1fr] gap-6">
-          {/* Sidebar — HED admission menu */}
+          {/* Sidebar — admission menu */}
           <aside className="lg:sticky lg:top-24 self-start">
             <Card className="border-border/80">
               <CardContent className="p-4">
                 <h3 className="font-heading font-bold text-sm text-foreground mb-3 px-1">Admission Menu</h3>
                 <nav className="space-y-1">
-                  {MENU.map((m) => (
-                    <Link
-                      key={m.label}
-                      to={m.dashboard ? "/admission/portal" : m.to}
-                      className="flex items-center gap-2.5 rounded-lg px-3 h-10 text-[13px] font-semibold text-muted-foreground hover:bg-primary/5 hover:text-primary transition-colors"
-                    >
-                      <m.icon className="w-4 h-4" /> {m.label}
-                    </Link>
-                  ))}
-                  <div className="flex items-center gap-2.5 rounded-lg px-3 h-10 text-[13px] font-semibold text-muted-foreground/60">
-                    <BellRing className="w-4 h-4" /> Alerts
-                    <Badge variant="secondary" className="ml-auto text-[10px]">0</Badge>
-                  </div>
-                  <button
-                    onClick={logout}
-                    className="w-full flex items-center gap-2.5 rounded-lg px-3 h-10 text-[13px] font-semibold text-muted-foreground hover:bg-red-500/5 hover:text-red-600 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" /> Logout
+                  <button type="button" onClick={goNewApplication} className={itemCls}>
+                    <Plus className="w-4 h-4" /> New Admission Request
                   </button>
+                  <button type="button" onClick={goAllApplications} className={itemCls}>
+                    <LayoutDashboard className="w-4 h-4" /> All Applications
+                  </button>
+                  <Link to="/admission/profile" className={itemCls}>
+                    <UserRound className="w-4 h-4" /> Personal Information
+                    {personalDone && <BadgeCheck className="w-4 h-4 text-green-600 ml-auto" />}
+                  </Link>
+                  <Link to="/admission/ssc" className={itemCls}>
+                    <BookOpen className="w-4 h-4" /> Matric Profile
+                    {sscDone && <BadgeCheck className="w-4 h-4 text-green-600 ml-auto" />}
+                  </Link>
                 </nav>
               </CardContent>
             </Card>
@@ -94,47 +123,11 @@ export default function AdmissionPortal() {
 
           {/* Main */}
           <div className="space-y-5 min-w-0">
-            {/* Welcome / profile completion prompts */}
-            {(isWelcome || !personalDone || !sscDone) && (
-              <Card className="border-azure/30 bg-azure-soft/50 dark:bg-azure-soft/15">
-                <CardContent className="p-4 sm:p-5">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-azure-strong dark:text-azure shrink-0 mt-0.5" />
-                    <div className="text-sm space-y-2 w-full">
-                      <p className="font-bold text-foreground">Complete your profile before applying</p>
-                      <p className="text-muted-foreground text-[13px]">
-                        To submit an admission application, please complete both profiles first:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <Link to="/admission/profile">
-                          <Button size="sm" variant={personalDone ? "outline" : "default"} className="h-9 font-semibold">
-                            {personalDone ? <BadgeCheck className="w-4 h-4 text-green-600" /> : <UserRound className="w-4 h-4" />}
-                            Personal Information {personalDone ? "Saved" : ""}
-                          </Button>
-                        </Link>
-                        <Link to="/admission/ssc">
-                          <Button size="sm" variant={sscDone ? "outline" : "default"} className="h-9 font-semibold">
-                            {sscDone ? <BadgeCheck className="w-4 h-4 text-green-600" /> : <BookOpen className="w-4 h-4" />}
-                            Matric (SSC) Profile {sscDone ? "Saved" : ""}
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* All Applications */}
-            <Card className="border-border/80 shadow-card">
+            <Card id="all-applications" className="border-border/80 shadow-card scroll-mt-24">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <h2 className="font-heading text-lg font-bold text-foreground">All Applications</h2>
-                  <Link to="/admission/apply">
-                    <Button size="sm" className="h-9 font-semibold" disabled={!personalDone || !sscDone}>
-                      <Plus className="w-4 h-4" /> New Admission Request
-                    </Button>
-                  </Link>
                 </div>
 
                 {loading ? (
@@ -145,21 +138,21 @@ export default function AdmissionPortal() {
                   <div className="text-center py-10">
                     <ClipboardList className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
                     <p className="text-sm text-muted-foreground">
-                      No applications yet. Click <span className="font-semibold text-foreground">New Admission Request</span> to apply.
+                      No applications yet.
                     </p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto -mx-4 sm:mx-0">
                     <table className="w-full text-[13px] min-w-[760px]">
                       <thead className="bg-muted/60">
-                        <tr className="text-left">
-                          <th className="px-3 py-2.5 font-semibold">#</th>
-                          <th className="px-3 py-2.5 font-semibold">Tracking ID</th>
-                          <th className="px-3 py-2.5 font-semibold">Program</th>
-                          <th className="px-3 py-2.5 font-semibold">Quota</th>
-                          <th className="px-3 py-2.5 font-semibold">Hafiz e Quran</th>
-                          <th className="px-3 py-2.5 font-semibold">Fee Submission Deadline</th>
-                          <th className="px-3 py-2.5 font-semibold">Action</th>
+                        <tr>
+                          <th className="px-3 py-2.5 text-center align-middle font-semibold">#</th>
+                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Tracking ID</th>
+                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Program</th>
+                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Quota</th>
+                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Hafiz e Quran</th>
+                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Fee Submission Deadline</th>
+                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -167,16 +160,16 @@ export default function AdmissionPortal() {
                           const unpaid = a.payment_status === "pending";
                           return (
                             <tr key={a.id} className="border-t border-border hover:bg-muted/30">
-                              <td className="px-3 py-3">{i + 1}</td>
-                              <td className="px-3 py-3">
+                              <td className="px-3 py-3 text-center align-middle">{i + 1}</td>
+                              <td className="px-3 py-3 text-center align-middle">
                                 <Link to={`/admission/application/${a.id}`} className="font-mono font-bold text-primary hover:underline">
                                   {a.tracking_id}
                                 </Link>
                               </td>
-                              <td className="px-3 py-3 font-semibold text-foreground">{a.program_name}</td>
-                              <td className="px-3 py-3">{QUOTA_LABEL[a.quota] ?? a.quota}</td>
-                              <td className="px-3 py-3">{a.hafiz_e_quran ? "Yes" : "No"}</td>
-                              <td className="px-3 py-3 whitespace-nowrap">
+                              <td className="px-3 py-3 text-center align-middle font-semibold text-foreground">{a.program_name}</td>
+                              <td className="px-3 py-3 text-center align-middle">{QUOTA_LABEL[a.quota] ?? a.quota}</td>
+                              <td className="px-3 py-3 text-center align-middle">{a.hafiz_e_quran ? "Yes" : "No"}</td>
+                              <td className="px-3 py-3 text-center align-middle whitespace-nowrap">
                                 {formatDeadline(a.fee_deadline_iso)}
                                 <Badge
                                   variant="secondary"
@@ -185,11 +178,11 @@ export default function AdmissionPortal() {
                                   {unpaid ? "Pending" : "Paid"}
                                 </Badge>
                               </td>
-                              <td className="px-3 py-3">
+                              <td className="px-3 py-3 text-center align-middle">
                                 {unpaid ? (
                                   <Link to={`/admission/application/${a.id}?pay=1`}>
                                     <Button size="sm" className="h-8 text-xs font-semibold">
-                                      <Wallet className="w-3.5 h-3.5" /> Pay Application Fee
+                                      <Wallet className="w-3.5 h-3.5" /> Pay Fee
                                     </Button>
                                   </Link>
                                 ) : (
@@ -210,15 +203,6 @@ export default function AdmissionPortal() {
               </CardContent>
             </Card>
 
-            {/* Alerts placeholder — HED shows "No alerts found...." */}
-            <Card className="border-border/80">
-              <CardContent className="p-4 sm:p-6">
-                <h2 className="font-heading text-lg font-bold text-foreground mb-3">Alerts</h2>
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  {(alerts?.length ?? 0) === 0 ? "No alerts found...." : null}
-                </p>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>

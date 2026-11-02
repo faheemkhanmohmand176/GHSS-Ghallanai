@@ -5,7 +5,7 @@ import {
   Menu, X, GraduationCap, LogIn, UserPlus, ArrowRight,
   LayoutDashboard, LogOut, Shield, Search, ChevronDown, ChevronRight,
   Home, Landmark, Mail, Megaphone,
-  Trophy, Medal, BookOpen, Library, Images, ClipboardList, HelpCircle,
+  Trophy, Medal, BookOpen, Library, ClipboardList, HelpCircle,
   Hash, Timer, Command as CommandIcon,
   Ticket, FileSignature, type LucideIcon,
 } from "lucide-react";
@@ -22,7 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
 import ThemeToggleButton from "@/components/shared/ThemeToggleButton";
 import HexagonLogoFrame from "@/components/shared/HexagonLogoFrame";
-import NewsTicker from "@/components/layout/NewsTicker";
+import InstallAppButton from "@/components/shared/InstallAppButton";
 import NavSearchDropdown from "@/components/layout/NavSearchDropdown";
 import { openCommandPalette } from "@/components/shared/CommandPalette";
 import { intentPrefetchHandlers } from "@/lib/routePrefetch";
@@ -87,7 +87,6 @@ const NAV_SECTIONS: NavSection[] = [
     tint: "bg-secondary text-primary dark:bg-primary/15 dark:text-primary-light",
     links: [
       { to: "/about",   label: "About",   icon: Landmark,   desc: "History, mission & facilities",      tint: "bg-secondary text-primary dark:bg-primary/15 dark:text-primary-light" },
-      { to: "/gallery", label: "Gallery", icon: Images,     desc: "Photos & videos of school life",     tint: "bg-secondary text-primary dark:bg-primary/15 dark:text-primary-light" },
       { to: "/contact", label: "Contact", icon: Mail,       desc: "Address, phone & location map",      tint: "bg-secondary text-primary dark:bg-primary/15 dark:text-primary-light" },
       { to: "/faq",     label: "FAQs",    icon: HelpCircle, desc: "Answers to common questions",        tint: "bg-secondary text-primary dark:bg-primary/15 dark:text-primary-light" },
     ],
@@ -790,6 +789,7 @@ const MobileMenu = memo(function MobileMenu({
                 />
               </li>
             ))}
+            <InstallAppButton />
 
             {/* ── Account ── */}
             {!authLoading && (
@@ -1279,6 +1279,7 @@ const Navbar = () => {
           {/* Live countdown on the Roll No. Slip link (desktop top bar) */}
           <RollSlipCountdown variant="chip" />
           <span className="hidden xl:block h-6 w-px bg-border" aria-hidden="true" />
+          <InstallAppButton compact />
           {!authLoading && (
             user ? (
               <>
@@ -1334,9 +1335,6 @@ const Navbar = () => {
           </button>
         </div>
       </div>
-
-      {/* Green headline ticker — right → left, directly under the school name */}
-      <NewsTicker />
 
       {/* subtle gold hairline glowing along the navbar's bottom edge — base
           wash stays static so the line is never fully invisible, and the

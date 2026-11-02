@@ -7,9 +7,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import {
-  UserPlus, LogIn, Loader2, ShieldCheck, Info, GraduationCap,
-} from "lucide-react";
+import { UserPlus, LogIn, Loader2 } from "lucide-react";
+import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +92,8 @@ export default function AdmissionAuth() {
 
   return (
     <PageLayout>
-      <div className="container mx-auto px-4 py-10 sm:py-14 max-w-xl">
+      <div className="container mx-auto px-4 py-8 sm:py-12 max-w-xl">
+        <AdmissionBackBar to="/admission" />
         <div className="text-center mb-7">
           <div className="w-12 h-12 rounded-full border border-gold/40 bg-gold/[0.07] flex items-center justify-center mx-auto mb-3">
             {mode === "register"
@@ -105,7 +105,7 @@ export default function AdmissionAuth() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5">
             {mode === "register"
-              ? "Step 1 of the online admission process for Intermediate (1st / 2nd Year)."
+              ? "Create your applicant account."
               : "Login with your CNIC/Form-B and password."}
           </p>
         </div>
@@ -165,8 +165,7 @@ export default function AdmissionAuth() {
                     className="h-11 mt-1.5 font-mono tracking-wide" required
                   />
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    You will not be able to change your mobile number later. It will be used for online
-                    payment of application fee and all SMS alerts regarding your admission.
+                    This number cannot be changed later.
                   </p>
                 </div>
 
@@ -204,9 +203,6 @@ export default function AdmissionAuth() {
                       placeholder="Result" className="h-11 w-28 font-bold text-center" required
                     />
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Solve this simple math problem and enter the result. E.g. for 1+3=4, enter 4.
-                  </p>
                 </div>
 
                 <Button type="submit" disabled={busy} className="w-full h-10 font-semibold text-[13px]">
@@ -264,21 +260,6 @@ export default function AdmissionAuth() {
           </CardContent>
         </Card>
 
-        <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-border bg-card p-4 text-[13px] text-muted-foreground">
-          {mode === "register"
-            ? <Info className="w-5 h-5 shrink-0 text-primary mt-0.5" />
-            : <ShieldCheck className="w-5 h-5 shrink-0 text-primary mt-0.5" />}
-          <p>
-            This is the first step of the online admission process. All applications are submitted online,
-            and no manual or postal form is accepted. Read all instructions carefully before entering data.
-            Responsibility for incorrect entries lies with the student.
-          </p>
-        </div>
-
-        <p className="text-center text-xs text-muted-foreground mt-5 flex items-center justify-center gap-1.5">
-          <GraduationCap className="w-3.5 h-3.5" />
-          Online Admissions · GHSS Ghallanai · Intermediate (1st / 2nd Year)
-        </p>
       </div>
     </PageLayout>
   );

@@ -328,21 +328,6 @@ const ROUTES: RouteSEO[] = [
     breadcrumbs: () => [baseBreadcrumb, { name: "Merit List", path: "/merit-list" }],
   },
   {
-    pattern: "/gallery",
-    title: "Photo Gallery — GHSS Ghallanai School Events & Activities",
-    description:
-      "Explore the photo and video gallery of Government Higher Secondary School Ghallanai — events, sports, academic activities and celebrations.",
-    keywords: "school gallery, photos, videos, school events, GHSS Ghallanai gallery",
-    breadcrumbs: () => [baseBreadcrumb, { name: "Gallery", path: "/gallery" }],
-    jsonLd: () => ({
-      "@context": "https://schema.org",
-      "@type": "ImageGallery",
-      name: "GHSS Ghallanai Photo Gallery",
-      url: `${SITE_URL}/gallery`,
-      creator: { "@id": `${SITE_URL}#organization` },
-    }),
-  },
-  {
     pattern: "/library",
     title: "Library — GHSS Ghallanai | Books & Past Papers",
     description:

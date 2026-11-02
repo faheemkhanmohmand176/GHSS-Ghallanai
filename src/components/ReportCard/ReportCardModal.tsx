@@ -4,7 +4,7 @@
 // Flow:
 //   1. Password gate (password: ghssghallanai) — kept in sessionStorage so the
 //      user doesn't re-enter it on every open during a single session.
-//   2. Exam selection: class (1st Year/2nd Year) + exam type (Annual-I/II) + year
+//   2. Exam selection: class (9th/10th/1st Year/2nd Year) + exam type (Annual-I/II) + year
 //   3. Roll number input area — paste/type roll numbers, persisted to
 //      localStorage so they survive page reloads until explicitly deleted.
 //   4. Search button — bulk-fetches all rolls via /api/bisep-proxy with
@@ -38,7 +38,7 @@ const PASSWORD = "ghssghallanai";
 const SESSION_KEY = "rc_auth_ok";
 const LS_ROLLS_KEY = "rc_roll_entries";
 const LS_SELECTION_KEY = "rc_exam_selection";
-const CLASS_OPTIONS: ClassName[] = ["1st Year", "2nd Year"];
+const CLASS_OPTIONS: ClassName[] = ["9th", "10th", "1st Year", "2nd Year"];
 const DEFAULT_SCHOOL = "GHSS Ghallanai, District Mohmand";
 
 type Stage = "password" | "form" | "fetching" | "results";
@@ -300,7 +300,8 @@ export default function ReportCardModal({ open, onClose }: Props) {
   // stay accurate (the UI shows "1st Year: 12/30 · 2nd Year: 18/25"), and either
   // class can finish independently without waiting for the other.
   const startCombinedSearch = async () => {
-    // Pair depends on the selected class: 1st Year+2nd Year for college results.
+    // Pair depends on the selected class: 9th+10th for school results,
+    // 1st Year+2nd Year for college results.
     const [pa, pb] = combinedPairFor(selection.className);
     const keyA = `${pa}|${selection.examType}|${selection.year}`;
     const keyB = `${pb}|${selection.examType}|${selection.year}`;

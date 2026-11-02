@@ -125,7 +125,7 @@ interface MeritListRow {
 // This hook reads those SAME saved rolls for the given exam type + year,
 // fetches live results for both 1st Year and 2nd Year via the existing bulk-fetch
 // pipeline, and converts them into MeritEntry rows using percentage-based
-// ranking (550 total for both 1st Year and 2nd Year — see classMaxMarks.ts) so
+// ranking (600 total for 1st Year, 1200 for 2nd Year — see classMaxMarks.ts) so
 // they can be merged into the combined School Merit List correctly.
 //
 // Returns entries already split by class ("11" / "12"), matching the shape
@@ -1605,7 +1605,7 @@ function SchoolMeritTab() {
 
 // ─── BISE Merit Tab — completely separate from School Merit ─────────────────
 // 1st Year / 2nd Year BISE Peshawar board results (Annual-I / Annual-II), ranked
-// by percentage (550 total for both 1st Year and 2nd Year). This is its own
+// by percentage (600 total for 1st Year, 1200 for 2nd Year). This is its own
 // scope ("school-bise") with its own publish button and its own row in
 // merit_lists — publishing this NEVER touches or republishes the School
 // Merit List, and vice versa. The two are unrelated result sources that
@@ -1701,7 +1701,7 @@ function BiseMeritTab() {
         {!isLoading && !isFetching && totalStudents > 0 && (
           <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2.5 flex items-center gap-1.5">
             <CheckCircle2 className="w-3 h-3" />
-            {totalStudents} BISE Peshawar result{totalStudents === 1 ? "" : "s"} (1st Year & 2nd Year: 550 total each — ranked by percentage, never raw marks).
+            {totalStudents} BISE Peshawar result{totalStudents === 1 ? "" : "s"} (1st Year: 600 total, 2nd Year: 1200 total — ranked by percentage, never raw marks).
           </p>
         )}
         {!isLoading && !isFetching && meta && meta.missingRolls.length > 0 && (

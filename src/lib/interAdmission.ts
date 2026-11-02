@@ -186,8 +186,8 @@ export const HED_MESSAGES = {
     "Applications submitted on all quotas except AFGHAN shall be considered in Open Merit.",
   declaration:
     "I declare that the information given in support of the application is accurate and complete. I understand that any misrepresentation will result in disqualification of my application for admission.",
-  feeTokenNotice: (token: string, deadline: string) =>
-    `This token must be paid at any JAZZ CASH or through JAZZ CASH APP on or before ${deadline}.`,
+  feeTokenNotice: (reference: string, deadline: string) =>
+    `Pay the processing fee to the school account shown on your challan, quoting reference ${reference}, on or before ${deadline}.`,
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────

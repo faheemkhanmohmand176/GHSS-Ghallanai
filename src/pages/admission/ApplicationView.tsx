@@ -6,11 +6,15 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { Link, useParams } from "react-router-dom";
 import {
-  Printer, Loader2, Wallet, ChevronLeft, AlertCircle, CheckCircle2, Info, FileText,
+  Printer, Loader2, Wallet, AlertCircle, CheckCircle2, FileText,
 } from "lucide-react";
+import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
+import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
+import AdmissionPaymentAccounts from "@/components/shared/AdmissionPaymentAccounts";
+import { useAdmissionSettings, cycleLabel } from "@/hooks/useAdmission";
+import { downloadFeeChallan, downloadApplicationForm } from "@/lib/admissionPdf";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +24,7 @@ import toast from "react-hot-toast";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
   interApi, QUOTA_LABEL, HED_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
-  ADMISSION_CYCLE, PROCESSING_FEE, formatCnic, formatDateLong, formatDeadline,
+  formatCnic, formatDateLong, formatDeadline,
 } from "@/lib/interAdmission";
 
 interface AppDetail {
@@ -34,12 +38,13 @@ interface AppDetail {
 
 export default function ApplicationView() {
   const { id } = useParams<{ id: string }>();
-  const [params] = useSearchParams();
+  
   const { token, loading: sessionLoading } = useInterSession();
-  const navigate = useNavigate();
   const [detail, setDetail] = useState<AppDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const { data: admSettings } = useAdmissionSettings();
+  const ADMISSION_CYCLE = cycleLabel(admSettings);
 
   const load = useCallback(async () => {
     if (!token || !id) return;
@@ -65,7 +70,7 @@ export default function ApplicationView() {
         ok?: boolean; error?: string; token?: string; deadline?: string;
       };
       if (res?.ok && res.token) {
-        toast.success(`JazzCash token ${res.token} Pay Rs ${PROCESSING_FEE}/- before ${res.deadline}.`);
+        toast.success(`Payment reference ${res.token} generated.`);
         await load();
       } else {
         toast.error(res?.error || "Payment initialization failed.");
@@ -81,14 +86,6 @@ export default function ApplicationView() {
   const personal = detail?.personal;
   const ssc = detail?.ssc;
   const unpaid = app ? app.payment_status === "pending" : false;
-  const autoPay = params.get("pay") === "1" && unpaid;
-
-  const Row = ({ k, v }: { k: string; v: React.ReactNode }) => (
-    <div className="flex justify-between gap-3 border-b border-border/60 py-1.5">
-      <span className="text-muted-foreground shrink-0 text-[13px]">{k}:</span>
-      <span className="font-semibold text-foreground text-right text-[13px]">{v}</span>
-    </div>
-  );
 
   if (loading || sessionLoading) {
     return (
@@ -113,201 +110,213 @@ export default function ApplicationView() {
     );
   }
 
+  const FEE = Number(app.processing_fee ?? admSettings?.processing_fee ?? 100);
+  const quotaName = QUOTA_LABEL[String(app.quota)] ?? String(app.quota);
+  const deadlineShort = formatDeadline(String(app.fee_deadline)).split(" ").slice(0, 3).join(" ");
+  const cnicShown = formatCnic(detail.applicant_cnic ?? "");
+
+  async function downloadChallan() {
+    try {
+      await downloadFeeChallan({
+        cycle: ADMISSION_CYCLE, fee: FEE, reference: String(app!.jazzcash_token ?? ""),
+        trackingId: String(app!.tracking_id), name: String(personal!.full_name), fatherName: String(personal!.father_name),
+        cnic: cnicShown, mobile: String(personal!.mobile_number),
+        program: String(app!.program_name), subjectGroup: app!.subject_group ? String(app!.subject_group) : "N/A",
+        quota: quotaName, deadline: deadlineShort, appliedOn: formatDateLong(String(app!.submitted_at)),
+        methods: admSettings?.payment_methods ?? [],
+      });
+    } catch { toast.error("Could not create the challan. Please try again."); }
+  }
+
+  async function downloadForm() {
+    try {
+      const p = personal!, sc = ssc!, ap = app!;
+      await downloadApplicationForm({
+        cycle: ADMISSION_CYCLE, trackingId: String(ap.tracking_id), paymentStatus: unpaid ? "Pending" : "Paid",
+        reference: String(ap.jazzcash_token ?? ""), fee: FEE, declaration: HED_MESSAGES.declaration,
+        sections: [
+          { title: "Application Details", rows: [
+            ["College", COLLEGE_NAME], ["Study Level", STUDY_LEVEL],
+            ["Program", String(ap.program_name)], ["Subject Group", String(ap.subject_group ?? "")],
+            ["Category", quotaName], ["Shift", String(ap.shift ?? "")],
+            ["Date Applied", formatDateLong(String(ap.submitted_at))], ["Fee Deadline", deadlineShort],
+          ] },
+          { title: "Personal Information", rows: [
+            ["Name", String(p.full_name)], ["Father Name", String(p.father_name)],
+            ["Applicant CNIC", cnicShown], ["Father CNIC", formatCnic(String(p.father_cnic ?? ""))],
+            ["Date of Birth", formatDateLong(String(p.date_of_birth))], ["Gender", String(p.gender)],
+            ["Mobile", String(p.mobile_number)], ["Father Mobile", String(p.father_mobile ?? "")],
+            ["Nationality", String(p.nationality)], ["Religion", String(p.religion)],
+            ["Province", String(p.domicile_province)], ["District", String(p.domicile_district)],
+            ["Tehsil", String(p.tehsil)], ["Union Council", String(p.union_council)],
+            ["Mailing Address", String(p.mailing_address)], ["", ""],
+          ] },
+          { title: "Academic Information", rows: [
+            ["Exam", "SSC"], ["Exam Session", String(sc.exam_session)],
+            ["Board", String(sc.exam_board)], ["Passing Year", String(sc.passing_year)],
+            ["Study Group", String(sc.study_group)], ["Roll No", String(sc.roll_number)],
+            ["Marks", `${sc.marks_obtained} / ${sc.marks_total} (${sc.marks_percentage}%)`], ["Grade", String(sc.grade)],
+            ["Hafiz e Quran", sc.hafiz_e_quran ? "Yes" : "No"], ["Institute District", String(sc.institute_district)],
+            ["Institute", String(sc.institute_name)], ["", ""],
+          ] },
+        ],
+      });
+    } catch { toast.error("Could not create the form. Please try again."); }
+  }
+
+  const items = {
+    app: [
+      { label: "College", value: `${COLLEGE_NAME} (Mohmand)`, wide: true },
+      { label: "Admission Cycle", value: ADMISSION_CYCLE },
+      { label: "Study Level", value: STUDY_LEVEL },
+      { label: "Program", value: String(app.program_name) },
+      ...(app.subject_group ? [{ label: "Subject Group", value: String(app.subject_group) }] : []),
+      { label: "Category", value: quotaName },
+      ...(app.quota === "local_quota" && app.quota_criteria ? [{ label: "Criteria", value: app.quota_criteria === "domicile_of_area"
+        ? `Domicile of the Local Area (${String(app.quota_criteria_uc)})` : "Parent or Spouse posted as Govt. Servant in District" }] : []),
+      ...(app.sport_certificate ? [{ label: "Sport Certificate", value: String(app.sport_certificate) }] : []),
+      ...(app.nature_of_disability ? [{ label: "Nature of Disability", value: String(app.nature_of_disability) }] : []),
+      ...(app.parent_department ? [{ label: "Parent Department", value: String(app.parent_department) }] : []),
+      { label: "Shift", value: String(app.shift) },
+    ],
+    personal: [
+      { label: "Name", value: String(personal.full_name) },
+      { label: "Father Name", value: String(personal.father_name) },
+      { label: "Applicant CNIC", value: cnicShown },
+      { label: "Father CNIC", value: formatCnic(String(personal.father_cnic ?? "")) },
+      { label: "Personal Mobile", value: String(personal.mobile_number) },
+      { label: "Father Mobile", value: String(personal.father_mobile ?? "") },
+      { label: "Date of Birth", value: formatDateLong(String(personal.date_of_birth)) },
+      { label: "Gender", value: String(personal.gender) },
+      { label: "Nationality", value: String(personal.nationality) },
+      { label: "Religion", value: String(personal.religion) },
+      { label: "Province", value: String(personal.domicile_province) },
+      { label: "Domicile District", value: String(personal.domicile_district) },
+      { label: "Tehsil", value: String(personal.tehsil) },
+      { label: "Union Council", value: String(personal.union_council) },
+      { label: "Mailing Address", value: String(personal.mailing_address), wide: true },
+    ],
+    academic: [
+      { label: "Highest Exam", value: "SSC" },
+      { label: "Exam Session", value: String(ssc.exam_session) },
+      { label: "Exam Board", value: String(ssc.exam_board) },
+      { label: "Passing Year", value: String(ssc.passing_year) },
+      { label: "Study Group", value: String(ssc.study_group), wide: true },
+      { label: "Roll No", value: String(ssc.roll_number) },
+      { label: "Net Marks", value: `${ssc.marks_obtained} / ${ssc.marks_total} (${ssc.marks_percentage}%)` },
+      { label: "Grade", value: String(ssc.grade) },
+      { label: "Hafiz e Quran", value: ssc.hafiz_e_quran ? "Yes" : "No" },
+      { label: "Institute District", value: String(ssc.institute_district) },
+      { label: "School or College", value: String(ssc.institute_name), wide: true },
+    ],
+  };
+
+  const H3 = "font-heading font-bold text-foreground mb-3 text-center";
+
   return (
     <PageLayout>
-      {autoPay && (
-        <div className="container mx-auto px-4 pt-8 max-w-3xl no-print">
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border border-gold/50 bg-gold/5 p-4">
-            <h2 className="font-heading font-bold text-foreground mb-1.5">Pay Application Processing Fee</h2>
-            <div className="grid sm:grid-cols-3 gap-2.5 text-sm mb-3.5">
-              <div className="rounded-lg bg-card border border-border p-3">
-                <p className="text-[11px] text-muted-foreground font-semibold">Processing Fee</p>
-                <p className="font-bold text-foreground">Rs {PROCESSING_FEE}/-</p>
-              </div>
-              <div className="rounded-lg bg-card border border-border p-3">
-                <p className="text-[11px] text-muted-foreground font-semibold">Additional Charges</p>
-                <p className="font-bold text-foreground">Rs 0/-</p>
-              </div>
-              <div className="rounded-lg bg-card border border-border p-3">
-                <p className="text-[11px] text-muted-foreground font-semibold">Total</p>
-                <p className="font-bold text-foreground">Rs {PROCESSING_FEE}/-</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2.5">
-              <Button onClick={handlePay} disabled={paying} className="font-semibold flex-1 h-9">
-                {paying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
-                Proceed with Payment
-              </Button>
-              <Button variant="outline" onClick={() => navigate(`/admission/application/${id}`)} className="font-semibold h-11">Cancel</Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <div className="container mx-auto px-4 py-8 sm:py-12 max-w-3xl space-y-5">
+        <AdmissionBackBar to="/admission/portal" />
 
-      <div className="container mx-auto px-4 py-10 sm:py-12 max-w-3xl space-y-5 no-print">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="font-heading text-2xl font-bold text-foreground">Application Form</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {String(personal.full_name)} · {COLLEGE_NAME}
-            </p>
-          </div>
-          <div className="flex gap-2.5">
+        <div className="text-center">
+          <h1 className="font-heading text-2xl font-bold text-foreground">Application Form</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{String(personal.full_name)}</p>
+          <p className="text-[12.5px] text-muted-foreground">{COLLEGE_NAME}</p>
+          <div className="mt-4 mx-auto grid max-w-md grid-cols-2 gap-2.5">
             {app.jazzcash_token ? (
-              <Button variant="outline" onClick={() => window.print()} className="h-10 font-semibold print:hidden">
-                <FileText className="w-4 h-4" /> Print Fee Challan
+              <Button variant="outline" onClick={downloadChallan} className="h-10 font-semibold">
+                <FileText className="w-4 h-4" /> Fee Challan
               </Button>
-            ) : null}
-            <Button variant="outline" onClick={() => window.print()} className="h-10 font-semibold print:hidden">
-              <Printer className="w-4 h-4" /> Print Application
+            ) : <span className="hidden" />}
+            <Button variant="outline" onClick={downloadForm} className={`h-10 font-semibold ${app.jazzcash_token ? "" : "col-span-2"}`}>
+              <Printer className="w-4 h-4" /> Application PDF
             </Button>
-            <Link to="/admission/portal" className="print:hidden">
-              <Button variant="ghost" className="h-10 font-semibold"><ChevronLeft className="w-4 h-4" /> Dashboard</Button>
-            </Link>
           </div>
         </div>
 
-        {/* Fee status + token */}
+        {/* Fee status */}
         <Card className={`border ${unpaid ? "border-amber-500/40 bg-amber-500/5" : "border-green-500/40 bg-green-500/5"}`}>
-          <CardContent className="p-5 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                {unpaid
-                  ? <AlertCircle className="w-6 h-6 text-amber-600" />
-                  : <CheckCircle2 className="w-6 h-6 text-green-600" />}
-                <div>
-                <p className="font-heading font-bold text-foreground">Processing Fee Status:{" "}
-                  <Badge variant="secondary" className={unpaid ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" : "bg-green-500/15 text-green-700 dark:text-green-400"}>
-                    {unpaid ? "Pending" : "Paid"}
-                  </Badge>
-                </p>
-                {app.jazzcash_token ? (
-                  <div className="mt-2">
-                    <p className="text-sm"><span className="text-muted-foreground">Token: </span>
-                      <span className="font-mono font-bold text-foreground text-base tracking-wider">{String(app.jazzcash_token)}</span>
+          <CardContent className="p-5 sm:p-6 text-center">
+            <div className="flex flex-col items-center gap-1.5">
+              {unpaid ? <AlertCircle className="w-6 h-6 text-amber-600" /> : <CheckCircle2 className="w-6 h-6 text-green-600" />}
+              <p className="font-heading font-bold text-foreground">Processing Fee</p>
+              <Badge variant="secondary" className={unpaid ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" : "bg-green-500/15 text-green-700 dark:text-green-400"}>
+                {unpaid ? "Pending" : "Paid"}
+              </Badge>
+              {app.jazzcash_token ? (
+                <>
+                  <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Payment Reference</p>
+                  <p className="font-mono text-xl font-bold tracking-wider text-foreground">{String(app.jazzcash_token)}</p>
+                  {unpaid && (
+                    <p className="max-w-sm text-[12.5px] leading-relaxed text-muted-foreground">
+                      {HED_MESSAGES.feeTokenNotice(String(app.jazzcash_token), deadlineShort)}
                     </p>
-                    <p className="text-[12.5px] text-muted-foreground mt-1">
-                      {HED_MESSAGES.feeTokenNotice(String(app.jazzcash_token), formatDeadline(String(app.fee_deadline)).split(" ")[0])}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-[12.5px] text-muted-foreground mt-1">
-                    Click “Proceed with Payment” to generate your JazzCash payment token.
-                  </p>
-                )}
-                </div>
-              </div>
-              {unpaid && !autoPay && (
-                <Link to={`/admission/application/${id}?pay=1`}>
-                  <Button className="h-9 font-semibold"><Wallet className="w-5 h-5" /> Pay Application Fee</Button>
-                </Link>
+                  )}
+                </>
+              ) : (
+                <p className="max-w-sm text-[12.5px] text-muted-foreground">Generate your fee challan to see the payment details.</p>
               )}
             </div>
-            <div className="grid sm:grid-cols-3 gap-2.5 mt-4 pt-4 border-t border-border/60 text-[13px]">
-              <div><span className="text-muted-foreground">Username: </span><span className="font-mono font-semibold">{formatCnic(detail.applicant_cnic ?? "")}</span></div>
-              <div><span className="text-muted-foreground">Tracking ID: </span><span className="font-mono font-bold text-primary">{String(app.tracking_id)}</span></div>
-              <div><span className="text-muted-foreground">Date Applied: </span><span className="font-semibold">{formatDateLong(String(app.submitted_at))}</span></div>
+
+            {unpaid && (
+              <div className="mt-5">
+                <h3 className="font-heading font-bold text-foreground mb-2.5">Pay To</h3>
+                <AdmissionPaymentAccounts methods={admSettings?.payment_methods ?? []} />
+                {!app.jazzcash_token && (
+                  <Button onClick={handlePay} disabled={paying} className="mt-4 h-10 font-semibold">
+                    {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />}
+                    Generate Fee Challan
+                  </Button>
+                )}
+              </div>
+            )}
+
+            <div className="mt-5 pt-4 border-t border-border/60">
+              <AdmissionInfoGrid items={[
+                { label: "Username", value: <span className="font-mono">{cnicShown}</span> },
+                { label: "Tracking ID", value: <span className="font-mono text-primary">{String(app.tracking_id)}</span> },
+                { label: "Date Applied", value: formatDateLong(String(app.submitted_at)) },
+                { label: "Amount", value: `Rs ${FEE}` },
+              ]} />
             </div>
           </CardContent>
         </Card>
 
         {/* Application details */}
         <Card className="border-border/80 shadow-card">
-          <CardContent className="p-5 sm:p-6 space-y-5">
-            <div>
-              <h3 className="font-heading font-bold text-foreground mb-2.5">Application Details</h3>
-              <div className="grid sm:grid-cols-2 gap-x-6">
-                <Row k="College" v={`${COLLEGE_NAME} (Mohmand)`} />
-                <Row k="Admission Cycle" v={ADMISSION_CYCLE} />
-                <Row k="Study Level" v={STUDY_LEVEL} />
-                <Row k="Program" v={String(app.program_name)} />
-                {app.subject_group ? <Row k="Subject Group" v={String(app.subject_group)} /> : null}
-                <Row k="Application Quota" v={QUOTA_LABEL[String(app.quota)] ?? String(app.quota)} />
-                {app.quota === "local_quota" && app.quota_criteria && (
-                  <Row k="Criteria" v={app.quota_criteria === "domicile_of_area"
-                    ? `Having Domicile of the Local Area (${String(app.quota_criteria_uc)})`
-                    : "Parent / Spouse Posting as Govt. Servant in District"} />
-                )}
-                {app.sport_certificate && <Row k="Sport Certificate" v={String(app.sport_certificate)} />}
-                {app.nature_of_disability && <Row k="Nature of Disability" v={String(app.nature_of_disability)} />}
-                {app.parent_department && <Row k="Parent Department" v={String(app.parent_department)} />}
-                <Row k="Shift" v={String(app.shift)} />
-              </div>
-              <p className="text-[12px] text-muted-foreground italic mt-2.5 flex items-start gap-1.5">
-                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" /> {HED_MESSAGES.meritNote}
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-heading font-bold text-foreground mb-2.5">Personal Information</h3>
-              <div className="grid sm:grid-cols-2 gap-x-6">
-                <Row k="Name" v={String(personal.full_name)} />
-                <Row k="Personal Mobile" v={String(personal.mobile_number)} />
-                <Row k="Father Name" v={String(personal.father_name)} />
-                <Row k="Father's Mobile" v={String(personal.father_mobile)} />
-                <Row k="Applicant's CNIC" v={formatCnic(detail.applicant_cnic ?? "")} />
-                <Row k="Father's CNIC" v={formatCnic(String(personal.father_cnic))} />
-                <Row k="Date of Birth" v={formatDateLong(String(personal.date_of_birth))} />
-                <Row k="Gender" v={String(personal.gender)} />
-                <Row k="Nationality" v={String(personal.nationality)} />
-                <Row k="Province" v={String(personal.domicile_province)} />
-                <Row k="Domicile District" v={String(personal.domicile_district)} />
-                <Row k="Tehsil" v={String(personal.tehsil)} />
-                <Row k="Union Council" v={String(personal.union_council)} />
-                <Row k="Religion" v={String(personal.religion)} />
-                <div className="sm:col-span-2"><Row k="Mailing Address" v={String(personal.mailing_address)} /></div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-heading font-bold text-foreground mb-2.5">Academic Information</h3>
-              <div className="grid sm:grid-cols-2 gap-x-6">
-                <Row k="Highest Exam" v="SSC" />
-                <Row k="Exam Session" v={String(ssc.exam_session)} />
-                <Row k="Exam Board/Uni" v={String(ssc.exam_board)} />
-                <Row k="Passing Year" v={String(ssc.passing_year)} />
-                <Row k="Study Group" v={String(ssc.study_group)} />
-                <Row k="Roll No." v={String(ssc.roll_number)} />
-                <Row k="Net Marks" v={`${ssc.marks_obtained} / ${ssc.marks_total} (${ssc.marks_percentage}%)`} />
-                <Row k="Grade" v={String(ssc.grade)} />
-                <Row k="Sport Certificate" v={ssc.sport_certificate ? String(ssc.sport_certificate) : "N/A"} />
-                <Row k="Hafiz e Quran" v={ssc.hafiz_e_quran ? "Yes" : "No"} />
-                <Row k="School/College Districts" v={String(ssc.institute_district)} />
-                <Row k="Board Record" v="Not Verified" />
-                <div className="sm:col-span-2"><Row k="School/College" v={String(ssc.institute_name)} /></div>
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-muted/60 border border-border p-3.5 text-[13px] text-muted-foreground">
-              <span className="font-semibold text-foreground">Declaration:</span> {HED_MESSAGES.declaration}
+          <CardContent className="p-5 sm:p-6 space-y-6">
+            <div><h3 className={H3}>Application Details</h3><AdmissionInfoGrid items={items.app} /></div>
+            <div><h3 className={H3}>Personal Information</h3><AdmissionInfoGrid items={items.personal} /></div>
+            <div><h3 className={H3}>Academic Information</h3><AdmissionInfoGrid items={items.academic} /></div>
+            <div className="rounded-xl bg-muted/60 border border-border p-3.5 text-center text-[12.5px] leading-relaxed text-muted-foreground">
+              <span className="font-semibold text-foreground">Declaration: </span>{HED_MESSAGES.declaration}
             </div>
           </CardContent>
         </Card>
 
-        {/* Timeline — HED "Application Detail": # | Title | Date | Detials */}
+        {/* Timeline */}
         {detail.timeline && detail.timeline.length > 0 && (
           <Card className="border-border/80 shadow-card">
             <CardContent className="p-5 sm:p-6">
-              <h3 className="font-heading font-bold text-foreground mb-3">Application Detail</h3>
+              <h3 className={H3}>Application Timeline</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead className="bg-muted/60">
-                    <tr className="text-left">
-                      <th className="px-3 py-2 font-semibold">#</th>
-                      <th className="px-3 py-2 font-semibold">Title</th>
-                      <th className="px-3 py-2 font-semibold">Date</th>
-                      <th className="px-3 py-2 font-semibold">Detials</th>
+                    <tr>
+                      <th className="px-3 py-2 text-center align-middle font-semibold">#</th>
+                      <th className="px-3 py-2 text-center align-middle font-semibold">Title</th>
+                      <th className="px-3 py-2 text-center align-middle font-semibold">Date</th>
+                      <th className="px-3 py-2 text-center align-middle font-semibold">Details</th>
                     </tr>
                   </thead>
                   <tbody>
                     {detail.timeline.map((t, i) => (
                       <tr key={i} className="border-t border-border">
-                        <td className="px-3 py-2.5">{i + 1}</td>
-                        <td className="px-3 py-2.5 font-semibold">{t.title}</td>
-                        <td className="px-3 py-2.5 whitespace-nowrap">{t.date}</td>
-                        <td className="px-3 py-2.5 text-muted-foreground">{t.details}</td>
+                        <td className="px-3 py-2.5 text-center align-middle">{i + 1}</td>
+                        <td className="px-3 py-2.5 text-center align-middle font-semibold">{t.title}</td>
+                        <td className="px-3 py-2.5 text-center align-middle whitespace-nowrap">{t.date}</td>
+                        <td className="px-3 py-2.5 text-center align-middle text-muted-foreground">{t.details}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -317,83 +326,6 @@ export default function ApplicationView() {
           </Card>
         )}
       </div>
-      {/* ═══ FEE CHALLAN (print-only — JazzCash payment slip) ═══ */}
-      {app.jazzcash_token && (
-        <div className="hidden print:block px-8 py-6 max-w-3xl mx-auto text-black">
-          {/* Header */}
-          <div className="text-center border-b-2 border-black pb-3">
-            <p className="font-bold text-[15px] tracking-wide">GOVERNMENT HIGHER SECONDARY SCHOOL GHALLANAI</p>
-            <p className="text-[11px]">District Mohmand, Khyber Pakhtunkhwa</p>
-            <p className="font-bold text-[12px] mt-1.5">ONLINE ADMISSION: APPLICATION PROCESSING FEE CHALLAN</p>
-            <p className="text-[10px]">{ADMISSION_CYCLE} · Intermediate (1st / 2nd Year)</p>
-          </div>
-
-          {/* Token box */}
-          <div className="border-2 border-black mt-4 p-3 flex items-center justify-between">
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest">JazzCash Token (Account No.)</p>
-              <p className="font-mono font-bold text-xl tracking-widest">{String(app.jazzcash_token)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[9px] font-bold uppercase tracking-widest">Amount Payable</p>
-              <p className="font-bold text-xl">Rs. {PROCESSING_FEE}/-</p>
-            </div>
-          </div>
-
-          {/* Details table */}
-          <table className="w-full mt-4 text-[11px]" style={{ borderCollapse: "collapse" }}>
-            <tbody>
-              {[
-                ["Applicant Name", String(personal.full_name)],
-                ["Father Name", String(personal.father_name)],
-                ["CNIC / Form-B", formatCnic(detail.applicant_cnic ?? "")],
-                ["Tracking ID", String(app.tracking_id)],
-                ["Program", String(app.program_name)],
-                ["Subject Group", app.subject_group ? String(app.subject_group) : "N/A"],
-                ["Category of Admission", QUOTA_LABEL[String(app.quota)] ?? String(app.quota)],
-                ["Mobile Number", String(personal.mobile_number)],
-                ["Processing Fee", `Rs. ${PROCESSING_FEE}/-`],
-                ["Additional Charges", "Rs. 0/-"],
-                ["Total", `Rs. ${PROCESSING_FEE}/- (${PROCESSING_FEE === 100 ? "One Hundred" : String(PROCESSING_FEE)} Rupees Only)`],
-                ["Fee Submission Deadline", formatDeadline(String(app.fee_deadline))],
-                ["Date Applied", formatDateLong(String(app.submitted_at))],
-              ].map(([k, v]) => (
-                <tr key={k}>
-                  <td className="border border-black px-2.5 py-1.5 font-semibold" style={{ width: "35%" }}>{k}</td>
-                  <td className="border border-black px-2.5 py-1.5">{v}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Payment instructions */}
-          <div className="border border-black mt-4 p-3 text-[10px] leading-relaxed">
-            <p className="font-bold text-[11px] mb-1">PAYMENT INSTRUCTIONS</p>
-            <p>
-              Pay the total amount at any <strong>JAZZ CASH</strong> retailer or through the <strong>JAZZ CASH APP</strong>
-              against token number <strong>{String(app.jazzcash_token)}</strong> on or before{" "}
-              <strong>{formatDeadline(String(app.fee_deadline))}</strong>. Keep the payment receipt and this slip
-              for record. The application is processed further only after the fee is confirmed by the college.
-            </p>
-          </div>
-
-          {/* Signature strip */}
-          <div className="flex justify-between items-end mt-10 text-[10px]">
-            <div>
-              <p className="border-t border-black pt-1 px-6">College Copy: Stamp / Signature</p>
-            </div>
-            <div className="text-center">
-              <p className="border-t border-black pt-1 px-6">JazzCash Representative</p>
-            </div>
-            <div>
-              <p className="border-t border-black pt-1 px-6">Student Signature</p>
-            </div>
-          </div>
-          <p className="text-center text-[9px] mt-4 text-gray-700">
-            Computer-generated challan for online admission application {String(app.tracking_id)} · GHSS Ghallanai Online Admission System.
-          </p>
-        </div>
-      )}
     </PageLayout>
   );
 }

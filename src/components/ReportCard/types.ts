@@ -57,7 +57,7 @@ export interface NormalizedResult {
    *  it by summing all subject theory + practical marks. */
   totalMarks: number;
   /** totalMarks expressed as a percentage of the class's fixed total
-   *  (550 for 1st Year/2nd Year) — see classMaxMarks.ts. This is what
+   *  (600 for 9th, 1200 for 10th, 600 for 1st Year, 1200 for 2nd Year) — see classMaxMarks.ts. This is what
    *  Merit List ranking uses; raw totalMarks is never comparable across
    *  1st Year and 2nd Year since their maximums may differ. */
   percentage: number;
@@ -79,8 +79,9 @@ export interface ParsedSubject {
   isFail: boolean;
 }
 
-/** Classes the Report Card supports: college (HSSC) 1st Year/2nd Year. */
-export type ClassName = "1st Year" | "2nd Year";
+/** Classes the Report Card supports: school (SSC) 9th/10th and college
+ *  (HSSC) 1st Year/2nd Year. */
+export type ClassName = "9th" | "10th" | "1st Year" | "2nd Year";
 
 /** User's selected exam parameters. */
 export interface ExamSelection {

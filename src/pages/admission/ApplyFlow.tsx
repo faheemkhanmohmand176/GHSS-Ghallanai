@@ -26,14 +26,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
+import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
+import AdmissionPaymentAccounts from "@/components/shared/AdmissionPaymentAccounts";
+import { useAdmissionSettings, cycleLabel } from "@/hooks/useAdmission";
+import { downloadFeeChallan } from "@/lib/admissionPdf";
 import AdmissionStepper from "@/components/shared/AdmissionStepper";
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
   interApi, QUOTAS, QUOTA_LABEL, LOCAL_CRITERIA, SPORT_CERTIFICATES,
-  DISABILITY_TYPES, HED_MESSAGES, COLLEGE_NAME, STUDY_LEVEL, ADMISSION_CYCLE,
-  PROCESSING_FEE, formatCnic, formatDateLong, formatDeadline, DISTRICTS,
+  DISABILITY_TYPES, HED_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
+  formatCnic, formatDateLong, formatDeadline, DISTRICTS,
 } from "@/lib/interAdmission";
 
 type Step = "form" | "confirm" | "pay" | "done";
@@ -57,7 +62,7 @@ const EMPTY_CRITERIA: Criteria = {
 /** swal-style dialog (HED uses SweetAlert) */
 function SwalDialog({ message, onClose }: { message: string; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
         className="bg-card rounded-2xl shadow-2xl border border-border max-w-sm w-full p-6 text-center"
@@ -78,6 +83,9 @@ export default function ApplyFlow() {
   const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>("form");
+  const { data: admSettings } = useAdmissionSettings();
+  const PROCESSING_FEE = admSettings?.processing_fee ?? 100;
+  const ADMISSION_CYCLE = cycleLabel(admSettings);
   const [programId, setProgramId] = useState<number | "">("");
   const [quota, setQuota] = useState<string>("");
   const [criteria, setCriteria] = useState<Criteria>(EMPTY_CRITERIA);
@@ -118,13 +126,14 @@ export default function ApplyFlow() {
   async function handleQuotaChange(q: string) {
     setQuota(q);
     // reset conditional fields when quota changes (HED reset_form())
-    setCriteria((c) => ({ ...EMPTY_CRITERIA }));
+    setCriteria({ ...EMPTY_CRITERIA });
     if (!q) return;
     // HED shows the swal immediately for local applicants picking Open Merit
     const res = (await interApi.checkQuota(token!, q, null)) as unknown as {
-      ok?: boolean; error?: string; warning?: string;
+      ok?: boolean; error?: string; warning?: string; needs?: string;
     };
-    if (res?.ok === false && res.error) {
+    // `needs` = a follow-up field (criteria, certificate, etc.) is still to be filled — not a block.
+    if (res?.ok === false && res.error && !res.needs) {
       setDialog(res.error);           // e.g. "Your domicile is local; therefore, apply on Local Quota."
       setQuota("");                   // HED resets the select
       return;
@@ -174,6 +183,22 @@ export default function ApplyFlow() {
   }
 
   // ── Proceed with payment → JazzCash token ─────────────────────────────
+  async function handleChallan() {
+    if (!payResult || !personal) return;
+    try {
+      await downloadFeeChallan({
+        cycle: ADMISSION_CYCLE, fee: PROCESSING_FEE, reference: payResult.token,
+        trackingId: payResult.tracking_id, name: personal.full_name, fatherName: personal.father_name,
+        cnic: formatCnic(session?.applicant?.cnic_formb ?? ""), mobile: personal.mobile_number,
+        program: program?.name ?? "", subjectGroup: subjectGroup || "N/A", quota: quotaLabel,
+        deadline: payResult.deadline, appliedOn: formatDateLong(new Date()),
+        methods: admSettings?.payment_methods ?? [],
+      });
+    } catch {
+      toast.error("Could not create the challan. Please try again.");
+    }
+  }
+
   async function handleProceedPayment() {
     if (!submitResult) return;
     setBusy(true);
@@ -209,16 +234,23 @@ export default function ApplyFlow() {
 
   const quotaLabel = QUOTA_LABEL[quota] ?? quota;
 
-  const sel = "h-11 rounded-xl border border-input bg-background px-3 text-sm";
+  const sel = "block w-full min-w-0 max-w-full truncate h-11 rounded-xl border border-input bg-background px-3 text-sm";
 
   return (
     <PageLayout>
       {dialog && <SwalDialog message={dialog} onClose={() => setDialog(null)} />}
-      <div className="container mx-auto px-4 py-10 sm:py-12 max-w-3xl">
+      <div className="container mx-auto px-4 py-8 sm:py-12 max-w-3xl">
+        <AdmissionBackBar
+          onClick={() => {
+            if (step === "confirm") setStep("form");
+            else if (step === "pay") setStep("confirm");
+            else navigate("/admission/portal");
+          }}
+        />
         <div className="mb-6">
           <h1 className="font-heading text-2xl sm:text-3xl font-semibold text-foreground">New Admission Request</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {STUDY_LEVEL} · {ADMISSION_CYCLE} · Fields with <span className="text-red-500 font-bold">*</span> are mandatory.
+            {STUDY_LEVEL}. Fields with <span className="text-red-500 font-bold">*</span> are mandatory.
           </p>
         </div>
 
@@ -289,7 +321,6 @@ export default function ApplyFlow() {
                       <option value="">Select a Category</option>
                       {QUOTAS.map((q) => <option key={q.value} value={q.value}>{q.label}</option>)}
                     </select>
-                    <p className="text-[11px] text-muted-foreground">{HED_MESSAGES.meritNote}</p>
                   </div>
 
                   {/* Local quota criteria — HED quota_j_type */}
@@ -302,12 +333,6 @@ export default function ApplyFlow() {
                           <option value="">Select Criteria for Local Quota</option>
                           {LOCAL_CRITERIA.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                         </select>
-                        {criteria.criteria === "domicile_of_area" && personal && (
-                          <p className="text-[11px] text-muted-foreground">
-                            Having Domicile of the Local Area ({personal.union_council}) (your domicile district)
-                            ({personal.domicile_district}) must match the college district (Mohmand).
-                          </p>
-                        )}
                       </div>
                       {criteria.criteria === "father_serve_area" && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
@@ -405,9 +430,6 @@ export default function ApplyFlow() {
                           <option key={g.id} value={g.name}>{g.name}</option>
                         ))}
                       </select>
-                      <p className="text-[11px] text-muted-foreground">
-                        Subjects included in this group are shown on the confirmed application form.
-                      </p>
                     </motion.div>
                   )}
 
@@ -441,11 +463,8 @@ export default function ApplyFlow() {
               <CardContent className="p-5 sm:p-6">
                 <h2 className="font-heading text-xl font-bold text-foreground mb-2">Confirm Admission Request</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Almost there! You are about to confirm your application submission. Before you do, please review
-                  your application and make sure you have selected correct options. If you are sure that everything
-                  is correct, you can click <strong className="text-foreground">“Submit &amp; Pay Application Processing Fee”</strong> button
-                  to pay application processing fee <strong className="text-foreground">(Rs {PROCESSING_FEE})</strong>.
-                  You can also click “Go Back” to make any changes.
+                  Please review your application. If everything is correct, continue to pay the
+                  processing fee of <strong className="text-foreground">Rs {PROCESSING_FEE}</strong>.
                 </p>
               </CardContent>
             </Card>
@@ -453,8 +472,7 @@ export default function ApplyFlow() {
             <Card className="border-border/80 shadow-card">
               <CardContent className="p-5 sm:p-7 space-y-5">
                 {/* Application summary */}
-                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
-                  {[
+                <AdmissionInfoGrid items={[
                     ["College", `${COLLEGE_NAME} (Mohmand)`],
                     ["Admission Cycle", ADMISSION_CYCLE],
                     ["Study Level", STUDY_LEVEL],
@@ -465,20 +483,13 @@ export default function ApplyFlow() {
                     ["Username", formatCnic(session?.applicant?.cnic_formb ?? "")],
                     ["Tracking ID", submitResult.tracking_id],
                     ["Date Applied", formatDateLong(new Date())],
-                  ].map(([k, v]) => (
-                    <div key={k} className="flex justify-between gap-3 border-b border-border/60 pb-2">
-                      <span className="text-muted-foreground shrink-0">{k}:</span>
-                      <span className="font-semibold text-foreground text-right">{v}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-[12px] text-muted-foreground italic">{HED_MESSAGES.meritNote}</p>
+                  ].map(([k, v]) => ({ label: String(k), value: v as React.ReactNode }))} />
+                
 
                 {/* Personal info review */}
                 <div>
                   <h3 className="font-heading font-bold text-foreground mb-2.5">Personal Information</h3>
-                  <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    {[
+                  <AdmissionInfoGrid items={[
                       ["Name", personal.full_name], ["Personal Mobile", personal.mobile_number],
                       ["Father Name", personal.father_name], ["Father's Mobile", personal.father_mobile],
                       ["Applicant's CNIC", formatCnic(session?.applicant?.cnic_formb ?? "")],
@@ -489,20 +500,13 @@ export default function ApplyFlow() {
                       ["Domicile District", personal.domicile_district], ["Tehsil", personal.tehsil],
                       ["Union Council", personal.union_council], ["Religion", personal.religion],
                       ["Mailing Address", personal.mailing_address],
-                    ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-3 border-b border-border/60 pb-1.5">
-                        <span className="text-muted-foreground shrink-0">{k}:</span>
-                        <span className="font-semibold text-foreground text-right capitalize">{v}</span>
-                      </div>
-                    ))}
-                  </div>
+                    ].map(([k, v]) => ({ label: String(k), value: v as React.ReactNode }))} />
                 </div>
 
                 {/* Academic review */}
                 <div>
                   <h3 className="font-heading font-bold text-foreground mb-2.5">Academic Information</h3>
-                  <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    {[
+                  <AdmissionInfoGrid items={[
                       ["Highest Exam", "SSC"], ["Exam Session", ssc.exam_session],
                       ["Exam Board/Uni", ssc.exam_board],
                       ["Passing Year", String(ssc.passing_year)],
@@ -515,13 +519,7 @@ export default function ApplyFlow() {
                       ["School/College Districts", ssc.institute_district],
                       ["Board Record", "Not Verified"],
                       ["School/College", ssc.institute_name],
-                    ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-3 border-b border-border/60 pb-1.5">
-                        <span className="text-muted-foreground shrink-0">{k}:</span>
-                        <span className="font-semibold text-foreground text-right">{v}</span>
-                      </div>
-                    ))}
-                  </div>
+                    ].map(([k, v]) => ({ label: String(k), value: v as React.ReactNode }))} />
                 </div>
 
                 <div className="flex items-start gap-2.5 rounded-xl bg-muted/60 border border-border p-3.5 text-[13px] text-muted-foreground">
@@ -537,7 +535,7 @@ export default function ApplyFlow() {
                   <Button onClick={() => { setStep("pay"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                     className="h-12 font-semibold flex-1">
                     <Wallet className="w-5 h-5" />
-                    Submit &amp; Pay Application Processing Fee
+                    Continue to Payment
                   </Button>
                 </div>
               </CardContent>
@@ -550,59 +548,40 @@ export default function ApplyFlow() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
             <Card className="border-border/80 shadow-card">
               <CardContent className="p-5 sm:p-7 space-y-6">
-                <h2 className="font-heading text-xl font-bold text-foreground">Pay Application Processing Fee</h2>
+                <h2 className="font-heading text-xl font-bold text-foreground text-center">Pay Processing Fee</h2>
 
                 {/* Applicant Details — HED student_pay_application_fee.php */}
                 <div>
-                  <h3 className="font-heading font-bold text-foreground mb-2.5">Applicant Details</h3>
-                  <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    {[
+                  <h3 className="font-heading font-bold text-foreground mb-2.5 text-center">Applicant Details</h3>
+                  <AdmissionInfoGrid items={[
                       ["Name", personal.full_name],
-                      ["S/O, D/O", personal.father_name],
+                      ["Father Name", personal.father_name],
                       ["Address", personal.mailing_address],
                       ["District", personal.domicile_district],
                       ["Tehsil", personal.tehsil],
-                      ["Mobile #", personal.mobile_number],
-                    ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-3 border-b border-border/60 pb-1.5">
-                        <span className="text-muted-foreground shrink-0">{k}:</span>
-                        <span className="font-semibold text-foreground text-right">{v || "N/A"}</span>
-                      </div>
-                    ))}
-                  </div>
+                      ["Mobile Number", personal.mobile_number],
+                    ].map(([k, v]) => ({ label: String(k), value: v as React.ReactNode }))} />
                 </div>
 
                 {/* Payment Details */}
                 <div>
-                  <h3 className="font-heading font-bold text-foreground mb-2.5">Payment Details</h3>
-                  <div className="rounded-xl border border-gold/40 bg-gold/5 p-4 space-y-2 text-sm">
-                    <div className="flex justify-between border-b border-gold/20 pb-2">
-                      <span className="text-muted-foreground">Tracking ID</span>
-                      <span className="font-mono font-bold text-foreground">{submitResult.tracking_id}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-gold/20 pb-2">
-                      <span className="text-muted-foreground">Processing Fee</span>
-                      <span className="font-semibold text-foreground">Rs. {PROCESSING_FEE}/-</span>
-                    </div>
-                    <div className="flex justify-between border-b border-gold/20 pb-2">
-                      <span className="text-muted-foreground">Additional Charges</span>
-                      <span className="font-semibold text-foreground">Rs. 0/-</span>
-                    </div>
-                    <div className="flex justify-between pt-0.5">
-                      <span className="font-bold text-foreground">Total</span>
-                      <span className="font-heading font-bold text-foreground">Rs. {PROCESSING_FEE}/-</span>
-                    </div>
-                  </div>
+                  <h3 className="font-heading font-bold text-foreground mb-2.5 text-center">Payment Details</h3>
+                  <AdmissionInfoGrid items={[
+                    { label: "Tracking ID", value: <span className="font-mono">{submitResult.tracking_id}</span> },
+                    { label: "Total Payable", value: `Rs ${PROCESSING_FEE}` },
+                  ]} />
+                  <h3 className="font-heading font-bold text-foreground mt-5 mb-2.5 text-center">Pay To</h3>
+                  <AdmissionPaymentAccounts methods={admSettings?.payment_methods ?? []} />
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button variant="outline" onClick={() => navigate("/admission/portal")}
-                    className="h-12 font-semibold flex-1">
-                    Cancel
+                    className="h-11 font-semibold flex-1">
+                    Pay Later
                   </Button>
-                  <Button onClick={handleProceedPayment} disabled={busy} className="h-10 font-semibold flex-1">
+                  <Button onClick={handleProceedPayment} disabled={busy} className="h-11 font-semibold flex-1">
                     {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
-                    Proceed with Payment
+                    Generate Fee Challan
                   </Button>
                 </div>
               </CardContent>
@@ -610,46 +589,39 @@ export default function ApplyFlow() {
           </motion.div>
         )}
 
-        {/* ═══ STEP 4 — DONE: JazzCash token ═══ */}
+        {/* ═══ STEP 4: DONE ═══ */}
         {step === "done" && payResult && (
           <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5">
             <Card className="border-green-500/40 shadow-card">
               <CardContent className="p-5 sm:p-7 text-center">
-                <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="w-9 h-9 text-green-600" />
+                <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle2 className="w-8 h-8 text-green-600" />
                 </div>
-                <h2 className="font-heading text-xl font-bold text-foreground">Application Submitted Successfully</h2>
-                <p className="text-sm text-muted-foreground mt-1.5">
-                  Your application has been submitted. Pay the processing fee to complete the process.
-                </p>
+                <h2 className="font-heading text-xl font-bold text-foreground">Application Submitted</h2>
+                <p className="text-sm text-muted-foreground mt-1.5">Pay the fee to the school account below, then track your status.</p>
 
-                <div className="mt-6 grid sm:grid-cols-2 gap-3 text-left">
-                  <div className="rounded-xl border border-border bg-muted/40 p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Tracking ID</p>
-                    <p className="font-mono font-bold text-lg text-foreground mt-0.5">{payResult.tracking_id}</p>
-                  </div>
-                  <div className="rounded-xl border border-border bg-muted/40 p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Processing Fee</p>
-                    <p className="font-heading font-bold text-lg text-foreground mt-0.5">Rs {PROCESSING_FEE}/-</p>
-                  </div>
-                  <div className="rounded-xl border border-gold/50 bg-gold/5 p-4 sm:col-span-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">JazzCash Token</p>
-                    <p className="font-mono font-bold text-2xl text-foreground mt-0.5 tracking-wider">{payResult.token}</p>
-                    <p className="text-[12.5px] text-muted-foreground mt-2">
-                      {HED_MESSAGES.feeTokenNotice(payResult.token, payResult.deadline)}
-                    </p>
-                  </div>
+                <div className="mt-5">
+                  <AdmissionInfoGrid items={[
+                    { label: "Tracking ID", value: <span className="font-mono text-base">{payResult.tracking_id}</span> },
+                    { label: "Payment Reference", value: <span className="font-mono text-base">{payResult.token}</span> },
+                    { label: "Amount", value: `Rs ${PROCESSING_FEE}` },
+                    { label: "Pay Before", value: payResult.deadline },
+                  ]} />
                 </div>
 
-                <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link to={`/admission/application/${submitResult?.application_id}`}>
-                    <Button className="h-9 px-6 font-semibold">
-                      <Printer className="w-5 h-5" /> Print Application
-                    </Button>
+                <h3 className="font-heading font-bold text-foreground mt-6 mb-2.5">Pay To</h3>
+                <AdmissionPaymentAccounts methods={admSettings?.payment_methods ?? []} />
+
+                <div className="mt-6 grid gap-2.5 sm:grid-cols-3">
+                  <Button className="h-10 font-semibold" onClick={handleChallan}>
+                    <Printer className="w-4 h-4" /> Fee Challan
+                  </Button>
+                  <Link to={`/admission/application/${submitResult?.application_id}`} className="block">
+                    <Button variant="outline" className="h-10 w-full font-semibold">View Application</Button>
                   </Link>
-                  <Link to="/admission/portal">
-                    <Button variant="outline" className="h-9 px-6 font-semibold">
-                      <BadgeCheck className="w-5 h-5" /> Go to Dashboard
+                  <Link to="/admission/portal" className="block">
+                    <Button variant="outline" className="h-10 w-full font-semibold">
+                      <BadgeCheck className="w-4 h-4" /> Dashboard
                     </Button>
                   </Link>
                 </div>

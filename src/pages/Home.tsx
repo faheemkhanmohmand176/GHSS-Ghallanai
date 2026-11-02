@@ -1054,7 +1054,7 @@ const Home = () => {
 
         {/* ── Foreground content ── */}
         <div className="container mx-auto px-4 sm:px-6 relative z-10 pt-10 pb-16 md:pt-6 md:pb-24">
-          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)] gap-10 items-center">
+          <div className="grid grid-cols-1 gap-10 items-center">
             <m.div initial={false} animate="visible" variants={stagger.parent} className="max-w-2xl relative min-w-0">
 
               {/* Est. badge — thin premium pill: gold left hairline + soft gold wash */}
@@ -1084,18 +1084,6 @@ const Home = () => {
 
 
             </m.div>
-
-            {/* Crest card — desktop/tablet only, static (no animation cost) */}
-            <div className="hidden md:flex justify-center">
-              <div className="relative w-full max-w-[18rem] rounded-[1.4rem] border border-[hsl(42_78%_55%/0.45)] bg-black/25 p-6 text-center">
-                <div className="absolute inset-[6px] rounded-[1.05rem] border border-[hsl(42_78%_55%/0.2)] pointer-events-none" />
-                <img src="/icon-192.png" alt="GHSS Ghallanai crest" width={96} height={96} className="mx-auto h-24 w-24 rounded-2xl object-cover ring-1 ring-[hsl(42_78%_55%/0.6)]" />
-                <p className="mt-4 font-display text-2xl font-semibold text-white leading-tight">GHSS Ghallanai</p>
-                <hr className="gold-rule my-3" />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[hsl(42_70%_72%)]">Government Higher<br />Secondary School</p>
-                <p className="mt-3 text-xs text-white/65 leading-relaxed">Quality education and excellence in District Mohmand.</p>
-              </div>
-            </div>
 
           </div>
         </div>

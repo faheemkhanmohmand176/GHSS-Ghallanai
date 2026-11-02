@@ -7,8 +7,8 @@
  */
 
 import { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { Loader2, Save, BookOpen, BadgeCheck, Info } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Loader2, Save, BookOpen, BadgeCheck } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
+import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
+import { useQueryClient } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
   interApi, EXAM_BOARDS, STUDY_GROUPS, EXAM_SESSIONS, SPORT_CERTIFICATES,
@@ -42,7 +44,9 @@ function gradeFor(pct: number): string {
 }
 
 export default function SscProfileForm() {
-  const { session, loading, token, refresh } = useInterSession();
+  const { session, loading, token } = useInterSession();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<SscProfileData>(EMPTY);
   const [busy, setBusy] = useState(false);
 
@@ -90,7 +94,8 @@ export default function SscProfileForm() {
       };
       if (res?.ok) {
         toast.success(`Matric profile saved: ${preview ? `${preview.pct}% (Grade ${preview.grade})` : ""}`);
-        refresh();
+        await queryClient.invalidateQueries({ queryKey: ["inter-session"] });
+        navigate("/admission/portal", { replace: true });
       } else {
         toast.error(res?.error || "Could not save your matric profile.");
       }
@@ -101,13 +106,14 @@ export default function SscProfileForm() {
     }
   }
 
-  const F = "space-y-1.5";
+  const F = "space-y-1.5 min-w-0";
   const inp = "h-11";
-  const sel = `${inp} rounded-xl border border-input bg-background px-3 text-sm`;
+  const sel = `${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`;
 
   return (
     <PageLayout>
-      <div className="container mx-auto px-4 py-10 sm:py-12 max-w-3xl">
+      <div className="container mx-auto px-4 py-8 sm:py-12 max-w-3xl">
+        <AdmissionBackBar to="/admission/portal" />
         <div className="mb-6">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -115,20 +121,12 @@ export default function SscProfileForm() {
             </div>
             <div>
               <h1 className="font-heading text-2xl font-bold text-foreground">Matric Profile</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">Enter your SSC (Matriculation) examination details. Required before you can apply for Intermediate admission.</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Required before you can apply.</p>
             </div>
             {session?.ssc && <BadgeCheck className="w-5 h-5 text-green-600 ml-auto shrink-0" />}
           </div>
         </div>
 
-        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-border bg-card p-4 text-[13px] text-muted-foreground">
-          <Info className="w-5 h-5 shrink-0 text-primary mt-0.5" />
-          <p>
-            Marks are entered manually. Applications submitted with manually entered marks show
-            <span className="font-semibold text-foreground"> Board Record: Not Verified</span>. The college
-            will verify your original documents at admission time.
-          </p>
-        </div>
 
         <Card className="border-border/80 shadow-card">
           <CardContent className="p-5 sm:p-7">
@@ -217,7 +215,6 @@ export default function SscProfileForm() {
                       <option value="">Select a Certificate (if any)</option>
                       {SPORT_CERTIFICATES.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <p className="text-[11px] text-muted-foreground">Required only if you apply on the Sports quota.</p>
                   </div>
                 </div>
 

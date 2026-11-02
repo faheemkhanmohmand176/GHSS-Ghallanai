@@ -516,9 +516,39 @@ function canonicalIndexHtmlRedirect(url: URL): Response | null {
   });
 }
 
+// ─── Removed feature: /gallery → 410 Gone ────────────────────────────────────
+// The Photo Gallery was removed from the website. Without this, the old URL
+// would fall through to the SPA catch-all rewrite and answer "200 OK" with the
+// homepage shell — which Google reports as a soft 404 and keeps re-crawling.
+// A real 410 tells every search engine the page is permanently gone so it is
+// dropped from the index quickly. (Googlebot never reaches the live renderer
+// for this path; it gets this response directly.)
+function isRemovedGalleryPath(pathname: string): boolean {
+  return pathname === "/gallery" || pathname.startsWith("/gallery/");
+}
+
+function goneResponse(): Response {
+  const html =
+    '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<meta name="robots" content="noindex">' +
+    "<title>Page removed — GHSS Ghallanai</title></head>" +
+    '<body style="font-family:system-ui,sans-serif;text-align:center;padding:4rem 1rem">' +
+    "<h1>This page has been removed</h1>" +
+    '<p><a href="/">Go to the GHSS Ghallanai homepage</a></p></body></html>';
+  return new Response(html, {
+    status: 410,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "X-Robots-Tag": "noindex",
+      "Cache-Control": "public, max-age=0, s-maxage=3600",
+    },
+  });
+}
+
 // ─── Main Edge Middleware ─────────────────────────────────────────────────────
 // Order of operations (each stage can short-circuit):
-//   OPTIONS passthrough → /index.html 308 → attack-UA 403 →
+//   OPTIONS passthrough → /index.html 308 → /gallery 410 → attack-UA 403 →
 //   social-crawler 302 → AI/search-crawler live render → rate limit → pass.
 export default async function middleware(
   request: Request
@@ -536,6 +566,9 @@ export default async function middleware(
   const ua = request.headers.get("user-agent") || "";
   const { fingerprint } = getClientInfo(request);
   const isApiRoute = pathname.startsWith("/api/");
+
+  // 1b) Removed Photo Gallery → 410 Gone for every client (see helper above).
+  if (isRemovedGalleryPath(pathname)) return goneResponse();
 
   // 2) Known attack-tool user agents → hard block.
   if (isBlockedUA(ua)) {

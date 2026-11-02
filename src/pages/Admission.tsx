@@ -10,6 +10,7 @@
 
 import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import { motion } from "framer-motion";
 import {
   GraduationCap, Search, UserPlus, LogIn, LayoutDashboard, ClipboardList,
@@ -17,7 +18,11 @@ import {
   BadgeCheck, BookOpen, Landmark, Wallet, Printer, Trophy, ArrowRight,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
-import PageBanner from "@/components/shared/PageBanner";
+import AdmissionStepper from "@/components/shared/AdmissionStepper";
+import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
+import { AdmissionClosedCard } from "@/components/shared/AdmissionGate";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAdmissionSettings, getAdmissionState, formatAdmissionDate } from "@/hooks/useAdmission";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,141 +33,174 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
-  interApi, getToken, QUOTA_LABEL, COLLEGE_SHORT,
-  PROCESSING_FEE, ADMISSION_CYCLE, STUDY_LEVEL, FACULTIES,
+  interApi, getToken, QUOTA_LABEL, COLLEGE_SHORT, STUDY_LEVEL, FACULTIES,
 } from "@/lib/interAdmission";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Track Application (public — tracking ID only, exactly like HED
-// application_status.php; no login, no CNIC)
+// Track Application (public: Tracking ID or payment reference, no login)
 // ─────────────────────────────────────────────────────────────────────────────
+interface TrackResult {
+  ok?: boolean; tracking_id?: string; college?: string; program?: string;
+  subject_group?: string | null; quota?: string; payment_status?: string;
+  status?: string; processing_fee?: number; payment_reference?: string | null;
+  application_date?: string; fee_deadline?: string;
+  timeline?: Array<{ title: string; details: string | null; date: string }>;
+}
+
+/** Status to stepper position (1 based). Rejected and cancelled are shown separately. */
+const TRACK_STEPS = ["Applied", "Fee Paid", "Review", "Merit", "Admitted"];
+function stepFor(status: string): number {
+  switch (status) {
+    case "fee_paid": return 2;
+    case "under_review": return 3;
+    case "merit_listed": return 4;
+    case "admitted": return 5;
+    default: return 1;
+  }
+}
+const STATUS_TEXT: Record<string, { label: string; tone: string; note: string }> = {
+  submitted:    { label: "Submitted",    tone: "bg-amber-500/15 text-amber-700 dark:text-amber-400", note: "Your application is received. Pay the processing fee to continue." },
+  fee_pending:  { label: "Fee Pending",  tone: "bg-amber-500/15 text-amber-700 dark:text-amber-400", note: "Waiting for your processing fee payment." },
+  fee_paid:     { label: "Fee Paid",     tone: "bg-green-500/15 text-green-700 dark:text-green-400", note: "Payment confirmed. Your application is in the queue for review." },
+  under_review: { label: "Under Review", tone: "bg-blue-500/15 text-blue-700 dark:text-blue-400",   note: "The school is reviewing your application." },
+  merit_listed: { label: "Merit Listed", tone: "bg-primary/10 text-primary",                         note: "You are on a published merit list. Check the merit list below." },
+  admitted:     { label: "Admitted",     tone: "bg-green-600 text-white",                            note: "Congratulations. Visit the school with your original documents." },
+  rejected:     { label: "Rejected",     tone: "bg-red-500/10 text-red-600",                         note: "Your application was not accepted. Contact the school for details." },
+  cancelled:    { label: "Cancelled",    tone: "bg-red-500/10 text-red-600",                         note: "This application was cancelled." },
+};
+
 function TrackApplication() {
   const [trackingId, setTrackingId] = useState("");
   const [searched, setSearched] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [result, setResult] = useState<TrackResult | null>(null);
+  const [failed, setFailed] = useState(false);
 
   const doSearch = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
-    const q = trackingId.trim();
+    const q = trackingId.replace(/\s+/g, "").trim();
     if (!q) { toast.error("Please enter your Tracking ID."); return; }
-    setSearching(true); setSearched(q); setResult(null);
+    setSearching(true); setSearched(q); setResult(null); setFailed(false);
     try {
-      const res = await interApi.track(q) as unknown as Record<string, unknown>;
-      setResult(res);
+      const res = (await interApi.track(q)) as unknown as TrackResult & { error?: string };
+      if (res?.ok) setResult(res);
+      else if (res?.error) setFailed(true);   // a real error, not "not found"
     } catch {
-      setResult({ ok: false });
+      setFailed(true);
     } finally {
       setSearching(false);
     }
   }, [trackingId]);
 
-  const timeline = (result?.timeline as Array<Record<string, string>> | undefined) ?? [];
-  const found = Boolean(result?.ok);
+  const timeline = result?.timeline ?? [];
+  const st = STATUS_TEXT[result?.status ?? "submitted"] ?? STATUS_TEXT.submitted;
+  const closedOut = result?.status === "rejected" || result?.status === "cancelled";
+  const paid = result?.payment_status === "Paid";
 
   return (
     <Card id="track" className="scroll-mt-24 overflow-hidden border-gold/30 shadow-card premium-frame">
       <CardContent className="p-5 sm:p-7">
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 rounded-full flex items-center justify-center shrink-0 border border-gold/40 bg-gold/[0.07]">
-            <Search className="w-[18px] h-[18px] text-gold" strokeWidth={1.4} />
+        <div className="flex flex-col items-center text-center">
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-gold/40 bg-gold/[0.07]">
+            <Search className="h-[19px] w-[19px] text-gold" strokeWidth={1.4} />
           </div>
-          <div className="min-w-0">
-            <span className="premium-kicker block !text-[0.6rem]">Status</span>
-            <h2 className="font-heading text-lg sm:text-xl font-semibold text-foreground leading-tight">Track Application</h2>
-          </div>
+          <span className="premium-kicker mt-2 block !text-[0.6rem]">Status</span>
+          <h2 className="font-heading text-xl font-semibold leading-tight text-foreground sm:text-2xl">Track Application</h2>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">Enter your Tracking ID or payment reference.</p>
         </div>
-        <form onSubmit={doSearch} className="mt-4">
+        <form onSubmit={doSearch} className="mx-auto mt-4 max-w-md">
           <div className="flex items-center gap-1.5 rounded-full border border-border bg-background/70 p-1 pl-4 shadow-sm transition-colors focus-within:border-gold/60 focus-within:ring-2 focus-within:ring-gold/15">
-            <Search className="w-4 h-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
             <input
               value={trackingId}
               onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
-              placeholder="Tracking ID"
-              className="h-9 min-w-0 flex-1 bg-transparent text-[13.5px] font-semibold tracking-[0.08em] text-foreground placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground/70 outline-none"
+              placeholder="e.g. NOV2026100003"
+              className="h-9 min-w-0 flex-1 bg-transparent text-[13.5px] font-semibold tracking-[0.08em] text-foreground outline-none placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground/70"
               aria-label="Application Tracking ID"
               autoComplete="off"
               autoCapitalize="characters"
             />
             <Button type="submit" disabled={searching} className="h-9 shrink-0 rounded-full px-5 text-[12.5px] font-semibold tracking-wide">
-              {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />}
+              {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />}
               Track
             </Button>
           </div>
         </form>
 
-        {searched && (
-          <div className="mt-5">
-            {found ? (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                <div className="flex items-start gap-2.5 rounded-xl border border-green-500/30 bg-green-500/5 p-3.5">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-bold text-foreground">Application Detail</p>
-                    <p className="text-muted-foreground">Tracking ID <span className="font-mono font-bold text-foreground">{String(result?.tracking_id)}</span></p>
+        {searched && !searching && (
+          <div className="mt-6">
+            {result ? (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+                {/* Header */}
+                <div className="flex flex-col items-center rounded-2xl border border-border bg-muted/30 px-4 py-4 text-center">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Tracking ID</span>
+                  <span className="mt-0.5 font-mono text-xl font-bold tracking-wider text-foreground">{result.tracking_id}</span>
+                  <Badge variant="secondary" className={`mt-2 ${st.tone}`}>{st.label}</Badge>
+                  <p className="mt-2 max-w-sm text-[12.5px] leading-relaxed text-muted-foreground">{st.note}</p>
+                </div>
+
+                {/* Progress */}
+                {closedOut ? (
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-3 text-sm font-semibold text-red-600">
+                    <XCircle className="h-4 w-4" /> {st.label}
                   </div>
-                </div>
-                <div className="overflow-x-auto rounded-xl border border-border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-primary text-primary-foreground">
-                      <tr className="text-left">
-                        <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">#</th>
-                        <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Tracking Id</th>
-                        <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">College</th>
-                        <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Program</th>
-                        <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Payment Status</th>
-                        <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Application Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-t border-border">
-                        <td className="px-3 py-2.5">1</td>
-                        <td className="px-3 py-2.5 font-mono font-semibold">{String(result?.tracking_id)}</td>
-                        <td className="px-3 py-2.5">{String(result?.college)}</td>
-                        <td className="px-3 py-2.5">{String(result?.program)}</td>
-                        <td className="px-3 py-2.5">
-                          <Badge variant={String(result?.payment_status) === "Paid" ? "default" : "secondary"}
-                            className={String(result?.payment_status) === "Paid" ? "bg-green-600" : ""}>
-                            {String(result?.payment_status)}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2.5">{String(result?.application_date)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                ) : (
+                  <AdmissionStepper steps={TRACK_STEPS} current={stepFor(result.status ?? "submitted")} />
+                )}
+
+                {/* Summary */}
+                <AdmissionInfoGrid
+                  items={[
+                    { label: "Program", value: result.program },
+                    ...(result.subject_group ? [{ label: "Subject Group", value: result.subject_group }] : []),
+                    { label: "Category", value: QUOTA_LABEL[result.quota ?? ""] ?? result.quota },
+                    { label: "Processing Fee", value: (
+                      <span className="inline-flex items-center gap-1.5">
+                        Rs {result.processing_fee}
+                        <Badge variant="secondary" className={paid ? "bg-green-500/15 text-green-700 dark:text-green-400" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"}>
+                          {result.payment_status}
+                        </Badge>
+                      </span>
+                    ) },
+                    { label: "Applied On", value: result.application_date },
+                    { label: paid ? "Payment Reference" : "Fee Deadline", value: paid ? result.payment_reference : result.fee_deadline },
+                    { label: "College", value: result.college, wide: true },
+                  ]}
+                />
+
+                {/* Timeline */}
                 {timeline.length > 0 && (
-                  <div className="overflow-x-auto rounded-xl border border-border">
-                    <table className="w-full text-sm">
-                      <thead className="bg-primary text-primary-foreground">
-                        <tr className="text-left">
-                          <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">#</th>
-                          <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Title</th>
-                          <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Date</th>
-                          <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Detials</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {timeline.map((t, i) => (
-                          <tr key={i} className="border-t border-border">
-                            <td className="px-3 py-2.5">{i + 1}</td>
-                            <td className="px-3 py-2.5 font-semibold">{t.title}</td>
-                            <td className="px-3 py-2.5 whitespace-nowrap">{t.date}</td>
-                            <td className="px-3 py-2.5 text-muted-foreground">{t.details}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div>
+                    <h3 className="mb-3 text-center font-heading text-[15px] font-semibold text-foreground">Application Timeline</h3>
+                    <ol className="mx-auto max-w-xl space-y-0">
+                      {[...timeline].reverse().map((t, i, arr) => (
+                        <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
+                          {i < arr.length - 1 && <span className="absolute left-[9px] top-5 h-[calc(100%-12px)] w-px bg-border" aria-hidden />}
+                          <span className={`relative z-10 mt-1 h-[19px] w-[19px] shrink-0 rounded-full border-2 ${i === 0 ? "border-gold bg-gold/20" : "border-border bg-card"}`} />
+                          <div className="min-w-0 flex-1 rounded-xl border border-border/70 bg-card px-3 py-2.5">
+                            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
+                              <p className="text-[13.5px] font-semibold text-foreground">{t.title}</p>
+                              <p className="text-[11px] text-muted-foreground">{t.date}</p>
+                            </div>
+                            {t.details && <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">{t.details}</p>}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
                   </div>
                 )}
               </motion.div>
             ) : (
-              <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5 text-sm">
-                <XCircle className="w-5 h-5 text-amber-600 shrink-0" />
-                <p className="text-muted-foreground">
-                  No application found for Tracking ID <span className="font-mono font-bold text-foreground">{searched}</span>.
-                  Please check the ID on your submission receipt.
+              <div className="mx-auto flex max-w-md flex-col items-center rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-5 text-center">
+                <XCircle className="h-6 w-6 text-amber-600" />
+                <p className="mt-2 text-sm font-semibold text-foreground">
+                  {failed ? "Could not check right now" : "No application found"}
+                </p>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                  {failed
+                    ? "Please check your connection and try again."
+                    : <>No match for <span className="font-mono font-bold text-foreground">{searched}</span>. Check the Tracking ID on your challan.</>}
                 </p>
               </div>
             )}
@@ -287,37 +325,37 @@ function MeritLists() {
                   <p className="font-bold text-foreground mb-1">Important Dates</p>
                   <p className="text-muted-foreground">
                     Admission Start: <span className="font-semibold text-foreground">{view.list?.admission_start_date ?? "N/A"}</span>
-                    {" · "}Admission Last Date: <span className="font-semibold text-foreground">{view.list?.admission_last_date ?? "N/A"}</span>
+                    {"   "}Admission Last Date: <span className="font-semibold text-foreground">{view.list?.admission_last_date ?? "N/A"}</span>
                   </p>
                 </div>
               )}
               <div className="overflow-x-auto rounded-xl border border-border">
                 <table className="w-full text-[12.5px]">
                   <thead className="bg-primary text-primary-foreground">
-                    <tr className="text-left">
-                      <th className="px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">#</th>
-                      <th className="px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Tracking ID</th>
-                      <th className="px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Name</th>
-                      <th className="px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Father Name</th>
-                      <th className="px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Total</th>
-                      <th className="px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Obtained</th>
-                      <th className="px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Net Marks</th>
-                      <th className="px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">%</th>
-                      <th className="px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Remarks</th>
+                    <tr>
+                      <th className="text-center align-middle px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">#</th>
+                      <th className="text-center align-middle px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Tracking ID</th>
+                      <th className="text-center align-middle px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Name</th>
+                      <th className="text-center align-middle px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Father Name</th>
+                      <th className="text-center align-middle px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Total</th>
+                      <th className="text-center align-middle px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Obtained</th>
+                      <th className="text-center align-middle px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Net Marks</th>
+                      <th className="text-center align-middle px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">%</th>
+                      <th className="text-center align-middle px-2.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Remarks</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(view.entries ?? []).map((e) => (
                       <tr key={e.tracking_id} className="border-t border-border">
-                        <td className="px-2.5 py-2.5">{e.position}</td>
-                        <td className="px-2.5 py-2.5 font-mono font-semibold">{e.tracking_id}</td>
-                        <td className="px-2.5 py-2.5 font-semibold text-foreground">{e.name}</td>
-                        <td className="px-2.5 py-2.5">{e.father_name}</td>
-                        <td className="px-2.5 py-2.5">{e.total_marks}</td>
-                        <td className="px-2.5 py-2.5">{e.obtained_marks}</td>
-                        <td className="px-2.5 py-2.5 font-semibold">{e.net_marks}</td>
-                        <td className="px-2.5 py-2.5 font-semibold text-primary">{e.percentage}%</td>
-                        <td className="px-2.5 py-2.5 text-muted-foreground">{e.remarks ?? "N/A"}</td>
+                        <td className="text-center align-middle px-2.5 py-2.5">{e.position}</td>
+                        <td className="text-center align-middle px-2.5 py-2.5 font-mono font-semibold">{e.tracking_id}</td>
+                        <td className="text-center align-middle px-2.5 py-2.5 font-semibold text-foreground">{e.name}</td>
+                        <td className="text-center align-middle px-2.5 py-2.5">{e.father_name}</td>
+                        <td className="text-center align-middle px-2.5 py-2.5">{e.total_marks}</td>
+                        <td className="text-center align-middle px-2.5 py-2.5">{e.obtained_marks}</td>
+                        <td className="text-center align-middle px-2.5 py-2.5 font-semibold">{e.net_marks}</td>
+                        <td className="text-center align-middle px-2.5 py-2.5 font-semibold text-primary">{e.percentage}%</td>
+                        <td className="text-center align-middle px-2.5 py-2.5 text-muted-foreground">{e.remarks ?? "N/A"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -342,70 +380,151 @@ function MeritLists() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────────────────────────────────────
-const HERO_BTN = "inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-[12.5px] font-semibold tracking-wide transition-all active:scale-[0.97]";
-const HERO_BTN_PRIMARY = "bg-gold text-white shadow-[0_6px_18px_-8px_rgba(0,0,0,0.6)] hover:brightness-110";
-const HERO_BTN_GLASS = "border border-white/30 bg-white/[0.06] text-white backdrop-blur-sm hover:bg-white/15";
+function buildSteps(fee: number) {
+  return [
+    { icon: UserPlus,      title: "Create Account",     desc: "Register with CNIC or Form-B, mobile number and a password." },
+    { icon: ClipboardList, title: "Personal Profile",   desc: "Name, date of birth, domicile, parents and address." },
+    { icon: BookOpen,      title: "Matric Profile",     desc: "SSC board, session, roll number and marks." },
+    { icon: Landmark,      title: "Submit Application", desc: `Choose a program (${FACULTIES.join(", ")}) and a category.` },
+    { icon: BadgeCheck,    title: "Confirm and Pay",    desc: `Review everything, then submit with the Rs ${fee} processing fee.` },
+    { icon: Wallet,        title: "Pay the Fee",        desc: "Pay into the school account printed on your fee challan." },
+    { icon: Search,        title: "Track Status",       desc: "Check payment and application status with your Tracking ID." },
+    { icon: Printer,       title: "Print and Visit",    desc: "Print the form and bring original documents to the school." },
+  ];
+}
 
-const HOW_TO_APPLY = [
-  { icon: UserPlus,      title: "Create Account",   desc: "Register with CNIC or Form-B, mobile number and a password." },
-  { icon: ClipboardList, title: "Personal Profile", desc: "Name, date of birth, domicile, parents and address." },
-  { icon: BookOpen,      title: "Matric Profile",   desc: "SSC board, session, roll number and marks." },
-  { icon: Landmark,      title: "Submit Application", desc: `Choose a program (${FACULTIES.join(", ")}) and a quota.` },
-  { icon: BadgeCheck,    title: "Confirm & Pay",    desc: `Review everything, then submit with the Rs ${PROCESSING_FEE} fee.` },
-  { icon: Wallet,        title: "Pay via JazzCash", desc: "Use your JazzCash token at any shop or in the app." },
-  { icon: Search,        title: "Track Status",     desc: "Check payment and application status with your Tracking ID." },
-  { icon: Printer,       title: "Print & Visit",    desc: "Print the form and bring original documents to college." },
-];
+const ACTION_BASE = "group flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.98]";
+const ACTION_GOLD = "bg-gradient-to-br from-[#e6bf55] to-[#b8891f] text-[#1c2a10] shadow-[0_12px_30px_-12px_rgba(214,170,60,0.75)] hover:brightness-110";
+const ACTION_GLASS = "border border-white/20 bg-white/[0.07] text-white backdrop-blur-md hover:border-white/40 hover:bg-white/[0.13]";
+
+function ActionTile({
+  icon: Icon, title, sub, gold, to, href, onClick,
+}: {
+  icon: typeof UserPlus; title: string; sub: string; gold?: boolean;
+  to?: string; href?: string; onClick?: () => void;
+}) {
+  const cls = `${ACTION_BASE} ${gold ? ACTION_GOLD : ACTION_GLASS}`;
+  const inner = (
+    <>
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${gold ? "bg-black/15" : "bg-white/10 ring-1 ring-white/20"}`}>
+        <Icon className="h-[19px] w-[19px]" strokeWidth={1.6} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14.5px] font-bold leading-tight">{title}</span>
+        <span className={`mt-0.5 block text-[11.5px] leading-tight ${gold ? "text-[#1c2a10]/70" : "text-white/65"}`}>{sub}</span>
+      </span>
+      <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+    </>
+  );
+  if (to) return <Link to={to} className={cls}>{inner}</Link>;
+  if (href) return <a href={href} className={cls}>{inner}</a>;
+  return <button type="button" onClick={onClick} className={cls}>{inner}</button>;
+}
+
+function AdmissionHero({
+  session, daysLeft, lastDate, hasSession, open,
+}: {
+  session: string; daysLeft: number | null; lastDate: string | null; hasSession: boolean; open: boolean;
+}) {
+  const navigate = useNavigate();
+  return (
+    <section className="relative overflow-hidden bg-[linear-gradient(135deg,#0a3220_0%,#0e4128_52%,#155534_100%)] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_88%_0%,rgba(214,170,60,0.30),transparent_62%),radial-gradient(50%_60%_at_0%_100%,rgba(214,170,60,0.14),transparent_60%)]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d6aa3c]/70 to-transparent" />
+      <div className="container relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-9 text-center sm:pb-14 sm:pt-12">
+        <span className="inline-flex items-center gap-2 rounded-full border border-[#d6aa3c]/50 bg-[#d6aa3c]/10 px-3.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.22em] text-[#f0d27a]">
+          <GraduationCap className="h-3.5 w-3.5" strokeWidth={1.6} /> Online Admissions
+        </span>
+        <h1 className="mt-4 font-heading text-[2rem] font-semibold leading-[1.1] sm:text-5xl">Intermediate Admissions</h1>
+        <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-white/70 sm:text-[15px]">{COLLEGE_SHORT}</p>
+
+        {/* Session + countdown */}
+        {open && (
+          <div className="mt-6 grid w-full max-w-lg grid-cols-3 overflow-hidden rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-md">
+            <div className="flex flex-col items-center justify-center px-2 py-3.5">
+              <span className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-white/55">Session</span>
+              <span className="mt-1 font-heading text-xl font-semibold sm:text-2xl">{session || "N/A"}</span>
+            </div>
+            <div className="flex flex-col items-center justify-center border-x border-white/15 bg-[#d6aa3c]/[0.14] px-2 py-3.5">
+              <span className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[#f0d27a]">
+                {daysLeft === null ? "Status" : daysLeft === 1 ? "Day Remaining" : "Days Remaining"}
+              </span>
+              <span className="mt-1 font-heading text-3xl font-bold leading-none text-[#f6dc8c] sm:text-4xl">
+                {daysLeft === null ? "Open" : daysLeft}
+              </span>
+            </div>
+            <div className="flex flex-col items-center justify-center px-2 py-3.5">
+              <span className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-white/55">Last Date</span>
+              <span className="mt-1 text-[13px] font-semibold leading-tight sm:text-sm">
+                {lastDate ? formatAdmissionDate(lastDate) : "To be announced"}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className={`mt-6 grid w-full gap-3 ${hasSession ? "max-w-xl sm:grid-cols-2" : "max-w-3xl sm:grid-cols-3"}`}>
+          {hasSession ? (
+            <ActionTile icon={LayoutDashboard} title="My Portal" sub="Continue your application" gold onClick={() => navigate("/admission/portal")} />
+          ) : (
+            <>
+              <ActionTile icon={UserPlus} title="Create Account" sub="Start your application" gold to="/admission/register" />
+              <ActionTile icon={LogIn} title="Login" sub="Continue your application" to="/admission/login" />
+            </>
+          )}
+          <ActionTile icon={Search} title="Track Application" sub="Check your status" href="#track" />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function Admission() {
-  const navigate = useNavigate();
   const hasSession = Boolean(getToken());
   const { data: school } = useSchoolSettings();
+  const { data: settings, isLoading: settingsLoading, isError: settingsError } = useAdmissionSettings();
+  const state = getAdmissionState(settings);
+  const fee = settings?.processing_fee ?? 100;
+  const session = settings?.session_year ?? "";
+  const steps = buildSteps(fee);
 
   const { data: programs } = useQuery({
     queryKey: ["inter-programs-public"],
     queryFn: () => interApi.programsList() as Promise<{ ok?: boolean } & { [k: string]: unknown }>,
     staleTime: 5 * 60 * 1000,
+    enabled: state.open || settingsError,
   });
   const programList = (programs as unknown as { id?: number; name: string; study_level: string; seats: number }[] | undefined) ?? [];
-  // Offline fallback — the school's own four Inter faculties (never BS/D.Com)
-  const fallbackPrograms = [
-    { id: 1, name: "Pre-Medical", study_level: STUDY_LEVEL, seats: 100 },
-    { id: 2, name: "Pre-Engineering", study_level: STUDY_LEVEL, seats: 50 },
-    { id: 3, name: "ICS (Computer Sciences)", study_level: STUDY_LEVEL, seats: 50 },
-    { id: 4, name: "Arts/Humanities", study_level: STUDY_LEVEL, seats: 100 },
-  ];
+
+  if (settingsLoading) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto max-w-3xl space-y-4 px-4 py-14">
+          <Skeleton className="h-10 w-64 rounded-xl" />
+          <Skeleton className="h-48 rounded-3xl" />
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Admin closed admissions (or the date window is over): everything is locked.
+  if (!settingsError && !state.open) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto max-w-xl px-4 py-12">
+          <AdmissionBackBar to="/" />
+          <AdmissionClosedCard state={state} />
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout>
-      <PageBanner
-        variant="premium"
-        eyebrow="Online Admissions"
-        icon={<GraduationCap className="w-6 h-6" strokeWidth={1.3} />}
-        title="Intermediate Admissions"
-        subtitle={`${COLLEGE_SHORT} · ${STUDY_LEVEL} · Session 2026–27. Fully online, no manual or postal forms accepted.`}
-        actions={
-          <div className="flex w-full max-w-sm flex-wrap items-center justify-center gap-2">
-            {hasSession ? (
-              <button onClick={() => navigate("/admission/portal")} className={`${HERO_BTN} ${HERO_BTN_PRIMARY}`}>
-                <LayoutDashboard className="w-4 h-4" strokeWidth={1.5} /> My Portal
-              </button>
-            ) : (
-              <>
-                <Link to="/admission/register" className={`${HERO_BTN} ${HERO_BTN_PRIMARY}`}>
-                  <UserPlus className="w-4 h-4" strokeWidth={1.5} /> Create Account
-                </Link>
-                <Link to="/admission/login" className={`${HERO_BTN} ${HERO_BTN_GLASS}`}>
-                  <LogIn className="w-4 h-4" strokeWidth={1.5} /> Login
-                </Link>
-              </>
-            )}
-            <a href="#track" className={`${HERO_BTN} ${HERO_BTN_GLASS}`}>
-              <Search className="w-4 h-4" strokeWidth={1.5} /> Track Application
-            </a>
-          </div>
-        }
-      />
+      <div className="container mx-auto max-w-5xl px-4 pt-4">
+        <AdmissionBackBar to="/" label="Home" />
+      </div>
+      <AdmissionHero session={session} daysLeft={state.daysLeft} lastDate={state.lastDate} hasSession={hasSession} open />
 
       <div className="container mx-auto px-4 py-10 sm:py-14 max-w-5xl space-y-12">
         {/* How to apply */}
@@ -418,7 +537,7 @@ export default function Admission() {
             </p>
           </div>
           <ol className="relative mx-auto grid max-w-3xl gap-x-8 sm:grid-cols-2">
-            {HOW_TO_APPLY.map((s, i) => (
+            {steps.map((s, i) => (
               <motion.li
                 key={s.title}
                 initial={{ opacity: 0, y: 10 }}
@@ -454,34 +573,40 @@ export default function Admission() {
             <span className="premium-kicker block">Offered</span>
             <h2 className="section-title premium-display !text-[1.9rem] sm:!text-4xl mt-1">Programs &amp; Seats</h2>
             <p className="text-muted-foreground mt-2 text-sm">
-              Cycle <span className="font-semibold text-foreground">{ADMISSION_CYCLE}</span> · Morning shift for highest merit
+              Session <span className="font-semibold text-foreground">{session}</span>
             </p>
           </div>
-          <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-card">
-            <table className="w-full text-sm">
-              <thead className="bg-primary text-primary-foreground">
-                <tr className="text-left">
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Program</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Study Level</th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Program Seats</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(programList.length ? programList : fallbackPrograms).map((p) => (
-                  <tr key={p.id} className="border-t border-border">
-                    <td className="px-4 py-3 font-semibold text-foreground">{p.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{p.study_level}</td>
-                    <td className="px-4 py-3 font-semibold">{p.seats}</td>
+          {programList.length === 0 ? (
+            <p className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground shadow-card">
+              Programs will be announced by the school soon.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-card">
+              <table className="w-full text-sm">
+                <thead className="bg-primary text-primary-foreground">
+                  <tr>
+                    <th className="text-center align-middle px-4 py-3 text-center align-middle text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Program</th>
+                    <th className="text-center align-middle px-4 py-3 text-center align-middle text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Study Level</th>
+                    <th className="text-center align-middle px-4 py-3 text-center align-middle text-[11px] font-semibold uppercase tracking-[0.1em] whitespace-nowrap">Seats</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {programList.map((p, i) => (
+                    <tr key={p.id ?? i} className="border-t border-border">
+                      <td className="text-center align-middle px-4 py-3 text-center align-middle font-semibold text-foreground">{p.name}</td>
+                      <td className="text-center align-middle px-4 py-3 text-center align-middle text-muted-foreground">{p.study_level}</td>
+                      <td className="text-center align-middle px-4 py-3 text-center align-middle font-semibold">{p.seats}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
           <div className="mt-3.5 flex flex-wrap items-center justify-center gap-1.5">
             {[
-              "All quotas except Afghan count in Open Merit",
-              "One application per quota or program",
-              `Fee Rs ${PROCESSING_FEE} each`,
+              "All categories except Afghan count in Open Merit",
+              "One application per category or program",
+              `Processing fee Rs ${fee} per application`,
             ].map((t) => (
               <span key={t} className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/[0.05] px-3 py-1 text-[11.5px] font-medium text-muted-foreground">
                 <span className="h-1 w-1 rounded-full bg-gold" />{t}
@@ -490,11 +615,11 @@ export default function Admission() {
           </div>
         </section>
 
-        {/* Categories / quotas */}
+        {/* Categories */}
         <section>
           <div className="text-center mb-5">
             <span className="premium-kicker block">Categories</span>
-            <h2 className="section-title premium-display !text-[1.75rem] sm:!text-4xl mt-1">Admission Quotas</h2>
+            <h2 className="section-title premium-display !text-[1.75rem] sm:!text-4xl mt-1">Admission Categories</h2>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {Object.entries(QUOTA_LABEL).map(([k, label]) => (
