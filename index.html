@@ -91,6 +91,24 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
 
+    <!-- Capture the PWA install event as early as possible. Chrome fires
+         beforeinstallprompt once, often before React mounts; without this the
+         event is lost and new visitors never get an install prompt. -->
+    <script>
+      (function () {
+        window.__pwaInstallEvent = null;
+        window.addEventListener('beforeinstallprompt', function (e) {
+          e.preventDefault();
+          window.__pwaInstallEvent = e;
+          window.dispatchEvent(new Event('pwa-install-available'));
+        });
+        window.addEventListener('appinstalled', function () {
+          window.__pwaInstallEvent = null;
+          window.dispatchEvent(new Event('pwa-installed'));
+        });
+      })();
+    </script>
+
     <!-- RSS Feed — discoverable by browsers and feed readers -->
     <link rel="alternate" type="application/rss+xml" title="GHSS Ghallanai — Notices" href="/rss.xml" />
 
