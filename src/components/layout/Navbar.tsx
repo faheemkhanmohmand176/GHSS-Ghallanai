@@ -789,8 +789,6 @@ const MobileMenu = memo(function MobileMenu({
                 />
               </li>
             ))}
-            <InstallAppButton />
-
             {/* ── Account ── */}
             {!authLoading && (
               user ? (
