@@ -191,7 +191,7 @@ async function fetchSchoolProfile() {
     classes_offered: ["1st Year", "2nd Year"],
     board: "BISE Peshawar",
     website: SITE_URL,
-    facebook: "https://www.facebook.com/share/1EERTSk1W7/",
+    facebook: "https://www.facebook.com/share/19doja9mNr/",
   };
 }
 
@@ -579,7 +579,7 @@ async function getLiveSiteData(sections) {
     classes_offered: ["1st Year", "2nd Year"],
     board: "BISE Peshawar",
     website: SITE_URL,
-    facebook: "https://www.facebook.com/share/1EERTSk1W7/",
+    facebook: "https://www.facebook.com/share/19doja9mNr/",
   };
   data.admission = data.admission || { currently_open: null, how_to_apply: [], required_documents: [] };
   data.admissionFiles = data.admissionFiles || [];
