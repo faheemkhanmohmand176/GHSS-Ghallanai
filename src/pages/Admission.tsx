@@ -393,8 +393,8 @@ function buildSteps(fee: number) {
   ];
 }
 
-const ACTION_BASE = "group flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left transition-all duration-200 active:scale-[0.98]";
-const ACTION_GOLD = "bg-gradient-to-br from-[#e6bf55] to-[#b8891f] text-[#1c2a10] shadow-[0_12px_30px_-12px_rgba(214,170,60,0.75)] hover:brightness-110";
+const ACTION_BASE = "group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-all duration-200 active:scale-[0.98]";
+const ACTION_GOLD = "bg-gradient-to-br from-[#e6bf55] to-[#b8891f] text-[#1c2a10] shadow-[0_6px_16px_-8px_rgba(214,170,60,0.7)] hover:brightness-110";
 const ACTION_GLASS = "border border-white/20 bg-white/[0.07] text-white backdrop-blur-md hover:border-white/40 hover:bg-white/[0.13]";
 
 function ActionTile({
@@ -406,14 +406,14 @@ function ActionTile({
   const cls = `${ACTION_BASE} ${gold ? ACTION_GOLD : ACTION_GLASS}`;
   const inner = (
     <>
-      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${gold ? "bg-black/15" : "bg-white/10 ring-1 ring-white/20"}`}>
-        <Icon className="h-[19px] w-[19px]" strokeWidth={1.6} />
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${gold ? "bg-black/15" : "bg-white/10 ring-1 ring-white/20"}`}>
+        <Icon className="h-[16px] w-[16px]" strokeWidth={1.6} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[14.5px] font-bold leading-tight">{title}</span>
-        <span className={`mt-0.5 block text-[11.5px] leading-tight ${gold ? "text-[#1c2a10]/70" : "text-white/65"}`}>{sub}</span>
+        <span className="block text-[13px] font-bold leading-tight">{title}</span>
+        <span className={`mt-px block text-[10.5px] leading-tight ${gold ? "text-[#1c2a10]/70" : "text-white/65"}`}>{sub}</span>
       </span>
-      <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+      <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
     </>
   );
   if (to) return <Link to={to} className={cls}>{inner}</Link>;
@@ -431,7 +431,7 @@ function AdmissionHero({
     <section className="relative overflow-hidden bg-[linear-gradient(135deg,#0a3220_0%,#0e4128_52%,#155534_100%)] text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_88%_0%,rgba(214,170,60,0.30),transparent_62%),radial-gradient(50%_60%_at_0%_100%,rgba(214,170,60,0.14),transparent_60%)]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d6aa3c]/70 to-transparent" />
-      <div className="container relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-10 pt-9 text-center sm:pb-14 sm:pt-12">
+      <div className="container relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-7 pt-7 text-center sm:pb-10 sm:pt-10">
         <span className="inline-flex items-center gap-2 rounded-full border border-[#d6aa3c]/50 bg-[#d6aa3c]/10 px-3.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.22em] text-[#f0d27a]">
           <GraduationCap className="h-3.5 w-3.5" strokeWidth={1.6} /> Online Admissions
         </span>
@@ -440,22 +440,22 @@ function AdmissionHero({
 
         {/* Session + countdown */}
         {open && (
-          <div className="mt-6 grid w-full max-w-lg grid-cols-3 overflow-hidden rounded-2xl border border-white/15 bg-white/[0.07] backdrop-blur-md">
-            <div className="flex flex-col items-center justify-center px-2 py-3.5">
-              <span className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-white/55">Session</span>
-              <span className="mt-1 font-heading text-xl font-semibold sm:text-2xl">{session || "N/A"}</span>
+          <div className="mt-4 grid w-full max-w-sm grid-cols-3 overflow-hidden rounded-xl border border-white/15 bg-white/[0.07] backdrop-blur-md">
+            <div className="flex flex-col items-center justify-center px-1.5 py-2">
+              <span className="text-[8.5px] font-semibold uppercase tracking-[0.16em] text-white/55">Session</span>
+              <span className="mt-0.5 font-heading text-[15px] font-semibold sm:text-base">{session || "N/A"}</span>
             </div>
-            <div className="flex flex-col items-center justify-center border-x border-white/15 bg-[#d6aa3c]/[0.14] px-2 py-3.5">
-              <span className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-[#f0d27a]">
+            <div className="flex flex-col items-center justify-center border-x border-white/15 bg-[#d6aa3c]/[0.14] px-1.5 py-2">
+              <span className="text-[8.5px] font-semibold uppercase tracking-[0.16em] text-[#f0d27a]">
                 {daysLeft === null ? "Status" : daysLeft === 1 ? "Day Remaining" : "Days Remaining"}
               </span>
-              <span className="mt-1 font-heading text-3xl font-bold leading-none text-[#f6dc8c] sm:text-4xl">
+              <span className="mt-0.5 font-heading text-[19px] font-bold leading-none text-[#f6dc8c] sm:text-xl">
                 {daysLeft === null ? "Open" : daysLeft}
               </span>
             </div>
-            <div className="flex flex-col items-center justify-center px-2 py-3.5">
-              <span className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-white/55">Last Date</span>
-              <span className="mt-1 text-[13px] font-semibold leading-tight sm:text-sm">
+            <div className="flex flex-col items-center justify-center px-1.5 py-2">
+              <span className="text-[8.5px] font-semibold uppercase tracking-[0.16em] text-white/55">Last Date</span>
+              <span className="mt-0.5 text-[11px] font-semibold leading-tight sm:text-xs">
                 {lastDate ? formatAdmissionDate(lastDate) : "To be announced"}
               </span>
             </div>
@@ -463,7 +463,7 @@ function AdmissionHero({
         )}
 
         {/* Actions */}
-        <div className={`mt-6 grid w-full gap-3 ${hasSession ? "max-w-xl sm:grid-cols-2" : "max-w-3xl sm:grid-cols-3"}`}>
+        <div className={`mt-4 grid w-full gap-2 ${hasSession ? "max-w-xl sm:grid-cols-2" : "max-w-3xl sm:grid-cols-3"}`}>
           {hasSession ? (
             <ActionTile icon={LayoutDashboard} title="My Portal" sub="Continue your application" gold onClick={() => navigate("/admission/portal")} />
           ) : (
@@ -521,9 +521,6 @@ export default function Admission() {
 
   return (
     <PageLayout>
-      <div className="container mx-auto max-w-5xl px-4 pt-4">
-        <AdmissionBackBar to="/" label="Home" />
-      </div>
       <AdmissionHero session={session} daysLeft={state.daysLeft} lastDate={state.lastDate} hasSession={hasSession} open />
 
       <div className="container mx-auto px-4 py-10 sm:py-14 max-w-5xl space-y-12">
