@@ -601,7 +601,7 @@ const Contact = () => {
                 </p>
                 <div className="space-y-3">
                   <a
-                    href="https://wa.me/"
+                    href="https://wa.me/923459409585"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-3 w-full rounded-2xl border border-[#25D366]/25 bg-[#25D366]/10 hover:bg-[#25D366]/20 hover:border-[#25D366]/50 px-4 py-3 transition-all card-lift"
@@ -617,7 +617,7 @@ const Contact = () => {
                   </a>
 
                   <a
-                    href="https://www.facebook.com/share/1EERTSk1W7/"
+                    href="https://www.facebook.com/share/19doja9mNr/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-3 w-full rounded-2xl border border-[#1877F2]/25 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 hover:border-[#1877F2]/50 px-4 py-3 transition-all card-lift"
