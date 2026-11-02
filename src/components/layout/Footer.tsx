@@ -121,7 +121,7 @@ const Footer = () => {
             {/* Social media */}
             <div className="flex items-center gap-3 mt-4">
               <a
-                href="https://www.facebook.com/share/1EERTSk1W7/"
+                href="https://www.facebook.com/share/19doja9mNr/"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Follow GHSS Ghallanai on Facebook"
@@ -130,7 +130,7 @@ const Footer = () => {
                 <Facebook className="w-4 h-4 text-white" />
               </a>
               <a
-                href="https://wa.me/"
+                href="https://wa.me/923459409585"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Contact GHSS Ghallanai on WhatsApp"
