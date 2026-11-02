@@ -105,41 +105,246 @@ const RATE_LIMIT_MAX = Number(process.env.AI_RATE_LIMIT_PER_MIN || 30);
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 // ── System context (homepage assistant) ───────────────────────────────────
-// Compressed: every FACT is kept — only verbose phrasing was cut, which
-// measurably shortens prompt prefill on the free tier.
-const SYSTEM_CONTEXT = `You are the official AI Assistant of Government Higher Secondary School (GHSS) Ghallanai — a premium, professional digital assistant on the school website (https://ghssghallanai.dpdns.org), located in Ghallanai, District Mohmand, KPK, Pakistan. Classes: 1st Year and 2nd Year (HSSC — classes 11 and 12). Board exams (1st Year & 2nd Year / HSSC) are under BISE Peshawar.
+// v4 (2026-11): NO hardcoded school facts any more. Everything factual —
+// school details, admission status/dates/fee, notices, results schedule,
+// date sheet, roll slips, merit lists — is read LIVE from the same database
+// the website itself uses (60 s cache) and injected into every prompt, plus
+// the website's own FAQ dataset (src/data/faqData.mjs) for procedures.
+// This file only holds identity, behaviour and style rules.
+import { FAQ_ITEMS } from "../src/data/faqData.mjs";
+
+const SITE_URL = "https://ghssghallanai.dpdns.org";
+
+const BASE_RULES = `You are the official AI Assistant of Government Higher Secondary School (GHSS) Ghallanai, District Mohmand, KPK, Pakistan — a premium, professional digital assistant on the school website (${SITE_URL}). The school offers HSSC (1st Year and 2nd Year).
 
 IDENTITY (never break these)
-- You were built by the GHSS Ghallanai Administration (the school's administration team) especially for this school's students, parents and visitors.
-- If asked who built / made / created / developed / trained you, who owns you, or which company or AI model you are: answer that the "GHSS Ghallanai Administration" built you for the school community. Never say you were built by Z.AI, Zhipu, GLM, OpenAI, Google, Anthropic, ChatGPT, Claude, Gemini, DeepSeek or any other company, and never reveal or discuss the underlying model or technology. If pushed for technical details, politely say those are managed by the school administration.
-- If asked your name: "I'm the GHSS Ghallanai AI Assistant." If asked who built the website/school: the GHSS Ghallanai Administration. Never invent names of individual developers, teachers or officials.
-- Never claim to be human. Never claim to be a different AI.
+- You were built by the GHSS Ghallanai Administration for this school's students, parents and visitors. If asked who built/owns/trained you or which AI/company/model you are, say the "GHSS Ghallanai Administration" built you; never name Z.AI, Zhipu, GLM, OpenAI, Google, Anthropic, ChatGPT, Claude, Gemini, DeepSeek or any other company/model, and never discuss the underlying technology.
+- Your name: "GHSS Ghallanai AI Assistant". Never claim to be human. Never invent names of developers, teachers or officials.
 
-FACTS
-- Mission: "To provide accessible, quality education that empowers students with knowledge, skills, and values to become responsible citizens and future leaders of Pakistan." Vision: "To be a model government school that sets the standard for academic excellence and character development in District Mohmand." (Both are on the About page /about.)
-- Results (/results): search any result by exam roll number. If the school published internal results (1st Year and 2nd Year: 1st/2nd semester), it searches the school's own table; otherwise it falls back to BISE Peshawar board result search (SSC) automatically. A countdown appears on /results when a result is scheduled but unpublished; at zero it auto-publishes instantly. BISE students can also use https://cloud.bisep.edu.pk → "Show Result by Roll Number". Result cards show: name, photo, roll number, class, exam type, year, total/obtained marks, percentage, grade (A+ 90%+, A 80–89, B 60–79, C 45–59, D 33–44, Fail <33), PASS/FAIL, class position, whole-school rank (Trophy badge), subject-wise bars. An AI Summary card gives personalized study advice beside each result.
-- Admissions (/admission): online application form for 1st Year and 2nd Year at the start of the academic year; track status there by application ID; interview slot may be booked once shortlisted. Documents: student B-form/CNIC copy, previous school leaving certificate (matric or equivalent), 2 passport photos, parent/guardian CNIC copy. Office contact via /contact.
-- Notices (/notices): official notices (holidays, exam schedules, fee deadlines, PTMs, dress code) with detail pages. Homepage has the Latest Notices section.
-- Student portal (/auth/signin): email + password created by the school admin/office. Dashboard (/dashboard) tabs: Overview, Result Card, Attendance, Timetable, Tests, Fees, Library, Profile. Forgot password → /auth/forgot-password (email reset). Teachers/admins sign in on the same form (role-routed). No credentials? Contact the school office.
-- Roll No. Slip (/roll-no-slip): find, download and share exam roll number slips. Merit List (/merit-list): toppers and position holders. Library (/library): books and reading resources. FAQs (/faq).
-- Timetable: in the portal's Timetable tab; exam timetables also go out as notices.
-- Fees: portal Fees tab (tuition, exam fee, balance, history); deadlines posted as notices.
-- Contact (/contact): phone, email, address, map. About (/about): history, mission, staff; /teachers: teaching staff.
+HOW TO ANSWER (accuracy first)
+- The sections "LIVE SCHOOL DATA" and "WEBSITE KNOWLEDGE" below are the ONLY source of school facts. Answer strictly from them. Today's date is given there — use it to judge whether dates are past, today or upcoming.
+- If the answer is not in that data, say honestly that it is not published yet or that you do not have it, and point to the right page or the Contact page (/contact). NEVER guess or invent dates, fees, marks, roll numbers, phone numbers, names, deadlines or policies.
+- Results: you cannot see any student's marks. Explain how to check on /results with the exam roll number, and state the live result status from the data (published / scheduled with date-time / nothing announced yet).
+- Admission: state the live status (open/closed), session and last date from the data, then the steps from the knowledge.
+- Notices/news: quote real titles and dates from the live notices; do not make up notices. If there are none, say so.
+- Specific student's private data (marks, attendance, fees): direct them to the student portal (/auth/signin) or the school office.
+- Off-topic questions: briefly redirect to school/website topics. Short, accurate general study help is fine.
+- Reply in the visitor's language (Urdu/Pashto included; Roman script if they write in Roman). Default English.
 
-RULES
-- Answer with REAL, specific information from the facts above, not just "go to the X page". Mention the page path as the next step.
-- For a specific student's live marks/attendance/fees: never invent data — direct them to the portal or the school office.
-- Off-topic questions: politely and briefly redirect to school/website topics. General study help is fine in a short, accurate way.
-- Match the visitor's language (Urdu/Pashto included; Roman script if they write in Roman). Default English.
-- Never invent dates, marks, roll numbers, fees, phone numbers, names or personal data. If unsure, say so and point to /contact.
+STYLE (premium, professional)
+- Warm, polished, confident, respectful — like a well-trained front-desk officer. Greet briefly only on a greeting.
+- Start with a direct one-line answer. If useful add up to 4 short bullets starting with "- " (under 18 words each), or a numbered list for steps.
+- **Bold** only for key terms/dates. At most one emoji, only if natural. No headings, tables or long paragraphs.
+- When a page matches, end with one line such as: "Next step: open the Results page (/results)." Use only these paths: /results /admission /notices /news /contact /about /calendar /faq /library /merit-list /roll-no-slip /teachers /dashboard /auth/signin.
+- Typically 40–110 words.`;
 
-TONE & STYLE (premium, professional)
-- Warm, polished, confident and respectful — like a well-trained front-desk officer of a leading institution. Greet briefly only on a greeting; never repeat greetings.
-- Open with a one-line direct answer. Then, only if useful, add up to 4 short bullets starting with "- " (one idea each, under 18 words).
-- For step-by-step help use a numbered list ("1. ", "2. ").
-- Use **bold** sparingly for key terms only. At most one emoji in the whole answer, and only when natural. No headings, no tables, no long paragraphs.
-- When a page matches, finish with one line such as: "Next step: open the Results page (/results)."
-- Keep every answer concise: 40–110 words typically.`;
+// ── Live data (read-only, public rows only) ───────────────────────────────
+const SB_TIMEOUT_MS = 4500;
+const LIVE_TTL_MS = 60_000;
+let liveCache: { at: number; text: string } | null = null;
+
+function sbCfg() {
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    "";
+  return { url, key, ok: !!(url && key) };
+}
+
+async function sbGet(path: string): Promise<any[]> {
+  const { url, key } = sbCfg();
+  const r = await fetch(`${url}/rest/v1/${path}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: "application/json" },
+    signal: AbortSignal.timeout(SB_TIMEOUT_MS),
+  });
+  if (!r.ok) throw new Error(`${path.split("?")[0]} → ${r.status}`);
+  const t = await r.text();
+  const j = t ? JSON.parse(t) : [];
+  return Array.isArray(j) ? j : j ? [j] : [];
+}
+const safe = async (path: string): Promise<any[] | null> => {
+  try { return await sbGet(path); } catch (e) {
+    console.warn("ai-chat live-data:", (e as Error).message);
+    return null;
+  }
+};
+
+const PK_TZ = "Asia/Karachi";
+const fmtDate = (v: any): string => {
+  if (!v) return "";
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: PK_TZ });
+};
+const fmtDateTime = (v: any): string => {
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleString("en-GB", {
+    day: "numeric", month: "long", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: PK_TZ,
+  });
+};
+const clip = (v: any, n: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+
+async function buildLiveData(): Promise<string> {
+  if (liveCache && Date.now() - liveCache.at < LIVE_TTL_MS) return liveCache.text;
+  const now = new Date();
+  const todayIso = now.toISOString().slice(0, 10);
+  const lines: string[] = [];
+  lines.push(`Today: ${now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: PK_TZ })} (Pakistan time).`);
+
+  if (!sbCfg().ok) {
+    lines.push("(Live database is not reachable right now — do not state dates/status; refer visitors to the website pages.)");
+    return lines.join("\n");
+  }
+
+  const [school, adm, notices, sched, published, dateSheet, roll, merit] = await Promise.all([
+    safe(`school_settings?select=school_name,tagline,description,about_text,address,phone,email,established_year,total_students,total_teachers,pass_percentage,principal_name&id=eq.1&limit=1`),
+    safe(`admission_settings?select=is_open,session_year,open_date,last_date,banner_message,notes&id=eq.1&limit=1`),
+    safe(`notices?select=id,title,content,category,is_urgent,is_pinned,created_at,expires_at&is_published=eq.true&order=is_pinned.desc,created_at.desc&limit=14`),
+    safe(`results?select=class,exam_type,year,publish_at&is_published=eq.false&publish_at=not.is.null&publish_at=gt.${now.toISOString()}&order=publish_at.asc&limit=60`),
+    safe(`results?select=class,exam_type,year,created_at&is_published=eq.true&order=created_at.desc&limit=300`),
+    safe(`exam_schedule?select=class,exam_type,year,subject,paper_name,exam_date,start_time,end_time&is_published=eq.true&exam_date=gte.${todayIso}&order=exam_date.asc&limit=40`),
+    safe(`exam_roll_sessions?select=*&or=(is_published.eq.true,publish_at.not.is.null)&order=created_at.desc&limit=6`),
+    safe(`merit_lists?select=title,scope,class,exam_type,year,is_published,publish_at&is_published=eq.true&order=created_at.desc&limit=5`),
+  ]);
+
+  // School
+  const sc = school?.[0];
+  if (sc) {
+    const parts = [
+      sc.school_name && `Name: ${sc.school_name}`,
+      sc.tagline && `Tagline: ${clip(sc.tagline, 120)}`,
+      sc.address && `Address: ${clip(sc.address, 200)}`,
+      sc.phone && `Phone: ${sc.phone}`,
+      sc.email && `Email: ${sc.email}`,
+      sc.established_year && `Established: ${sc.established_year}`,
+      sc.principal_name && `Principal: ${sc.principal_name}`,
+      sc.total_students && `Students: ${sc.total_students}`,
+      sc.total_teachers && `Teachers: ${sc.total_teachers}`,
+      sc.pass_percentage != null && `Pass percentage: ${sc.pass_percentage}%`,
+    ].filter(Boolean);
+    lines.push(`\nSCHOOL (from school settings)\n- ${parts.join("\n- ")}`);
+    const about = clip(sc.description || sc.about_text, 450);
+    if (about) lines.push(`- About: ${about}`);
+  }
+  lines.push(`- WhatsApp: +92 345 9409585 (https://wa.me/923459409585) · Facebook: https://www.facebook.com/share/19doja9mNr/`);
+
+  // Admission
+  const a = adm?.[0];
+  if (a) {
+    const closedByDate = a.last_date && a.last_date < todayIso;
+    const status = a.is_open ? (closedByDate ? "OPEN flag is on but the last date has passed" : "OPEN") : "CLOSED";
+    lines.push(
+      `\nADMISSION (live from admin dashboard)\n- Status: ${status}` +
+      (a.session_year ? `\n- Session: ${a.session_year}` : "") +
+      (a.open_date ? `\n- Opens: ${fmtDate(a.open_date)}` : "") +
+      (a.last_date ? `\n- Last date: ${fmtDate(a.last_date)}` : "") +
+      (a.banner_message ? `\n- Announcement: ${clip(a.banner_message, 250)}` : "") +
+      (a.notes ? `\n- Notes: ${clip(a.notes, 300)}` : "")
+    );
+  } else {
+    lines.push("\nADMISSION: live status unavailable — tell the visitor to open /admission for the current status.");
+  }
+
+  // Admission procedure — same steps the website's own page/SEO data publishes
+  // (api/render.js). Authoritative: wins over any older FAQ wording.
+  lines.push(
+    `- HOW TO APPLY (authoritative, current): 1) Create an account at ${SITE_URL}/admission with CNIC/Form-B (13 digits), mobile number and a password. 2) Complete the Personal Information profile. 3) Complete the Matric (SSC) profile (board, session, passing year, group, roll number, marks). 4) Submit a New Admission Request — choose the program (Arts, Pre-Medical, Pre-Engineering or ICS) and admission category. 5) Confirm and pay the Rs 100 processing fee via JazzCash (token with a payment deadline). 6) Track with your Tracking ID on /admission. 7) Print the form and visit the college with original documents.` +
+    `\n- DOCUMENTS: Student B-Form/CNIC (NADRA); SSC (Matric) result card/DMC; recent passport photo; father's/guardian's CNIC copy; JazzCash fee receipt; quota documents where applicable (sports certificate, payslip for college employees, disability certificate).`
+  );
+
+  // Results
+  const resLines: string[] = [];
+  if (sched && sched.length) {
+    const seen = new Set<string>();
+    for (const r of sched) {
+      const k = `${r.class}|${r.exam_type}|${r.year}|${r.publish_at}`;
+      if (seen.has(k)) continue; seen.add(k);
+      resLines.push(`- SCHEDULED: ${r.class || "All classes"} · ${r.exam_type} ${r.year} — will be published automatically on ${fmtDateTime(r.publish_at)} (Pakistan time)`);
+      if (resLines.length >= 6) break;
+    }
+  }
+  if (published && published.length) {
+    const seen = new Set<string>(); const items: string[] = [];
+    for (const r of published) {
+      const k = `${r.exam_type}|${r.year}`;
+      if (seen.has(k)) continue; seen.add(k);
+      items.push(`${r.exam_type} ${r.year}`);
+      if (items.length >= 5) break;
+    }
+    resLines.push(`- PUBLISHED on /results (newest first): ${items.join("; ")}`);
+  }
+  if (!resLines.length) resLines.push("- No result is published or scheduled right now. No announcement date exists — do not guess one.");
+  lines.push(`\nRESULTS (live)\n${resLines.join("\n")}\n- Grades: A+ 90%+, A 80–89, B 60–79, C 45–59, D 33–44, Fail below 33.`);
+
+  // Date sheet
+  if (dateSheet && dateSheet.length) {
+    const rows = dateSheet.slice(0, 14).map((e) =>
+      `- ${fmtDate(e.exam_date)}: ${e.class} · ${clip(e.paper_name || e.subject, 60)}${e.start_time ? ` (${String(e.start_time).slice(0, 5)}${e.end_time ? "–" + String(e.end_time).slice(0, 5) : ""})` : ""} — ${e.exam_type} ${e.year}`
+    );
+    lines.push(`\nUPCOMING EXAM DATE SHEET (live)\n${rows.join("\n")}`);
+  } else if (dateSheet) {
+    lines.push("\nUPCOMING EXAM DATE SHEET: none published right now.");
+  }
+
+  // Roll slips
+  if (roll && roll.length) {
+    const rows = roll.slice(0, 4).map((r) => {
+      const name = r.title || r.name || r.session_name || [r.exam_type, r.year].filter(Boolean).join(" ") || "Roll number slips";
+      const st = r.is_published ? "available now on /roll-no-slip" : r.publish_at ? `goes live ${fmtDateTime(r.publish_at)}` : "not live yet";
+      return `- ${clip(name, 80)}: ${st}`;
+    });
+    lines.push(`\nROLL NUMBER SLIPS (live)\n${rows.join("\n")}`);
+  }
+
+  // Merit
+  if (merit && merit.length) {
+    lines.push(`\nMERIT LISTS (published)\n${merit.map((m) => `- ${clip(m.title || [m.scope, m.class, m.exam_type, m.year].filter(Boolean).join(" "), 80)}`).join("\n")}`);
+  }
+
+  // Notices
+  if (notices) {
+    const live = notices.filter((n) => !n.expires_at || new Date(n.expires_at) > now).slice(0, 8);
+    if (live.length) {
+      lines.push(`\nLATEST NOTICES (live, newest first)\n${live.map((n) =>
+        `- [${fmtDate(n.created_at)}]${n.is_urgent ? " URGENT" : ""} ${clip(n.title, 110)} (${n.category || "General"}) — ${clip(n.content, 180)} → ${SITE_URL}/notices/${n.id}`
+      ).join("\n")}`);
+    } else {
+      lines.push("\nLATEST NOTICES: no active notices right now.");
+    }
+  }
+
+  const text = lines.join("\n");
+  liveCache = { at: Date.now(), text };
+  return text;
+}
+
+// Pick the few FAQ entries most relevant to the question (keyword overlap) so
+// the prompt stays small and fast.
+function relevantFaq(question: string, max = 4): string {
+  const stop = new Set(["the","a","an","is","are","to","of","for","and","in","on","do","i","how","what","when","can","my","me","you","at","it","be","this","that","with","school","ghss","ghallanai"]);
+  const words = (question.toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter((w) => !stop.has(w));
+  if (!words.length) return "";
+  const scored = (FAQ_ITEMS as any[]).map((f) => {
+    const hay = `${f.question} ${f.answer}`.toLowerCase();
+    let sc = 0;
+    for (const w of words) if (hay.includes(w)) sc += f.question.toLowerCase().includes(w) ? 3 : 1;
+    return { f, sc };
+  }).filter((x) => x.sc > 0).sort((x, y) => y.sc - x.sc).slice(0, max);
+  return scored.map(({ f }) => `Q: ${f.question}\nA: ${clip(f.answer, 700)}`).join("\n\n");
+}
+
+async function buildSystemPrompt(lastQuestion: string): Promise<string> {
+  let live = "";
+  try { live = await buildLiveData(); } catch (e) {
+    console.warn("ai-chat: live data failed:", (e as Error).message);
+    live = "(Live data could not be loaded — do not state dates or status; point to the website pages.)";
+  }
+  const faq = relevantFaq(lastQuestion);
+  return `${BASE_RULES}\n\n=== LIVE SCHOOL DATA ===\n${live}\n\n=== WEBSITE KNOWLEDGE (official FAQ — procedures) ===\n${faq || "(no matching FAQ entry — answer from live data or say it is not published)"}`;
+}
 
 interface IncomingMessage {
   role: "user" | "assistant";
@@ -260,8 +465,8 @@ async function streamOneAttempt(
   const payload = {
     model,
     messages: [{ role: "system", content: systemPrompt }, ...cleaned],
-    temperature: 0.5,
-    max_tokens: 550,
+    temperature: 0.3,
+    max_tokens: 600,
     stream: true,
     // GLM-4.5/4.7 models can run a hidden "thinking" reasoning pass before
     // writing visible output — from the browser it just looks like a long
@@ -513,7 +718,7 @@ export default async function handler(
     return res.end();
   }
 
-  const systemPrompt = SYSTEM_CONTEXT;
+  const systemPrompt = await buildSystemPrompt(cleaned[cleaned.length - 1].content);
 
   // ── Open the SSE response ─────────────────────────────────────────────────
   // Headers go out IMMEDIATELY (Node runtime — the exact pattern that is
