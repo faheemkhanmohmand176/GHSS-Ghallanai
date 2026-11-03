@@ -1,6 +1,6 @@
 /**
- * AdmissionPortal — applicant dashboard (HED student_dashboard.php):
- * "All Applications" table with the exact HED columns:
+ * AdmissionPortal — applicant dashboard:
+ * "All Applications" table with the exact columns:
  *   # | Tracking ID | Program | Quota | Hafiz e Quran | Fee Submission Deadline | Action
  * plus the sidebar menu (New Admission Request, Personal Information,
  * Matric Profile, Logout) and profile-completion prompts.

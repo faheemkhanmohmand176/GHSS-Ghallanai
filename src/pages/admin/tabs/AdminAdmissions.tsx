@@ -1,5 +1,5 @@
 /**
- * AdminAdmissions — admin console for the HED-mirror Inter admission system
+ * AdminAdmissions — admin console for-mirror Inter admission system
  * (migration 20_inter_admission_hed_mirror.sql).
  *
  * Three sections (tabs):
@@ -171,7 +171,7 @@ export default function AdminAdmissions() {
   }
 
   const saveSettings = useMutation({
-    mutationFn: async (v: Pick<AdmissionSettings, "is_open" | "session_year" | "open_date" | "last_date" | "processing_fee" | "payment_methods">) => {
+    mutationFn: async (v: Pick<AdmissionSettings, "is_open" | "session_year" | "open_date" | "last_date" | "processing_fee" | "payment_methods" | "online_payment_enabled">) => {
       // upsert: the old UPDATE ... WHERE id = 1 silently changed 0 rows when the row did not exist
       const { data, error } = await supabase
         .from("admission_settings")
@@ -512,7 +512,7 @@ function SettingsBody({
   settings, onSave, saving,
 }: {
   settings: AdmissionSettings | null;
-  onSave: (v: Pick<AdmissionSettings, "is_open" | "session_year" | "open_date" | "last_date" | "processing_fee" | "payment_methods">) => void;
+  onSave: (v: Pick<AdmissionSettings, "is_open" | "session_year" | "open_date" | "last_date" | "processing_fee" | "payment_methods" | "online_payment_enabled">) => void;
   saving: boolean;
 }) {
   const [open, setOpen] = useState(Boolean(settings?.is_open));
@@ -521,6 +521,7 @@ function SettingsBody({
   const [lastDate, setLastDate] = useState(settings?.last_date ?? "");
   const [fee, setFee] = useState(String(settings?.processing_fee ?? 100));
   const [methods, setMethods] = useState<PaymentMethod[]>(settings?.payment_methods ?? []);
+  const [onlinePay, setOnlinePay] = useState(settings?.online_payment_enabled !== false);
   const [importing, setImporting] = useState(false);
 
   const setPm = (i: number, k: keyof PaymentMethod, v: string) =>
@@ -553,7 +554,7 @@ function SettingsBody({
     onSave({
       is_open: open, session_year: year.trim(),
       open_date: openDate || null, last_date: lastDate || null,
-      processing_fee: f, payment_methods: methods,
+      processing_fee: f, payment_methods: methods, online_payment_enabled: onlinePay,
     });
   }
 
@@ -566,6 +567,14 @@ function SettingsBody({
           <p className="text-[12px] text-muted-foreground">When off, the whole public admission is locked.</p>
         </div>
         <Switch checked={open} onCheckedChange={setOpen} />
+      </div>
+
+      <div className="flex items-center justify-between rounded-xl border border-border p-4">
+        <div className="pr-3">
+          <p className="font-semibold text-sm text-foreground">Online Payment (Safepay)</p>
+          <p className="text-[12px] text-muted-foreground">Easypaisa / wallet checkout with automatic fee confirmation. Manual transfer always stays available.</p>
+        </div>
+        <Switch checked={onlinePay} onCheckedChange={setOnlinePay} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">

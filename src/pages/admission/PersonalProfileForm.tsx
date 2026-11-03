@@ -1,9 +1,9 @@
 /**
- * PersonalProfileForm — mirrors HED student_personal_profile.php:
- * every field captured from the live system (name, father name, DOB via
+ * PersonalProfileForm — mirrors:
+ * every personal field (name, father name, DOB via
  * day/month/year selects, gender radio, contact numbers, religion, domicile
  * province/district/tehsil/union council, parents' CNICs, mailing address,
- * blood group, hafiz e quran). Mobile number is locked (immutable, as HED).
+ * blood group, hafiz e quran). Mobile number is locked.
  */
 
 import { useEffect, useState } from "react";
@@ -79,7 +79,7 @@ export default function PersonalProfileForm() {
 
   const isMohmand = form.domicile_district === "Mohmand";
 
-  // College-jurisdiction union councils (HED: district-dependent UC select,
+  // College-jurisdiction union councils (: district-dependent UC select,
   // Mohmand = 65 UCs Baizai-1 … Chamarkand)
   const { data: ucsData } = useQuery({
     queryKey: ["inter-ucs"],
@@ -155,7 +155,7 @@ export default function PersonalProfileForm() {
                   </div>
                 </div>
 
-                {/* DOB — three selects like HED */}
+                {/* DOB — three selects */}
                 <div className={F}>
                   <Label className="font-semibold text-[13px]">Date of Birth <span className="text-red-500">*</span></Label>
                   <div className="grid grid-cols-3 gap-2.5">

@@ -174,7 +174,7 @@ BEGIN
         RETURN jsonb_build_object('ok', false, 'error', 'Please select a valid program.');
     END IF;
 
-    -- Subject group: mandatory when the program defines groups (HED rule)
+    -- Subject group: mandatory when the program defines groups
     SELECT count(*) INTO v_group_count FROM public.inter_subject_groups
         WHERE program_id = v_prog.id AND is_active;
     IF v_group_count > 0 THEN
@@ -223,7 +223,7 @@ BEGIN
             'You must agree to the declaration before submitting.');
     END IF;
 
-    -- Fee deadline — HED behaviour (verified twice): the JazzCash token must
+    -- Fee deadline (verified twice): the JazzCash token must
     -- be paid by the ADMISSION CYCLE LAST DATE (GCMS: 05-Nov for a 01-Nov
     -- submission; GDC Wadpaga: same-day 01-Nov). Fall back to submission + 4
     -- days when the school has not set admission_settings.last_date.

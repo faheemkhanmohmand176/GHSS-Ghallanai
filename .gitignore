@@ -26,3 +26,4 @@ dist-ssr
 
 # Build info
 *.tsbuildinfo
+.env

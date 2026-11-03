@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useSchoolSettings, safeMediaUrl, optimizedCloudinaryUrl } from "@/hooks/useSchoolSettings";
+import { useAdmissionSettings } from "@/hooks/useAdmission";
 import { useNotices } from "@/hooks/useNotices";
 import { useTeachers } from "@/hooks/useTeachers";
 import { useCountUp } from "@/hooks/useCountUp";
@@ -995,6 +996,8 @@ const Home = () => {
   const statsInView = useInView(statsRef, { once: true, margin: "-100px" });
 
   const { data: settings,          isLoading: settingsLoading }      = useSchoolSettings();
+  const { data: admissionCfg } = useAdmissionSettings();
+  const admissionFee = admissionCfg?.processing_fee;
   const { data: notices = [],      isLoading: noticesLoading }        = useNotices(4);
   const { data: teachers = [],     isLoading: teachersLoading }       = useTeachers(4);
 
@@ -1329,10 +1332,10 @@ const Home = () => {
         </div>
       </m.section>
 
-      {/* ══ 15. ADMISSION — ACCURATE HED-MIRROR FLOW (rebuilt 01-Nov-2026) ══
+      {/* ══ 15. ADMISSION — ACCURATE-MIRROR FLOW (rebuilt 01-Nov-2026) ══
           Online admission flow for Intermediate (1st/2nd Year) admissions.
           Full portal: /admission (register, login, profiles, apply, pay,
-          track). See docs/HED-INTER-ADMISSION-CAPTURE.md. */}
+          track). */}
       <m.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={sectionFadeUp} className="section-y relative overflow-hidden cv-auto">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-primary/5" />
@@ -1355,7 +1358,7 @@ const Home = () => {
                 <p className="text-muted-foreground text-[13.5px] sm:text-[15px] leading-relaxed mb-5 max-w-xl">
                   Apply for 1st Year and 2nd Year in Arts, Pre-Medical, Pre-Engineering and ICS through our
                   online admission system. Create an account, complete your profiles, submit your
-                  application and pay the Rs&nbsp;100 processing fee through any JazzCash shop or the JazzCash App.
+                  application and pay the {admissionFee ? <>Rs&nbsp;{admissionFee} </> : null}processing fee online with Easypaisa or a wallet.
                 </p>
                 <div className="flex flex-wrap gap-2 mb-5">
                   <Link to="/admission/register" className="inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-4 text-[12.5px] font-semibold tracking-wide text-primary-foreground shadow-md shadow-primary/20 transition-all active:scale-[0.97] hover:brightness-110">
@@ -1380,7 +1383,7 @@ const Home = () => {
                     ["Create Account", "CNIC or Form-B, mobile, password"],
                     ["Complete Profiles", "Personal and Matric (SSC) details"],
                     ["Submit Application", "Program and quota"],
-                    ["Pay Rs 100 Fee", "JazzCash token, any shop or app"],
+                    [admissionFee ? `Pay Rs ${admissionFee} Fee` : "Pay Processing Fee", "Online via Easypaisa or wallet"],
                     ["Track Application", "Tracking ID and status"],
                     ["Visit College", "Print form, bring original documents"],
                   ].map(([t, d], i, arr) => (

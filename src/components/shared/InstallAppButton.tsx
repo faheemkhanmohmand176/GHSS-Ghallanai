@@ -32,6 +32,9 @@ export default function InstallAppButton({ compact = false }: { compact?: boolea
     setInstalled(isStandalone());
     setIos(isIPhoneOrIPad());
 
+    const early = (window as unknown as { __pwaInstallEvent?: BeforeInstallPromptEvent | null }).__pwaInstallEvent;
+    if (early) setInstallEvent(early);
+
     const onBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setInstallEvent(event as BeforeInstallPromptEvent);

@@ -1,16 +1,13 @@
 /**
- * ApplyFlow — mirrors the HED application journey end-to-end:
+ * ApplyFlow — the applicant's application journey:
  *   1. Application form   (program → quota → conditional quota criteria →
- *                          declaration → Submit Application)  [student_submit_application.php]
- *   2. Confirm Admission Request (full review + Rs 100 + Go Back /
- *                          Submit & Pay Application Processing Fee)        [.._confirm.php]
- *   3. Pay Application Processing Fee (details + Proceed with Payment /
- *                          Cancel)                                         [student_pay_application_fee.php]
- *   4. Result — JazzCash token + deadline + tracking ID + print.          [student_view_application.php]
+ *                          declaration → Submit Application)
+ *   2. Confirm Admission Request (full review + fee + Go Back / Submit)
+ *   3. Pay Application Processing Fee (online via Safepay, or manual transfer)
+ *   4. Result — payment reference + deadline + tracking ID + print.
  *
- * All validation messages are the verbatim HED strings (validated live):
- * Open Merit blocked for local-UC applicants, duplicate-application block,
- * quota-specific required fields, overage warnings.
+ * Validation messages: Open Merit blocked for local-UC applicants,
+ * duplicate-application block, overage notices and similar eligibility rules.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -28,7 +25,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
-import AdmissionPaymentAccounts from "@/components/shared/AdmissionPaymentAccounts";
+import OnlinePayPanel from "@/components/shared/OnlinePayPanel";
 import { useAdmissionSettings, cycleLabel } from "@/hooks/useAdmission";
 import { downloadFeeChallan } from "@/lib/admissionPdf";
 import AdmissionStepper from "@/components/shared/AdmissionStepper";
@@ -37,7 +34,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
   interApi, QUOTAS, QUOTA_LABEL, LOCAL_CRITERIA, SPORT_CERTIFICATES,
-  DISABILITY_TYPES, HED_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
+  DISABILITY_TYPES, ADMISSION_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
   formatCnic, formatDateLong, formatDeadline, DISTRICTS,
 } from "@/lib/interAdmission";
 
@@ -59,7 +56,7 @@ const EMPTY_CRITERIA: Criteria = {
   declaration: false,
 };
 
-/** swal-style dialog (HED uses SweetAlert) */
+/** swal-style dialog */
 function SwalDialog({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
@@ -114,7 +111,7 @@ export default function ApplyFlow() {
   const personal = session?.personal;
   const ssc = session?.ssc;
 
-  // Profiles must be complete before applying (HED rule)
+  // Profiles must be complete before applying
   useEffect(() => {
     if (!loading && session?.ok && (!session?.personal || !session?.ssc)) {
       toast.error("Please complete your Personal Information and Matric Profile before applying.");
@@ -122,20 +119,20 @@ export default function ApplyFlow() {
     }
   }, [loading, session, navigate]);
 
-  // ── Quota change → HED cascade behaviour ─────────────────────────────
+  // ── Quota change → cascade behaviour ─────────────────────────────
   async function handleQuotaChange(q: string) {
     setQuota(q);
-    // reset conditional fields when quota changes (HED reset_form())
+    // reset conditional fields when quota changes ( reset_form())
     setCriteria({ ...EMPTY_CRITERIA });
     if (!q) return;
-    // HED shows the swal immediately for local applicants picking Open Merit
+    // shows the swal immediately for local applicants picking Open Merit
     const res = (await interApi.checkQuota(token!, q, null)) as unknown as {
       ok?: boolean; error?: string; warning?: string; needs?: string;
     };
     // `needs` = a follow-up field (criteria, certificate, etc.) is still to be filled — not a block.
     if (res?.ok === false && res.error && !res.needs) {
       setDialog(res.error);           // e.g. "Your domicile is local; therefore, apply on Local Quota."
-      setQuota("");                   // HED resets the select
+      setQuota("");                   // resets the select
       return;
     }
     if (res?.warning) {
@@ -169,7 +166,7 @@ export default function ApplyFlow() {
         setStep("confirm");
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else if (res?.error) {
-        // HED shows submit errors inline (alert-danger above the form, form not submitted)
+        // shows submit errors inline (alert-danger above the form, form not submitted)
         setInlineError(res.error);
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
@@ -182,7 +179,7 @@ export default function ApplyFlow() {
     }
   }
 
-  // ── Proceed with payment → JazzCash token ─────────────────────────────
+  // ── Proceed with payment → payment reference ─────────────────────────────
   async function handleChallan() {
     if (!payResult || !personal) return;
     try {
@@ -273,7 +270,7 @@ export default function ApplyFlow() {
 
             <Card className="border-border/80 shadow-card">
               <CardContent className="p-5 sm:p-7">
-                {/* Inline submit errors (HED alert-danger, e.g. duplicate application) */}
+                {/* Inline submit errors */}
                 {inlineError && (
                   <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
                     className="mb-5 flex items-start gap-2.5 rounded-xl border border-red-300 bg-red-50 dark:bg-red-950/40 dark:border-red-900 p-3.5 text-[13px] font-semibold text-red-700 dark:text-red-300"
@@ -305,7 +302,7 @@ export default function ApplyFlow() {
                     <select id="program" className={sel} value={programId}
                       onChange={(e) => {
                         setProgramId(e.target.value ? Number(e.target.value) : "");
-                        setSubjectGroup("");   // HED resets downstream selects on program change
+                        setSubjectGroup("");   // resets downstream selects on program change
                       }} required>
                       <option value="">Select a Program</option>
                       {programs.map((p) => (
@@ -323,7 +320,7 @@ export default function ApplyFlow() {
                     </select>
                   </div>
 
-                  {/* Local quota criteria — HED quota_j_type */}
+                  {/* Local quota criteria quota_j_type */}
                   {quota === "local_quota" && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-4 rounded-xl border border-azure/30 bg-azure-soft/40 dark:bg-azure-soft/15 p-4">
                       <div className="space-y-1.5">
@@ -416,7 +413,7 @@ export default function ApplyFlow() {
                     </motion.div>
                   )}
 
-                  {/* Subject Group — HED cascade step 7 (only when the program defines groups) */}
+                  {/* Subject Group cascade step 7 (only when the program defines groups) */}
                   {!!program?.subject_groups?.length && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
                       className="space-y-1.5">
@@ -441,7 +438,7 @@ export default function ApplyFlow() {
                         onChange={(e) => setCriteria((c) => ({ ...c, declaration: e.target.checked }))} required />
                       <span>
                         <span className="font-semibold">Yes, I agree.</span>{" "}
-                        <span className="text-muted-foreground">{HED_MESSAGES.declaration}</span>
+                        <span className="text-muted-foreground">{ADMISSION_MESSAGES.declaration}</span>
                       </span>
                     </label>
                   </div>
@@ -524,7 +521,7 @@ export default function ApplyFlow() {
 
                 <div className="flex items-start gap-2.5 rounded-xl bg-muted/60 border border-border p-3.5 text-[13px] text-muted-foreground">
                   <Info className="w-5 h-5 shrink-0 text-primary mt-0.5" />
-                  {HED_MESSAGES.declaration}
+                  {ADMISSION_MESSAGES.declaration}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -550,7 +547,7 @@ export default function ApplyFlow() {
               <CardContent className="p-5 sm:p-7 space-y-6">
                 <h2 className="font-heading text-xl font-bold text-foreground text-center">Pay Processing Fee</h2>
 
-                {/* Applicant Details — HED student_pay_application_fee.php */}
+                {/* Applicant Details */}
                 <div>
                   <h3 className="font-heading font-bold text-foreground mb-2.5 text-center">Applicant Details</h3>
                   <AdmissionInfoGrid items={[
@@ -570,9 +567,20 @@ export default function ApplyFlow() {
                     { label: "Tracking ID", value: <span className="font-mono">{submitResult.tracking_id}</span> },
                     { label: "Total Payable", value: `Rs ${PROCESSING_FEE}` },
                   ]} />
-                  <h3 className="font-heading font-bold text-foreground mt-5 mb-2.5 text-center">Pay To</h3>
-                  <AdmissionPaymentAccounts methods={admSettings?.payment_methods ?? []} />
                 </div>
+
+                <OnlinePayPanel
+                  token={token!}
+                  applicationId={submitResult.application_id}
+                  fee={PROCESSING_FEE}
+                  methods={admSettings?.payment_methods ?? []}
+                  hasReference
+                  ensureReference={async () => {
+                    const res = (await interApi.proceedPayment(token!, submitResult.application_id)) as unknown as { ok?: boolean; error?: string };
+                    if (!res?.ok) { toast.error(res?.error || "Payment initialization failed."); return false; }
+                    return true;
+                  }}
+                />
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button variant="outline" onClick={() => navigate("/admission/portal")}
@@ -598,7 +606,7 @@ export default function ApplyFlow() {
                   <CheckCircle2 className="w-8 h-8 text-green-600" />
                 </div>
                 <h2 className="font-heading text-xl font-bold text-foreground">Application Submitted</h2>
-                <p className="text-sm text-muted-foreground mt-1.5">Pay the fee to the school account below, then track your status.</p>
+                <p className="text-sm text-muted-foreground mt-1.5">Pay your processing fee online or by manual transfer, then track your status.</p>
 
                 <div className="mt-5">
                   <AdmissionInfoGrid items={[
@@ -609,8 +617,16 @@ export default function ApplyFlow() {
                   ]} />
                 </div>
 
-                <h3 className="font-heading font-bold text-foreground mt-6 mb-2.5">Pay To</h3>
-                <AdmissionPaymentAccounts methods={admSettings?.payment_methods ?? []} />
+                <div className="mt-6 text-left">
+                  <OnlinePayPanel
+                    token={token!}
+                    applicationId={submitResult!.application_id}
+                    fee={PROCESSING_FEE}
+                    methods={admSettings?.payment_methods ?? []}
+                    hasReference
+                    ensureReference={async () => true}
+                  />
+                </div>
 
                 <div className="mt-6 grid gap-2.5 sm:grid-cols-3">
                   <Button className="h-10 font-semibold" onClick={handleChallan}>

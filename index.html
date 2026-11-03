@@ -63,7 +63,7 @@
             "@type": "AdministrativeArea",
             "name": "District Mohmand, Khyber Pakhtunkhwa, Pakistan"
           },
-          "sameAs": ["https://www.facebook.com/share/1EERTSk1W7/"]
+          "sameAs": ["https://www.facebook.com/share/19doja9mNr/"]
         },
         {
           "@type": "WebSite",
@@ -83,13 +83,31 @@
     <link rel="icon" href="/favicon.ico?v=6" sizes="48x48 32x32 16x16" />
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=6" />
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=6" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png?v=6" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=6" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png?v=7" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=7" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FAFDF7" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0B1F14" />
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
+
+    <!-- Capture the PWA install event as early as possible. Chrome fires
+         beforeinstallprompt once, often before React mounts; without this the
+         event is lost and new visitors never get an install prompt. -->
+    <script>
+      (function () {
+        window.__pwaInstallEvent = null;
+        window.addEventListener('beforeinstallprompt', function (e) {
+          e.preventDefault();
+          window.__pwaInstallEvent = e;
+          window.dispatchEvent(new Event('pwa-install-available'));
+        });
+        window.addEventListener('appinstalled', function () {
+          window.__pwaInstallEvent = null;
+          window.dispatchEvent(new Event('pwa-installed'));
+        });
+      })();
+    </script>
 
     <!-- RSS Feed — discoverable by browsers and feed readers -->
     <link rel="alternate" type="application/rss+xml" title="GHSS Ghallanai — Notices" href="/rss.xml" />

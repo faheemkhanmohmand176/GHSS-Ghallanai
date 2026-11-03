@@ -1,15 +1,8 @@
 /**
- * interAdmission — Inter (1st/2nd Year) admission system, a 1:1 mirror of the
- * HED KPK Online Admission System flow as captured live on 01-Nov-2026
- * (admission.hed.gkp.pk — walked end-to-end twice: commerce college + a
- * general college with the same four faculties as GHSS Ghallanai).
+ * interAdmission — Intermediate (1st / 2nd Year) online admission system for
+ * Government Higher Secondary School Ghallanai, District Mohmand.
  *
- * Scoped to GOVERNMENT HIGHER SECONDARY SCHOOL GHALLANAI, District Mohmand —
- * Intermediate (1st/2nd Year) ONLY, four faculties:
- *   Pre-Medical · Pre-Engineering · ICS (Computer Sciences) · Arts/Humanities
- * No BS / ADP / D.Com / DIT.
- *
- * See docs/HED-INTER-ADMISSION-CAPTURE.md for the complete field-level capture.
+ * Faculties: Pre-Medical · Pre-Engineering · ICS (Computer Sciences) · Arts/Humanities.
  *
  * Auth model: applicants are NOT Supabase-Auth users. They register with
  * CNIC/Form-B + mobile + password (hashed server-side) and receive a session
@@ -22,17 +15,17 @@ import { supabase } from "@/lib/supabase";
 export const INTER_TOKEN_KEY = "inter_admission_token";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Constants (captured verbatim from the HED site)
+// Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const COLLEGE_NAME = "Government Higher Secondary School Ghallanai";
 export const COLLEGE_SHORT = "GHSS Ghallanai, District Mohmand";
 export const STUDY_LEVEL = "Intermediate";
-/** HED general-college cycle label (captured: "F.A/F.Sc Admissions 2026 3rd Cycle") */
+/** Fallback cycle label; the live label comes from Admission Settings (cycleLabel). */
 export const ADMISSION_CYCLE = "F.A/F.Sc Admissions 2026";
 export const PROCESSING_FEE = 100;
 
-/** The four faculties of GHSS Ghallanai (order mirrors the HED program list) */
+/** The four faculties of GHSS Ghallanai */
 export const FACULTIES = [
   "Pre-Medical",
   "Pre-Engineering",
@@ -41,11 +34,8 @@ export const FACULTIES = [
 ] as const;
 
 /**
- * Subject groups per program — captured verbatim from HED
- * get_subjectgroups_by_program_id.php at a general college with the same
- * faculties (each Inter group carries 7 subjects incl. English, Islamic
- * Edu, Mutalia-e-Quran and Urdu). Fallback only; live list comes from the
- * inter_programs_list RPC.
+ * Subject groups per program (fallback only; the live list comes from the
+ * inter_programs_list RPC).
  */
 export const SUBJECT_GROUPS: Record<string, string[]> = {
   "Pre-Medical": ["Botany,Chemistry,English,Islamic Edu,Mutalia-e-Quran,Physics,Urdu"],
@@ -77,13 +67,13 @@ export const GENDERS = [
   { value: "other", label: "Other" },
 ] as const;
 
-/** Mohmand tehsils (HED district = Mohmand flow) */
+/** Mohmand tehsils */
 export const MOHMAND_TEHSILS = [
   "Baizai", "Khwezai", "Safi", "Prang Ghar", "Halimzai", "Tarakzai",
   "Utman Khel", "Lakaro", "Ekka Ghund", "Ambar", "Pandyalai", "Ghallanai",
 ] as const;
 
-/** Full domicile district list as offered by HED (Pakistan-wide) */
+/** Pakistan-wide domicile district list */
 export const DISTRICTS: string[] = [
   "Abbottabad", "Astore", "Attock", "Awaran", "Bagh", "Bahawalnagar", "Bahawalpur",
   "Bajaur", "Bannu", "Bar Swat", "Barkhan", "Battagram", "Bhakkar", "Buner",
@@ -112,7 +102,7 @@ export const DISTRICTS: string[] = [
   "Vehari", "Washuk", "Zhob", "Ziarat",
 ];
 
-/** Exam boards (32, as captured from HED matric profile) */
+/** Exam boards */
 export const EXAM_BOARDS = [
   "BISE Peshawar", "BISE Abbottabad", "BISE Bannu", "BISE DI Khan", "BISE Kohat",
   "BISE Malakand", "BISE Mardan", "BISE Swat", "BISE Swabi", "Agha Khan Board",
@@ -156,9 +146,7 @@ export const LOCAL_CRITERIA = [
   { value: "father_serve_area", label: "Parent / Spouse Posting as Govt. Servant in District" },
 ] as const;
 
-/** Quotas offered for Inter admission (HED general college, type 0:
- *  Open Merit=2, Sports=4, Special Person=5, College Employees=6,
- *  Local Quota=7 — same labels for every general college) */
+/** Quotas offered for Intermediate admission */
 export const QUOTAS = [
   { value: "open_merit", label: "Open Merit" },
   { value: "local_quota", label: "Local Quota" },
@@ -173,8 +161,8 @@ export const QUOTA_LABEL: Record<string, string> = Object.fromEntries(
   QUOTAS.map((q) => [q.value, q.label]),
 );
 
-/** Verbatim HED messages */
-export const HED_MESSAGES = {
+/** Standard applicant-facing messages */
+export const ADMISSION_MESSAGES = {
   localMustUseLocal:
     "Your domicile is local; therefore, apply on Local Quota.",
   duplicate:
@@ -187,7 +175,7 @@ export const HED_MESSAGES = {
   declaration:
     "I declare that the information given in support of the application is accurate and complete. I understand that any misrepresentation will result in disqualification of my application for admission.",
   feeTokenNotice: (reference: string, deadline: string) =>
-    `Pay the processing fee to the school account shown on your challan, quoting reference ${reference}, on or before ${deadline}.`,
+    `Pay the processing fee online, or by manual transfer to the school account shown on your challan quoting reference ${reference}, on or before ${deadline}.`,
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -301,7 +289,8 @@ export interface ApplicationRow {
   quota: string;
   quota_criteria: string | null;
   fee_deadline: string; fee_deadline_iso: string; payment_status: string;
-  status: string; jazzcash_token: string | null; hafiz_e_quran: boolean;
+  status: string; jazzcash_token: string | null; /* payment reference (legacy column name) */ hafiz_e_quran: boolean;
+  payment_method?: string | null; safepay_transaction_id?: string | null;
   submitted_at: string; processing_fee: number;
 }
 
@@ -315,7 +304,7 @@ export interface SessionState {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Formatting helpers (HED display formats)
+// Formatting helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function formatCnic(cnic: string): string {
@@ -338,7 +327,7 @@ export function formatDeadline(d: string | Date): string {
   return `${day} ${time}`;
 }
 
-/** Client-side math captcha, exactly like HED (two operands + result input) */
+/** Client-side math captcha (two operands + result input) */
 export function makeMathCaptcha() {
   const a = Math.floor(Math.random() * 9) + 1;
   const b = Math.floor(Math.random() * 9) + 1;

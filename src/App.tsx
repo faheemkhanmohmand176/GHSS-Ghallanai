@@ -19,6 +19,7 @@ import { usePageTracker } from "./hooks/usePageTracker";
 import ScrollToTopOnNavigate from "./components/shared/ScrollToTopOnNavigate";
 import CommandPalette from "./components/shared/CommandPalette";
 import { PushPrompt } from "./components/shared/PushOptIn";
+import InstallPrompt from "./components/shared/InstallPrompt";
 import SiteSchema from "./components/seo/SiteSchema";
 import RouteSEOInjector from "./components/seo/RouteSEOInjector";
 import AdminProtectedRoute   from "./components/layout/AdminProtectedRoute";
@@ -97,7 +98,7 @@ const RollNoSlip       = lazyWithRetry(() => import("./pages/ExamRollNumbers"));
 const NotFound         = lazyWithRetry(() => import("./pages/NotFound"));
 const Admission        = lazyWithRetry(() => import("./pages/Admission"));
 import AdmissionGate from "@/components/shared/AdmissionGate";
-// Inter admission portal (HED-mirror applicant flow)
+// Inter admission portal
 const AdmissionAuth    = lazyWithRetry(() => import("./pages/admission/AdmissionAuth"));
 const AdmissionPortal  = lazyWithRetry(() => import("./pages/admission/AdmissionPortal"));
 const PersonalProfileForm = lazyWithRetry(() => import("./pages/admission/PersonalProfileForm"));
@@ -229,6 +230,8 @@ const App = () => (
             <Deferred><CommandPalette /></Deferred>
             {/* Web Push: gentle opt-in prompt + daily subscription refresh. */}
             <Deferred><PushPrompt /></Deferred>
+            {/* PWA install banner for first-time / non-installed visitors. */}
+            <Deferred><InstallPrompt /></Deferred>
             {/* (Lantern Mode · Hujra ambience layer removed along with the
                 lantern theme — the site ships System/Bright + Dark only.) */}
             {/* Academic Universe (3D WebGL background) removed — it was

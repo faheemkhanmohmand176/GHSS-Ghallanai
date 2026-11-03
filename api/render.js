@@ -191,7 +191,7 @@ async function fetchSchoolProfile() {
     classes_offered: ["1st Year", "2nd Year"],
     board: "BISE Peshawar",
     website: SITE_URL,
-    facebook: "https://www.facebook.com/share/1EERTSk1W7/",
+    facebook: "https://www.facebook.com/share/19doja9mNr/",
   };
 }
 
@@ -200,12 +200,13 @@ async function fetchAdmissionInfo() {
     sb
       .from("admission_settings")
       .select(
-        "id, is_open, session_year, open_date, last_date, banner_message, notes, updated_at"
+        "id, is_open, session_year, open_date, last_date, banner_message, notes, updated_at, processing_fee"
       )
       .eq("id", 1)
       .limit(1)
   );
   const a = rows[0] || null;
+  const feeText = a?.processing_fee ? `Rs ${a.processing_fee}` : "The";
   // Live status straight from the admin dashboard — falls back to a clear
   // "check the page" message when the table can't be read.
   return {
@@ -219,14 +220,14 @@ async function fetchAdmissionInfo() {
     apply_url: `${SITE_URL}/admission`,
     track_url: `${SITE_URL}/admission`,
     classes: ["1st Year", "2nd Year"],
-    fee: "Rs 100 processing fee per application — payable at any JazzCash shop or through the JazzCash App",
+    fee: `${feeText} processing fee per application — payable online (Easypaisa / wallet via Safepay) or by manual transfer`,
     how_to_apply: [
       "Create your account at " +
         `${SITE_URL}/admission/register with CNIC/Form-B (13 digits), mobile number and a password`,
       "Complete the Personal Information profile (name, father's name, date of birth, domicile district, tehsil, union council, parents' details)",
       "Complete the Matric (SSC) profile — board, session, passing year, study group, roll number and marks",
       "Submit a New Admission Request — choose the program (Arts, Pre-Medical, Pre-Engineering or ICS) and category of admission (quota)",
-      "Confirm the application and pay the Rs 100 processing fee — you receive a JazzCash token with a payment deadline",
+      `Confirm the application and pay the ${feeText.toLowerCase()} processing fee online — you receive a payment reference with a deadline`,
       "Track the application any time with your Tracking ID at " + `${SITE_URL}/admission`,
       "Print the application form and visit the college with all original documents to complete the admission",
     ],
@@ -235,7 +236,7 @@ async function fetchAdmissionInfo() {
       "SSC (Matric) result card / DMC",
       "Recent passport-size photograph",
       "Father's/Guardian's CNIC copy",
-      "JazzCash fee payment receipt (Rs 100 processing fee token)",
+      "Processing fee payment confirmation (online receipt or transfer slip)",
       "Quota documents where applicable: sports certificate (Sports quota), payslip (College Employees), disability certificate (Special Person)",
     ],
   };
@@ -579,7 +580,7 @@ async function getLiveSiteData(sections) {
     classes_offered: ["1st Year", "2nd Year"],
     board: "BISE Peshawar",
     website: SITE_URL,
-    facebook: "https://www.facebook.com/share/1EERTSk1W7/",
+    facebook: "https://www.facebook.com/share/19doja9mNr/",
   };
   data.admission = data.admission || { currently_open: null, how_to_apply: [], required_documents: [] };
   data.admissionFiles = data.admissionFiles || [];

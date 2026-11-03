@@ -25,6 +25,8 @@ export interface AdmissionSettings {
   notes: string | null;
   processing_fee: number;
   payment_methods: PaymentMethod[];
+  /** Safepay online payment switch (server also needs its env keys). */
+  online_payment_enabled: boolean;
   updated_at?: string;
 }
 
@@ -46,6 +48,7 @@ export function useAdmissionSettings() {
         ...(row as unknown as AdmissionSettings),
         processing_fee: Number(row.processing_fee ?? 100) || 100,
         payment_methods: Array.isArray(row.payment_methods) ? (row.payment_methods as PaymentMethod[]) : [],
+        online_payment_enabled: row.online_payment_enabled !== false,
       };
     },
     staleTime: 30 * 1000,

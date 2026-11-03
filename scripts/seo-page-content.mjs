@@ -159,12 +159,12 @@ const PAGES = {
   "/admission": {
     title: "Admission — GHSS Ghallanai (1st Year and 2nd Year)",
     description:
-      "Apply online for Intermediate admission at GHSS/GCMS Ghallanai, District Mohmand — 1st Year and 2nd Year. Create an account, complete your profiles, submit your application, pay the Rs 100 processing fee via JazzCash and track your application by Tracking ID.",
+      "Apply online for Intermediate admission at GHSS Ghallanai, District Mohmand — 1st Year and 2nd Year. Create an account, complete your profiles, submit your application, pay the processing fee online (Easypaisa / wallet) and track your application by Tracking ID.",
     h1: "Intermediate Admissions — Apply Online",
     blocks: [
       {
         p: [
-          "Admission to 1st Year and 2nd Year (Intermediate: Computer Sciences and Diploma in Commerce) at Government Higher Secondary School Ghallanai follows the same online process used by the Higher Education Department's Online College Admission System. All applications are submitted online — no manual or postal forms are accepted. For each different category (quota) or program, a separate application must be submitted, with an Rs 100 processing fee per application payable at any JazzCash shop or through the JazzCash App.",
+          "Admission to 1st Year and 2nd Year (Intermediate: Arts, Pre-Medical, Pre-Engineering and ICS) at Government Higher Secondary School Ghallanai follows a fully online process. All applications are submitted online — no manual or postal forms are accepted. For each different category (quota) or program, a separate application must be submitted, with an Rs 100 processing fee per application payable at any JazzCash shop or through the JazzCash App.",
         ],
       },
       {
@@ -174,7 +174,7 @@ const PAGES = {
           "Complete your Personal Information profile (name, father's name, date of birth, domicile district, tehsil, union council, parents' details)",
           "Complete your Matric (SSC) profile — board, session, passing year, study group, roll number and marks (grade is computed automatically)",
           "Submit a New Admission Request — select the program and category of admission (quota) and agree to the declaration",
-          "Confirm your application and pay the Rs 100 processing fee — you receive a JazzCash token with a payment deadline",
+          "Confirm your application and pay the processing fee online (Easypaisa / wallet) — you receive a payment reference with a deadline",
           "Track your application any time with your Tracking ID (for example NOV2026…)",
           "Print your application form and visit the college with all original documents to complete your admission",
         ],
@@ -194,7 +194,7 @@ const PAGES = {
         ul: [
           "Enter the Tracking ID you received when you submitted your application",
           "The tracker shows your program, payment status, application date and status timeline",
-          "No login is required — the tracker is public, exactly like the HED system",
+          "No login is required — the tracker is public",
         ],
       },
       // Filled at build time (prerender-lib.mjs) with the ACTUAL admin-uploaded

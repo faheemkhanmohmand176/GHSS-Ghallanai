@@ -1,8 +1,8 @@
 /**
- * SscProfileForm — mirrors HED student_academic_profile_entry.php (manual
- * entry path): board, session, passing year, study group, roll number,
+ * SscProfileForm — SSC (Matric) academic profile (manual
+ * entry): board, session, passing year, study group, roll number,
  * marks obtained/total, hafiz e quran, sports certificate and school info.
- * Percentage & grade auto-computed exactly like the HED system
+ * Percentage & grade auto-computed
  * (hafiz = +20 marks; A+ ≥ 80%).
  */
 
@@ -73,7 +73,7 @@ export default function SscProfileForm() {
   const set = <K extends keyof SscProfileData>(k: K, v: SscProfileData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  // Live percentage + grade preview (HED formula incl. hafiz +20)
+  // Live percentage + grade preview
   const preview = useMemo(() => {
     const obt = parseFloat(form.marks_obtained);
     const tot = parseFloat(form.marks_total);

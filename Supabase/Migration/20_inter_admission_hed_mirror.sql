@@ -1,15 +1,15 @@
 -- ═══════════════════════════════════════════════════════════════════════
--- FILE 20 — Inter Admission System (HED KPK mirror) — Safe SQL
+-- FILE 20 — Inter Admission System — Safe SQL
 -- ═══════════════════════════════════════════════════════════════════════
--- Mirrors the official HED KPK Online Admission System Inter flow
--- (admission.hed.gkp.pk) 1:1 for GOVERNMENT HIGHER SECONDARY SCHOOL
+-- Mirrors the official KPK Online Admission System Inter flow
+-- 1:1 for GOVERNMENT HIGHER SECONDARY SCHOOL
 -- GHALLANAI, District Mohmand — a general (college_type 0) institution
 -- offering Intermediate (1st/2nd Year) ONLY, with four faculties:
 --   • Pre-Medical     • Pre-Engineering     • ICS (Computer Sciences)
 --   • Arts/Humanities
 -- No BS / ADP / D.Com / DIT.
 --
--- Captured live on 01-Nov-2026 by walking the REAL HED flow twice:
+-- Captured live on 01-Nov-2026 by walking the REAL flow twice:
 --   1) commerce college (GCMS Ghallanai, type 1) — Local Quota path
 --   2) general college  (GDC Wadpaga Peshawar, type 0) — Open Merit path
 --      with Subject Groups, F.A/F.Sc cycle, Pre-Medical application
@@ -78,7 +78,7 @@ CREATE SEQUENCE IF NOT EXISTS public.inter_application_seq START 100001;
 -- ─────────────────────────────────────────────────────────────────────
 
 -- Applicants = accounts created with CNIC/Form-B + mobile + password
--- (HED apply_step1.php). Mobile is immutable after registration.
+--. Mobile is immutable after registration.
 CREATE TABLE IF NOT EXISTS public.inter_applicants (
     id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     cnic_formb    text NOT NULL UNIQUE,
@@ -114,7 +114,7 @@ CREATE INDEX IF NOT EXISTS idx_inter_sessions_expiry ON public.inter_applicant_s
 
 
 
--- Personal Information profile (HED student_personal_profile.php fields)
+-- Personal Information profile
 CREATE TABLE IF NOT EXISTS public.inter_personal_profiles (
     applicant_id     uuid PRIMARY KEY REFERENCES public.inter_applicants(id) ON DELETE CASCADE,
     full_name        text NOT NULL,
@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS public.inter_personal_profiles (
 
 
 
--- Matric / SSC profile (HED student_academic_profile_entry.php, manual path)
+-- Matric / SSC profile
 CREATE TABLE IF NOT EXISTS public.inter_ssc_profiles (
     applicant_id        uuid PRIMARY KEY REFERENCES public.inter_applicants(id) ON DELETE CASCADE,
     exam_session        text NOT NULL DEFAULT 'Annual'
@@ -174,7 +174,7 @@ CREATE TABLE IF NOT EXISTS public.inter_ssc_profiles (
 
 
 -- Programs offered for Inter admission at the college
--- (GHSS Ghallanai faculties — HED general-college program names)
+--
 CREATE TABLE IF NOT EXISTS public.inter_programs (
     id             int PRIMARY KEY,
     name           text NOT NULL,
@@ -190,7 +190,7 @@ CREATE TABLE IF NOT EXISTS public.inter_programs (
 
 
 
--- Subject groups per program (HED program_subject_group_id — captured live
+-- Subject groups per program ( program_subject_group_id — captured live
 -- from get_subjectgroups_by_program_id.php at GDC Wadpaga, a general college
 -- with the same four faculties; each Inter group has 7 subjects)
 CREATE TABLE IF NOT EXISTS public.inter_subject_groups (
@@ -206,7 +206,7 @@ CREATE INDEX IF NOT EXISTS idx_inter_groups_program ON public.inter_subject_grou
 
 
 
--- Union councils in the college jurisdiction (Mohmand, HED ids preserved)
+-- Union councils in the college jurisdiction
 CREATE TABLE IF NOT EXISTS public.inter_union_councils (
     id   int PRIMARY KEY,
     name text NOT NULL
@@ -214,7 +214,7 @@ CREATE TABLE IF NOT EXISTS public.inter_union_councils (
 
 
 
--- Applications (HED student_submit_application*.php + pay flow)
+-- Applications
 CREATE TABLE IF NOT EXISTS public.inter_applications (
     id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     applicant_id           uuid NOT NULL REFERENCES public.inter_applicants(id) ON DELETE CASCADE,
@@ -267,7 +267,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_inter_apps_one_per_quota
 
 
 
--- Public-visible status timeline (HED "Application Detail": # | Title | Date | Details)
+-- Public-visible status timeline
 CREATE TABLE IF NOT EXISTS public.inter_application_timeline (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     application_id  uuid NOT NULL REFERENCES public.inter_applications(id) ON DELETE CASCADE,
@@ -282,7 +282,7 @@ CREATE INDEX IF NOT EXISTS idx_inter_tl_app ON public.inter_application_timeline
 
 
 -- ─────────────────────────────────────────────────────────────────────
--- 3b. MERIT LISTS (HED merit_list_view.php — public per program + quota)
+-- 3b. MERIT LISTS
 -- Table: # | Tracking ID | Name | Father Name | Total | Obtained | Net
 --       Marks | Percentage | Remarks  + Important Dates + Instructions
 -- ─────────────────────────────────────────────────────────────────────
@@ -330,10 +330,10 @@ CREATE INDEX IF NOT EXISTS idx_inter_mle_app  ON public.inter_merit_list_entries
 
 
 -- ─────────────────────────────────────────────────────────────────────
--- 4. SEED DATA (HED general-college capture 01-Nov-2026 — GHSS faculties)
+-- 4. SEED DATA
 -- Seats are the school's own sanctioned numbers (editable by the admin
 -- via inter_admin_set_program). Subject groups captured verbatim from
--- HED get_subjectgroups_by_program_id.php (GDC Wadpaga — same faculties).
+ (GDC Wadpaga — same faculties).
 -- ─────────────────────────────────────────────────────────────────────
 INSERT INTO public.inter_programs (id, name, study_level, seats, allowed_gender, is_active, display_order)
 VALUES
@@ -487,7 +487,7 @@ $$;
 
 
 
--- HED grade scale (A+ ≥ 80% as verified on the live system)
+ grade scale (A+ ≥ 80% as verified on the live system)
 CREATE OR REPLACE FUNCTION public.inter_grade_for(p_percentage numeric)
 RETURNS text
 LANGUAGE sql IMMUTABLE
@@ -504,7 +504,7 @@ $$;
 
 
 
--- Exact age (y/m/d) from DOB — mirrors HED get_age_against_cycle.php
+-- Exact age (y/m/d) from DOB — mirrors
 -- (which returns PHP DateInterval {y, m, d})
 CREATE OR REPLACE FUNCTION public.inter_age(p_dob date)
 RETURNS jsonb
@@ -523,7 +523,7 @@ $$;
 -- 7. AUTH RPCs  (register / login / logout / session state)
 -- ─────────────────────────────────────────────────────────────────────
 
--- HED apply_step1.php — Create Account
+ apply_step1.php — Create Account
 CREATE OR REPLACE FUNCTION public.inter_register(
     p_nationality text,
     p_cnic_formb  text,
@@ -574,7 +574,7 @@ $$;
 
 
 
--- HED student_login.php — login_id (CNIC) + password
+ — login_id (CNIC) + password
 CREATE OR REPLACE FUNCTION public.inter_login(p_login_id text, p_password text)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER
@@ -610,7 +610,7 @@ AS $$ DELETE FROM public.inter_applicant_sessions WHERE token = p_token; $$;
 
 
 
--- Everything the portal needs in one call (HED dashboard + menu state)
+-- Everything the portal needs in one call
 CREATE OR REPLACE FUNCTION public.inter_session_state(p_token uuid)
 RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER
@@ -731,7 +731,7 @@ $$;
 
 
 
--- Matric/SSC profile — manual entry (HED manual path), grade auto-computed,
+-- Matric/SSC profile — manual entry, grade auto-computed,
 -- hafiz +20 marks percentage rule applied verbatim.
 CREATE OR REPLACE FUNCTION public.inter_save_ssc(p_token uuid, p_data jsonb)
 RETURNS jsonb
@@ -764,7 +764,7 @@ BEGIN
         RETURN jsonb_build_object('ok', false, 'error', 'Please complete your Personal Information first.');
     END IF;
 
-    -- HED: if hafiz then percentage = ((obtained + 20) / total) * 100
+: if hafiz then percentage = ((obtained + 20) / total) * 100
     v_pct := round(((v_obt + CASE WHEN coalesce((p_data ->> 'hafiz_e_quran')::boolean, false)
                                   THEN 20 ELSE 0 END) / v_total) * 100, 2);
 
@@ -804,10 +804,10 @@ $$;
 
 
 -- ─────────────────────────────────────────────────────────────────────
--- 9. APPLICATION RPCs (the cascade rules, verbatim HED messages)
+-- 9. APPLICATION RPCs
 -- ─────────────────────────────────────────────────────────────────────
 
--- Public: active Inter programs (with their subject groups — HED
+-- Public: active Inter programs (with their subject groups
 -- get_subjectgroups_by_program_id.php behaviour folded into one call)
 CREATE OR REPLACE FUNCTION public.inter_programs_list(p_include_inactive boolean DEFAULT false)
 RETURNS jsonb
@@ -859,7 +859,7 @@ $$;
 
 
 -- Quota validation BEFORE submit (mirrors the live cascade checks)
--- Returns {ok, message?, needs?} exactly like the HED JS behaviours.
+-- Returns {ok, message?, needs?} JS behaviours.
 CREATE OR REPLACE FUNCTION public.inter_check_quota(
     p_token uuid,
     p_quota text,
@@ -960,7 +960,7 @@ BEGIN
         END IF;
     END IF;
 
-    -- Non-blocking overage warning (verbatim HED message)
+    -- Non-blocking overage warning
     IF v_age_y >= 19 THEN
         RETURN jsonb_build_object('ok', true, 'warning',
             'You are overage. An age relaxation certificate is required for Inter admission.');
@@ -971,8 +971,8 @@ $$;
 
 
 
--- Submit a new application (HED Submit Application → confirm page state)
--- p_subject_group mirrors HED program_subject_group_id (group NAME is
+-- Submit a new application
+-- p_subject_group mirrors program_subject_group_id (group NAME is
 -- stored; required when the program defines subject groups).
 CREATE OR REPLACE FUNCTION public.inter_submit_application(
     p_token uuid,
@@ -1009,7 +1009,7 @@ BEGIN
         RETURN jsonb_build_object('ok', false, 'error', 'Please select a valid program.');
     END IF;
 
-    -- Subject group: mandatory when the program defines groups (HED rule)
+    -- Subject group: mandatory when the program defines groups
     SELECT count(*) INTO v_group_count FROM public.inter_subject_groups
         WHERE program_id = v_prog.id AND is_active;
     IF v_group_count > 0 THEN
@@ -1058,7 +1058,7 @@ BEGIN
             'You must agree to the declaration before submitting.');
     END IF;
 
-    -- Fee deadline — HED behaviour (verified twice): the JazzCash token must
+    -- Fee deadline (verified twice): the JazzCash token must
     -- be paid by the ADMISSION CYCLE LAST DATE (GCMS: 05-Nov for a 01-Nov
     -- submission; GDC Wadpaga: same-day 01-Nov). Fall back to submission + 4
     -- days when the school has not set admission_settings.last_date.
@@ -1117,7 +1117,7 @@ $$;
 
 
 -- "Submit & Pay Application Processing Fee" → Proceed with Payment →
--- generates the JazzCash token + deadline (HED student_pay_application_fee_response.php)
+-- generates the JazzCash token + deadline
 CREATE OR REPLACE FUNCTION public.inter_proceed_payment(p_token uuid, p_application_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER
@@ -1143,7 +1143,7 @@ BEGIN
             'deadline', to_char(v_approw.fee_deadline, 'DD-Mon-YYYY'));
     END IF;
 
-    -- JazzCash token = YYMMDD + 9-digit sequence (15 digits, HED format)
+    -- JazzCash token = YYMMDD + 9-digit sequence
     v_token := to_char(now(), 'YYMMDD') || lpad(nextval('public.inter_application_seq')::text, 9, '0');
 
     UPDATE public.inter_applications
@@ -1208,7 +1208,7 @@ $$;
 
 
 -- ─────────────────────────────────────────────────────────────────────
--- 10. PUBLIC TRACK (HED application_status.php — tracking id only)
+-- 10. PUBLIC TRACK
 -- ─────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.inter_track(p_tracking_id text)
 RETURNS jsonb
@@ -1347,7 +1347,7 @@ $$;
 
 
 -- Admin: manage program seats / active flag (sanctioned seats are the
--- school's own numbers and may change; everything else is HED-fixed)
+-- school's own numbers and may change; everything else is-fixed)
 CREATE OR REPLACE FUNCTION public.inter_admin_set_program(
     p_program_id int, p_seats int DEFAULT NULL, p_is_active boolean DEFAULT NULL
 )
@@ -1379,7 +1379,7 @@ $$;
 
 
 -- ─────────────────────────────────────────────────────────────────────
--- 12. MERIT LIST RPCs (HED merit_list_view.php, structure captured live)
+-- 12. MERIT LIST RPCs
 -- Public list of published merit lists + admin generation & management
 -- ─────────────────────────────────────────────────────────────────────
 
@@ -1410,7 +1410,7 @@ $$;
 
 
 
--- Public: one merit list with entries (HED table:
+-- Public: one merit list with entries ( table:
 -- # | Tracking ID | Name | Father Name | Total | Obtained | Net Marks |
 -- Percentage | Remarks  + Important Dates + Instructions)
 CREATE OR REPLACE FUNCTION public.inter_merit_list_view(p_merit_list_id uuid)
@@ -1453,8 +1453,8 @@ $$;
 
 
 -- Admin: generate a merit list for one program + quota from the
--- FEE-PAID applications, sorted by net marks (HED merit order).
--- Net marks = SSC obtained + 20 if Hafiz e Quran (HED merit rule);
+-- FEE-PAID applications, sorted by net marks.
+-- Net marks = SSC obtained + 20 if Hafiz e Quran;
 -- percentage = round(net / total * 100, 2) — both verified on live lists.
 CREATE OR REPLACE FUNCTION public.inter_admin_merit_generate(
     p_program_id int,
@@ -1490,7 +1490,7 @@ BEGIN
         RETURN jsonb_build_object('ok', false, 'error', 'Please select a valid quota.');
     END;
 
-    -- No paid applications → nothing to list (HED lists only fee-cleared apps)
+    -- No paid applications → nothing to list
     SELECT count(*) INTO v_count
       FROM public.inter_applications a
       JOIN public.inter_ssc_profiles s ON s.applicant_id = a.applicant_id
@@ -1502,7 +1502,7 @@ BEGIN
             'No fee-paid applications for this program and quota yet.');
     END IF;
 
-    -- HED title format: "1st Provisional Merit list for session 2026 [College] Program (Quota)"
+ title format: "1st Provisional Merit list for session 2026 [College] Program (Quota)"
     v_ord := CASE p_list_no % 100
         WHEN 11 THEN p_list_no::text || 'th'
         WHEN 12 THEN p_list_no::text || 'th'
@@ -1631,7 +1631,7 @@ $$;
 
 
 -- Admin: delete an unpublished merit list (published lists must be
--- unpublished first — mirrors HED's one-way publication history)
+-- unpublished first — mirrors's one-way publication history)
 CREATE OR REPLACE FUNCTION public.inter_admin_merit_delete(p_merit_list_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER

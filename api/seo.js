@@ -26,7 +26,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 const SITE_URL = "https://ghssghallanai.dpdns.org";
-const FACEBOOK_URL = "https://www.facebook.com/share/1EERTSk1W7/";
+const FACEBOOK_URL = "https://www.facebook.com/share/19doja9mNr/";
 const SITE_NAME = "GHSS Ghallanai";
 const SITE_DESC = "Government Higher Secondary School Ghallanai, District Mohmand, KPK Pakistan — latest notices and announcements.";
 

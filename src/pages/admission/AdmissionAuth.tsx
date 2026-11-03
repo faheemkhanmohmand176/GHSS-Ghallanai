@@ -1,7 +1,7 @@
 /**
- * AdmissionAuth — applicant Create Account (HED apply_step1.php) and Login
- * (HED student_login.php), with the math captcha and the 4-step wizard
- * indicator exactly as on the HED system:
+ * AdmissionAuth — applicant Create Account and Login
+ *, with the math captcha and the 4-step wizard
+ * indicator:
  *   1 Create Account → 2 Board Verification → 3 Personal Information → 4 Academic Information
  */
 

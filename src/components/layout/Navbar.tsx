@@ -22,7 +22,6 @@ import { useAuth } from "@/hooks/useAuth";
 import ThemeSwitcher from "@/components/shared/ThemeSwitcher";
 import ThemeToggleButton from "@/components/shared/ThemeToggleButton";
 import HexagonLogoFrame from "@/components/shared/HexagonLogoFrame";
-import InstallAppButton from "@/components/shared/InstallAppButton";
 import NavSearchDropdown from "@/components/layout/NavSearchDropdown";
 import { openCommandPalette } from "@/components/shared/CommandPalette";
 import { intentPrefetchHandlers } from "@/lib/routePrefetch";
@@ -789,8 +788,6 @@ const MobileMenu = memo(function MobileMenu({
                 />
               </li>
             ))}
-            <InstallAppButton />
-
             {/* ── Account ── */}
             {!authLoading && (
               user ? (
@@ -1279,7 +1276,6 @@ const Navbar = () => {
           {/* Live countdown on the Roll No. Slip link (desktop top bar) */}
           <RollSlipCountdown variant="chip" />
           <span className="hidden xl:block h-6 w-px bg-border" aria-hidden="true" />
-          <InstallAppButton compact />
           {!authLoading && (
             user ? (
               <>

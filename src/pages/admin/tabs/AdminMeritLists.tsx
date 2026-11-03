@@ -1,12 +1,12 @@
 /**
- * AdminMeritLists — Merit List management for the HED-mirror Inter admission
+ * AdminMeritLists — Merit List management for-mirror Inter admission
  * system (migration 20_inter_admission_hed_mirror.sql).
  *
  * • Generate a merit list for one program + quota from the FEE-PAID
  *   applications (inter_admin_merit_generate) — net marks = SSC obtained
- *   + 20 if Hafiz e Quran, sorted descending (the HED merit rule).
+ *   + 20 if Hafiz e Quran, sorted descending.
  * • Publish / unpublish (inter_admin_merit_publish) — published lists show
- *   on the public Admission page exactly like the HED college page.
+ *   on the public Admission page.
  * • Delete drafts (inter_admin_merit_delete — published lists must be
  *   unpublished first).
  * • Preview published lists (inter_merit_list_view — the same table the
@@ -308,7 +308,7 @@ export default function AdminMeritLists() {
             <div className="space-y-1.5">
               <Label className="text-[13px] font-semibold">List Number <span className="text-red-500">*</span></Label>
               <Input type="number" min={1} value={gListNo} onChange={(e) => setGListNo(Math.max(1, Number(e.target.value) || 1))} className="h-10" />
-              <p className="text-[11px] text-muted-foreground">1 = “1st Provisional”, 2 = “2nd”, 3 = “3rd” … (HED title format).</p>
+              <p className="text-[11px] text-muted-foreground">1 = “1st Provisional”, 2 = “2nd”, 3 = “3rd” ….</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

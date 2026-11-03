@@ -1,18 +1,17 @@
 /**
- * ApplicationView — mirrors HED student_view_application.php:
- * full application details, Processing Fee Status, JazzCash token + deadline
- * notice, Tracking ID, Print Application button, and (when unpaid) the
- * Pay Application Processing Fee flow.
+ * ApplicationView — the applicant's full application record: details,
+ * processing-fee status, payment reference + deadline notice, Tracking ID,
+ * PDF downloads and (while unpaid) the online / manual fee payment options.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
-  Printer, Loader2, Wallet, AlertCircle, CheckCircle2, FileText,
+  Printer, Loader2, AlertCircle, CheckCircle2, FileText,
 } from "lucide-react";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
-import AdmissionPaymentAccounts from "@/components/shared/AdmissionPaymentAccounts";
+import OnlinePayPanel from "@/components/shared/OnlinePayPanel";
 import { useAdmissionSettings, cycleLabel } from "@/hooks/useAdmission";
 import { downloadFeeChallan, downloadApplicationForm } from "@/lib/admissionPdf";
 import PageLayout from "@/components/layout/PageLayout";
@@ -23,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
-  interApi, QUOTA_LABEL, HED_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
+  interApi, QUOTA_LABEL, ADMISSION_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
   formatCnic, formatDateLong, formatDeadline,
 } from "@/lib/interAdmission";
 
@@ -42,13 +41,14 @@ export default function ApplicationView() {
   const { token, loading: sessionLoading } = useInterSession();
   const [detail, setDetail] = useState<AppDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
   const { data: admSettings } = useAdmissionSettings();
   const ADMISSION_CYCLE = cycleLabel(admSettings);
+  const [params, setParams] = useSearchParams();
+  const [confirming, setConfirming] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     if (!token || !id) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const res = (await interApi.applicationDetail(token, id)) as unknown as AppDetail;
       setDetail(res);
@@ -62,30 +62,65 @@ export default function ApplicationView() {
 
   useEffect(() => { if (!sessionLoading) load(); }, [sessionLoading, load]);
 
-  async function handlePay() {
-    if (!id) return;
-    setPaying(true);
-    try {
-      const res = (await interApi.proceedPayment(token!, id)) as unknown as {
-        ok?: boolean; error?: string; token?: string; deadline?: string;
-      };
-      if (res?.ok && res.token) {
-        toast.success(`Payment reference ${res.token} generated.`);
-        await load();
-      } else {
-        toast.error(res?.error || "Payment initialization failed.");
+  // Coming back from the Safepay checkout: the webhook confirms the fee a few
+  // seconds after payment, so poll quietly until the status flips to Paid.
+  const returned = params.get("payment");
+  useEffect(() => {
+    if (!returned) return;
+    if (returned === "cancelled") {
+      toast("Payment was not completed. You can try again whenever you are ready.");
+      setParams({}, { replace: true });
+      return;
+    }
+    if (returned !== "return" || !token || !id) return;
+    let stopped = false;
+    let tries = 0;
+    setConfirming(true);
+    const tick = async () => {
+      if (stopped) return;
+      tries += 1;
+      try {
+        const res = (await interApi.applicationDetail(token, id)) as unknown as AppDetail;
+        if (stopped) return;
+        setDetail(res);
+        if (res?.application?.payment_status === "paid") {
+          toast.success("Payment received. Thank you!");
+          setConfirming(false);
+          setParams({}, { replace: true });
+          return;
+        }
+      } catch { /* keep trying */ }
+      if (tries >= 12) {
+        setConfirming(false);
+        setParams({}, { replace: true });
+        toast("Your payment is still being confirmed. Please check again in a few minutes.");
+        return;
       }
+      window.setTimeout(tick, 3000);
+    };
+    tick();
+    return () => { stopped = true; };
+  }, [returned, token, id, setParams]);
+
+  async function ensureReference(): Promise<boolean> {
+    if (paymentRef) return true;
+    if (!id) return false;
+    try {
+      const res = (await interApi.proceedPayment(token!, id)) as unknown as { ok?: boolean; error?: string };
+      if (!res?.ok) { toast.error(res?.error || "Payment initialization failed."); return false; }
+      await load(true);
+      return true;
     } catch {
       toast.error("Network error. Please try again.");
-    } finally {
-      setPaying(false);
+      return false;
     }
   }
 
   const app = detail?.application;
   const personal = detail?.personal;
   const ssc = detail?.ssc;
-  const unpaid = app ? app.payment_status === "pending" : false;
+  const unpaid = app ? app.payment_status !== "paid" : false;
+  const paymentRef = app?.jazzcash_token ? String(app.jazzcash_token) : "";
 
   if (loading || sessionLoading) {
     return (
@@ -118,7 +153,7 @@ export default function ApplicationView() {
   async function downloadChallan() {
     try {
       await downloadFeeChallan({
-        cycle: ADMISSION_CYCLE, fee: FEE, reference: String(app!.jazzcash_token ?? ""),
+        cycle: ADMISSION_CYCLE, fee: FEE, reference: paymentRef,
         trackingId: String(app!.tracking_id), name: String(personal!.full_name), fatherName: String(personal!.father_name),
         cnic: cnicShown, mobile: String(personal!.mobile_number),
         program: String(app!.program_name), subjectGroup: app!.subject_group ? String(app!.subject_group) : "N/A",
@@ -133,7 +168,10 @@ export default function ApplicationView() {
       const p = personal!, sc = ssc!, ap = app!;
       await downloadApplicationForm({
         cycle: ADMISSION_CYCLE, trackingId: String(ap.tracking_id), paymentStatus: unpaid ? "Pending" : "Paid",
-        reference: String(ap.jazzcash_token ?? ""), fee: FEE, declaration: HED_MESSAGES.declaration,
+        reference: paymentRef, fee: FEE, declaration: ADMISSION_MESSAGES.declaration,
+        institution: COLLEGE_NAME, username: cnicShown, deadline: deadlineShort, appliedOn: formatDateLong(String(ap.submitted_at)),
+        applicant: { name: String(p.full_name), fatherName: String(p.father_name), cnic: cnicShown,
+          address: String(p.mailing_address ?? ""), program: String(ap.program_name) },
         sections: [
           { title: "Application Details", rows: [
             ["College", COLLEGE_NAME], ["Study Level", STUDY_LEVEL],
@@ -224,12 +262,12 @@ export default function ApplicationView() {
           <p className="text-sm text-muted-foreground mt-0.5">{String(personal.full_name)}</p>
           <p className="text-[12.5px] text-muted-foreground">{COLLEGE_NAME}</p>
           <div className="mt-4 mx-auto grid max-w-md grid-cols-2 gap-2.5">
-            {app.jazzcash_token ? (
+            {paymentRef ? (
               <Button variant="outline" onClick={downloadChallan} className="h-10 font-semibold">
                 <FileText className="w-4 h-4" /> Fee Challan
               </Button>
             ) : <span className="hidden" />}
-            <Button variant="outline" onClick={downloadForm} className={`h-10 font-semibold ${app.jazzcash_token ? "" : "col-span-2"}`}>
+            <Button variant="outline" onClick={downloadForm} className={`h-10 font-semibold ${paymentRef ? "" : "col-span-2"}`}>
               <Printer className="w-4 h-4" /> Application PDF
             </Button>
           </div>
@@ -244,13 +282,23 @@ export default function ApplicationView() {
               <Badge variant="secondary" className={unpaid ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" : "bg-green-500/15 text-green-700 dark:text-green-400"}>
                 {unpaid ? "Pending" : "Paid"}
               </Badge>
-              {app.jazzcash_token ? (
+              {!unpaid && app.payment_method ? (
+                <p className="text-[12px] text-muted-foreground">
+                  Paid online{app.safepay_transaction_id ? ` · Ref ${String(app.safepay_transaction_id)}` : ""}
+                </p>
+              ) : null}
+              {confirming && (
+                <p className="mt-1 flex items-center gap-1.5 text-[12.5px] font-medium text-primary">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Confirming your payment…
+                </p>
+              )}
+              {paymentRef ? (
                 <>
                   <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Payment Reference</p>
-                  <p className="font-mono text-xl font-bold tracking-wider text-foreground">{String(app.jazzcash_token)}</p>
+                  <p className="font-mono text-xl font-bold tracking-wider text-foreground">{paymentRef}</p>
                   {unpaid && (
                     <p className="max-w-sm text-[12.5px] leading-relaxed text-muted-foreground">
-                      {HED_MESSAGES.feeTokenNotice(String(app.jazzcash_token), deadlineShort)}
+                      {ADMISSION_MESSAGES.feeTokenNotice(paymentRef, deadlineShort)}
                     </p>
                   )}
                 </>
@@ -259,16 +307,16 @@ export default function ApplicationView() {
               )}
             </div>
 
-            {unpaid && (
-              <div className="mt-5">
-                <h3 className="font-heading font-bold text-foreground mb-2.5">Pay To</h3>
-                <AdmissionPaymentAccounts methods={admSettings?.payment_methods ?? []} />
-                {!app.jazzcash_token && (
-                  <Button onClick={handlePay} disabled={paying} className="mt-4 h-10 font-semibold">
-                    {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wallet className="w-4 h-4" />}
-                    Generate Fee Challan
-                  </Button>
-                )}
+            {unpaid && !confirming && token && id && (
+              <div className="mt-5 text-left">
+                <OnlinePayPanel
+                  token={token}
+                  applicationId={id}
+                  fee={FEE}
+                  methods={admSettings?.payment_methods ?? []}
+                  ensureReference={ensureReference}
+                  hasReference={Boolean(paymentRef)}
+                />
               </div>
             )}
 
@@ -290,7 +338,7 @@ export default function ApplicationView() {
             <div><h3 className={H3}>Personal Information</h3><AdmissionInfoGrid items={items.personal} /></div>
             <div><h3 className={H3}>Academic Information</h3><AdmissionInfoGrid items={items.academic} /></div>
             <div className="rounded-xl bg-muted/60 border border-border p-3.5 text-center text-[12.5px] leading-relaxed text-muted-foreground">
-              <span className="font-semibold text-foreground">Declaration: </span>{HED_MESSAGES.declaration}
+              <span className="font-semibold text-foreground">Declaration: </span>{ADMISSION_MESSAGES.declaration}
             </div>
           </CardContent>
         </Card>

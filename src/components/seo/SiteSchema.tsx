@@ -64,7 +64,7 @@ const SiteSchema = () => {
       name: "District Mohmand, Khyber Pakhtunkhwa, Pakistan",
     },
     // Official Facebook page — connects website + FB into ONE Google entity.
-    sameAs: ["https://www.facebook.com/share/1EERTSk1W7/"],
+    sameAs: ["https://www.facebook.com/share/19doja9mNr/"],
   };
 
   // Principal as a named employee (richer Knowledge Panel) — only emitted

@@ -1,6 +1,10 @@
 import { useState, useCallback, useRef, useEffect, memo, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut, Menu, X, ExternalLink, Moon, Sun } from "lucide-react";
+import {
+  LogOut, Menu, X, ExternalLink, Moon, Sun, type LucideIcon,
+  LayoutDashboard, Settings2, UserPlus, Trophy, Wallet, CalendarDays, Ticket,
+  Armchair, Medal, GraduationCap, Clock, Megaphone, Library, ShieldCheck,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { pingDispatch } from "@/lib/push";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +16,7 @@ interface NavItem {
   id: string;
   label: string;
   short: string;
+  icon: LucideIcon;
 }
 interface NavSection {
   heading: string;
@@ -22,41 +27,40 @@ const navSections: NavSection[] = [
   {
     heading: "OVERVIEW",
     items: [
-      { id: "overview",          label: "Overview",              short: "Home" },
-      { id: "settings",          label: "School Settings",       short: "Setup" },
+      { id: "overview",          label: "Overview",              short: "Home", icon: LayoutDashboard },
+      { id: "settings",          label: "School Settings",       short: "Setup", icon: Settings2 },
     ],
   },
   {
     heading: "STUDENTS",
     items: [
-      { id: "admissions",    label: "Admissions",          short: "Admit" },
-      { id: "results",       label: "Manage Results",      short: "Results" },
-      { id: "fees",           label: "Fee Management",       short: "Fees" },
-      { id: "student-records",  label: "Student Records",   short: "Records" },
+      { id: "admissions",    label: "Admissions",          short: "Admit", icon: UserPlus },
+      { id: "results",       label: "Manage Results",      short: "Results", icon: Trophy },
+      { id: "fees",           label: "Fee Management",       short: "Fees", icon: Wallet },
     ],
   },
   {
     heading: "EXAMS",
     items: [
-      { id: "exam-date-sheet",  label: "Exam Date Sheet",   short: "Dates" },
-      { id: "exam-rolls",       label: "Exam Roll Numbers", short: "Rolls" },
-      { id: "exam-seating",     label: "Exam Seating",      short: "Seats" },
-      { id: "merit-list",       label: "Merit List",        short: "Merit" },
+      { id: "exam-date-sheet",  label: "Exam Date Sheet",   short: "Dates", icon: CalendarDays },
+      { id: "exam-rolls",       label: "Exam Roll Numbers", short: "Rolls", icon: Ticket },
+      { id: "exam-seating",     label: "Exam Seating",      short: "Seats", icon: Armchair },
+      { id: "merit-list",       label: "Merit List",        short: "Merit", icon: Medal },
     ],
   },
   {
     heading: "SCHOOL",
     items: [
-      { id: "teachers",       label: "Manage Teachers",   short: "Staff" },
-      { id: "timetables",     label: "Timetables",        short: "Time" },
-      { id: "announcements",  label: "Notices",           short: "Notices" },
-      { id: "library",        label: "Library",           short: "Library" },
+      { id: "teachers",       label: "Manage Teachers",   short: "Staff", icon: GraduationCap },
+      { id: "timetables",     label: "Timetables",        short: "Time", icon: Clock },
+      { id: "announcements",  label: "Notices",           short: "Notices", icon: Megaphone },
+      { id: "library",        label: "Library",           short: "Library", icon: Library },
     ],
   },
   {
     heading: "ADMIN ACCESS",
     items: [
-      { id: "users",  label: "Manage Users", short: "Users" },
+      { id: "users",  label: "Manage Users", short: "Users", icon: ShieldCheck },
     ],
   },
 ];
@@ -90,7 +94,7 @@ const NavBtn = memo(({ item, activeTab, onTabChange, onItemClick }: NavBtnProps)
       data-active={isActive ? "true" : "false"}
       onClick={() => { onTabChange(item.id); onItemClick?.(); }}
       className={cn(
-        "group relative w-full flex items-center gap-3 rounded-lg pl-4 pr-3 py-2 min-h-[2.25rem] text-[13px] font-medium tracking-[0.01em] transition-all duration-200",
+        "group relative w-full flex items-center gap-3 rounded-lg pl-4 pr-3 py-1.5 min-h-[2.5rem] text-[13px] font-medium tracking-[0.01em] transition-all duration-200",
         isActive
           ? "bg-gradient-to-r from-primary via-primary to-primary-light text-primary-foreground ring-1 ring-inset ring-white/10 shadow-[0_8px_20px_-8px_hsl(144_61%_20%/0.5)]"
           : "hover:bg-secondary/80 text-foreground",
@@ -104,6 +108,17 @@ const NavBtn = memo(({ item, activeTab, onTabChange, onItemClick }: NavBtnProps)
           isActive ? "bg-[hsl(43_89%_58%)] shadow-[0_0_8px_hsl(43_89%_58%/0.75)] opacity-100" : "opacity-0",
         )}
       />
+      <span
+        aria-hidden
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all duration-200",
+          isActive
+            ? "bg-white/15 text-[hsl(43_89%_70%)] ring-1 ring-inset ring-white/20"
+            : "bg-primary/[0.07] text-primary group-hover:bg-primary/15",
+        )}
+      >
+        <item.icon className="h-[15px] w-[15px]" strokeWidth={1.8} />
+      </span>
       <span className="admin-nav-label min-w-0 flex-1 text-left leading-tight break-words">{item.label}</span>
       <span
         aria-hidden
@@ -341,11 +356,13 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
                 aria-current={isActive ? "page" : undefined}
               >
                 {isActive && <span aria-hidden className="absolute -top-1.5 h-1 w-7 rounded-full bg-[hsl(43_89%_58%)] shadow-[0_0_10px_hsl(43_89%_58%/0.8)]" />}
+                <item.icon className="h-5 w-5" strokeWidth={isActive ? 2.2 : 1.8} aria-hidden />
                 <span className={`admin-dock-label text-[11px] font-semibold tracking-wide leading-none ${isActive ? "text-primary" : ""}`}>{item.short}</span>
               </button>
             );
           })}
           <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" className="admin-dock-item flex flex-col items-center gap-0.5 p-2 min-w-[3.25rem] text-muted-foreground">
+            <Menu className="h-5 w-5" strokeWidth={1.8} aria-hidden />
             <span className="text-[11px] font-semibold tracking-wide leading-none">Menu</span>
           </button>
         </div>
