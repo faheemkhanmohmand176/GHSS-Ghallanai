@@ -312,6 +312,7 @@ export default function ApplicationView() {
                 <OnlinePayPanel
                   token={token}
                   applicationId={id}
+                  trackingId={String(app.tracking_id)}
                   fee={FEE}
                   methods={admSettings?.payment_methods ?? []}
                   ensureReference={ensureReference}
