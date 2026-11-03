@@ -134,6 +134,9 @@ export default function ApplicationView() {
       await downloadApplicationForm({
         cycle: ADMISSION_CYCLE, trackingId: String(ap.tracking_id), paymentStatus: unpaid ? "Pending" : "Paid",
         reference: String(ap.jazzcash_token ?? ""), fee: FEE, declaration: HED_MESSAGES.declaration,
+        institution: COLLEGE_NAME, username: cnicShown, deadline: deadlineShort, appliedOn: formatDateLong(String(ap.submitted_at)),
+        applicant: { name: String(p.full_name), fatherName: String(p.father_name), cnic: cnicShown,
+          address: String(p.mailing_address ?? ""), program: String(ap.program_name) },
         sections: [
           { title: "Application Details", rows: [
             ["College", COLLEGE_NAME], ["Study Level", STUDY_LEVEL],
