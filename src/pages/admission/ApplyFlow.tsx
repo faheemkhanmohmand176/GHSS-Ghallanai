@@ -524,15 +524,15 @@ export default function ApplyFlow() {
                   {ADMISSION_MESSAGES.declaration}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button variant="outline" onClick={() => { setStep("form"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    className="h-12 font-semibold flex-1">
-                    <ChevronLeft className="w-5 h-5" /> Go Back
-                  </Button>
+                <div className="flex flex-col gap-2.5">
                   <Button onClick={() => { setStep("pay"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    className="h-12 font-semibold flex-1">
+                    className="h-12 w-full font-semibold">
                     <Wallet className="w-5 h-5" />
                     Continue to Payment
+                  </Button>
+                  <Button variant="outline" onClick={() => { setStep("form"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    className="h-11 w-full font-semibold">
+                    <ChevronLeft className="w-5 h-5" /> Go Back
                   </Button>
                 </div>
               </CardContent>
@@ -572,6 +572,7 @@ export default function ApplyFlow() {
                 <OnlinePayPanel
                   token={token!}
                   applicationId={submitResult.application_id}
+                  trackingId={submitResult.tracking_id}
                   fee={PROCESSING_FEE}
                   methods={admSettings?.payment_methods ?? []}
                   hasReference
@@ -582,14 +583,15 @@ export default function ApplyFlow() {
                   }}
                 />
 
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button variant="outline" onClick={() => navigate("/admission/portal")}
-                    className="h-11 font-semibold flex-1">
-                    Pay Later
-                  </Button>
-                  <Button onClick={handleProceedPayment} disabled={busy} className="h-11 font-semibold flex-1">
+                <div className="flex flex-col gap-2.5 border-t border-border/60 pt-5">
+                  <Button variant="outline" onClick={handleProceedPayment} disabled={busy}
+                    className="h-11 w-full border-primary/40 font-semibold text-primary hover:text-primary">
                     {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
                     Generate Fee Challan
+                  </Button>
+                  <Button variant="ghost" onClick={() => navigate("/admission/portal")}
+                    className="h-11 w-full font-semibold text-muted-foreground">
+                    Pay Later
                   </Button>
                 </div>
               </CardContent>
@@ -621,6 +623,7 @@ export default function ApplyFlow() {
                   <OnlinePayPanel
                     token={token!}
                     applicationId={submitResult!.application_id}
+                    trackingId={payResult.tracking_id}
                     fee={PROCESSING_FEE}
                     methods={admSettings?.payment_methods ?? []}
                     hasReference
@@ -628,16 +631,18 @@ export default function ApplyFlow() {
                   />
                 </div>
 
-                <div className="mt-6 grid gap-2.5 sm:grid-cols-3">
-                  <Button className="h-10 font-semibold" onClick={handleChallan}>
-                    <Printer className="w-4 h-4" /> Fee Challan
-                  </Button>
-                  <Link to={`/admission/application/${submitResult?.application_id}`} className="block">
-                    <Button variant="outline" className="h-10 w-full font-semibold">View Application</Button>
-                  </Link>
+                <div className="mt-6 space-y-2.5 border-t border-border/60 pt-5">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <Button variant="outline" className="h-11 w-full font-semibold" onClick={handleChallan}>
+                      <Printer className="w-4 h-4" /> Fee Challan
+                    </Button>
+                    <Link to={`/admission/application/${submitResult?.application_id}`} className="block">
+                      <Button variant="outline" className="h-11 w-full font-semibold">View Application</Button>
+                    </Link>
+                  </div>
                   <Link to="/admission/portal" className="block">
-                    <Button variant="outline" className="h-10 w-full font-semibold">
-                      <BadgeCheck className="w-4 h-4" /> Dashboard
+                    <Button variant="ghost" className="h-11 w-full font-semibold text-muted-foreground">
+                      <BadgeCheck className="w-4 h-4" /> Go to Dashboard
                     </Button>
                   </Link>
                 </div>
