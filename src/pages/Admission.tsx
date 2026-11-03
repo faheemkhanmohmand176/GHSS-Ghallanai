@@ -34,6 +34,7 @@ import toast from "react-hot-toast";
 import {
   interApi, getToken, QUOTA_LABEL, COLLEGE_SHORT, STUDY_LEVEL, FACULTIES,
 } from "@/lib/interAdmission";
+import Turnstile from "@/components/shared/Turnstile";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,6 +72,11 @@ const STATUS_TEXT: Record<string, { label: string; tone: string; note: string }>
 
 function TrackApplication() {
   const [trackingId, setTrackingId] = useState("");
+  // Second factor: the applicant's mobile number (11 digits) OR the last 4
+  // digits of their CNIC.  This stops anyone from probing for valid tracking
+  // IDs — wrong ID and wrong factor return the SAME "no match" message.
+  const [secondFactor, setSecondFactor] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [searched, setSearched] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [result, setResult] = useState<TrackResult | null>(null);
@@ -79,18 +85,24 @@ function TrackApplication() {
   const doSearch = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
     const q = trackingId.replace(/\s+/g, "").trim();
+    const f = secondFactor.replace(/\D/g, "").trim();
     if (!q) { toast.error("Please enter your Tracking ID."); return; }
+    if (!f) { toast.error("Please enter your mobile number or the last 4 digits of your CNIC."); return; }
+    if (!turnstileToken) { toast.error("Please complete the security check."); return; }
     setSearching(true); setSearched(q); setResult(null); setFailed(false);
     try {
-      const res = (await interApi.track(q)) as unknown as TrackResult & { error?: string };
+      const res = (await interApi.track(q, f, turnstileToken)) as unknown as TrackResult & { error?: string };
       if (res?.ok) setResult(res);
-      else if (res?.error) setFailed(true);   // a real error, not "not found"
+      else if (res?.error) setFailed(true);   // a real gateway/network error, not "not found"
+      // NOTE: when the ID is wrong OR the second factor is wrong, the gateway
+      // returns { ok:false } with NO error string — identical response, so
+      // nobody can probe for valid tracking IDs.
     } catch {
       setFailed(true);
     } finally {
       setSearching(false);
     }
-  }, [trackingId]);
+  }, [trackingId, secondFactor, turnstileToken]);
 
   const timeline = result?.timeline ?? [];
   const st = STATUS_TEXT[result?.status ?? "submitted"] ?? STATUS_TEXT.submitted;
@@ -106,15 +118,17 @@ function TrackApplication() {
           </div>
           <span className="premium-kicker mt-2 block !text-[0.6rem]">Status</span>
           <h2 className="font-heading text-xl font-semibold leading-tight text-foreground sm:text-2xl">Track Application</h2>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">Enter your Tracking ID or payment reference.</p>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
+            Enter your Tracking ID <span className="text-muted-foreground/70">plus</span> your mobile number or the last 4 digits of your CNIC.
+          </p>
         </div>
-        <form onSubmit={doSearch} className="mx-auto mt-4 max-w-md">
+        <form onSubmit={doSearch} className="mx-auto mt-4 max-w-md space-y-3">
           <div className="flex items-center gap-1.5 rounded-full border border-border bg-background/70 p-1 pl-4 shadow-sm transition-colors focus-within:border-gold/60 focus-within:ring-2 focus-within:ring-gold/15">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
             <input
               value={trackingId}
               onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
-              placeholder="e.g. NOV2026100003"
+              placeholder="e.g. NOV2026-K7MQXA"
               className="h-9 min-w-0 flex-1 bg-transparent text-[13.5px] font-semibold tracking-[0.08em] text-foreground outline-none placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground/70"
               aria-label="Application Tracking ID"
               autoComplete="off"
@@ -125,6 +139,23 @@ function TrackApplication() {
               Track
             </Button>
           </div>
+          <div className="rounded-full border border-border bg-background/70 px-4 py-1 shadow-sm transition-colors focus-within:border-gold/60 focus-within:ring-2 focus-within:ring-gold/15">
+            <input
+              value={secondFactor}
+              onChange={(e) => setSecondFactor(e.target.value)}
+              placeholder="Mobile (03XXXXXXXXX) or last 4 digits of CNIC"
+              className="h-9 w-full bg-transparent text-[13.5px] font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
+              aria-label="Mobile number or last 4 digits of CNIC"
+              autoComplete="off"
+            />
+          </div>
+          <div className="flex justify-center">
+            <Turnstile onToken={setTurnstileToken} onExpire={() => setTurnstileToken("")} />
+          </div>
+          <p className="text-center text-[11px] leading-relaxed text-muted-foreground/80">
+            The second factor protects your application from being looked up by
+            strangers. If your details do not match, nothing is shown.
+          </p>
         </form>
 
         {searched && !searching && (
@@ -199,7 +230,7 @@ function TrackApplication() {
                 <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
                   {failed
                     ? "Please check your connection and try again."
-                    : <>No match for <span className="font-mono font-bold text-foreground">{searched}</span>. Check the Tracking ID on your challan.</>}
+                    : <>No match for <span className="font-mono font-bold text-foreground">{searched}</span>. Check the Tracking ID on your challan and your second factor, then try again.</>}
                 </p>
               </div>
             )}

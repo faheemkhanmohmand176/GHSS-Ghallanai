@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Loader2, Send, ChevronLeft, Wallet, AlertCircle, CheckCircle2,
@@ -78,6 +78,11 @@ function SwalDialog({ message, onClose }: { message: string; onClose: () => void
 export default function ApplyFlow() {
   const { session, loading, token, refresh } = useInterSession();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // ?edit=<id> → edit an existing UNPAID application instead of creating a new one.
+  // The tracking id and payment reference are preserved by the RPC.
+  const editId = searchParams.get("edit");
+  const isEditing = Boolean(editId);
 
   const [step, setStep] = useState<Step>("form");
   const { data: admSettings } = useAdmissionSettings();
@@ -119,6 +124,43 @@ export default function ApplyFlow() {
     }
   }, [loading, session, navigate]);
 
+  // ── Edit mode: load the existing application and pre-fill the form ──────
+  useEffect(() => {
+    if (!isEditing || !token || !editId || loading) return;
+    let cancelled = false;
+    (async () => {
+      const res = (await interApi.applicationDetail(token, editId)) as unknown as {
+        ok?: boolean; error?: string;
+        application?: Record<string, string | number | boolean | null>;
+      };
+      if (cancelled) return;
+      const app = res?.application;
+      if (!res?.ok || !app) {
+        toast.error(res?.error || "Could not load the application for editing.");
+        navigate("/admission/portal");
+        return;
+      }
+      // Lock check — if already paid, the RPC will also refuse, but show a
+      // friendly message up front.
+      if (String(app.payment_status ?? "") === "paid") {
+        toast.error("This application is locked because the fee has been paid.");
+        navigate(`/admission/application/${editId}`);
+        return;
+      }
+      // Find the program id from the programs list by name
+      const prog = programs.find((p) => p.name === String(app.program_name ?? ""));
+      if (prog) setProgramId(prog.id);
+      setQuota(String(app.quota ?? ""));
+      setSubjectGroup(String(app.subject_group ?? ""));
+      setCriteria({
+        ...EMPTY_CRITERIA,
+        criteria: String(app.quota_criteria ?? "") || EMPTY_CRITERIA.criteria,
+      });
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, token, editId, loading, programs]);
+
   // ── Quota change → cascade behaviour ─────────────────────────────
   async function handleQuotaChange(q: string) {
     setQuota(q);
@@ -154,15 +196,34 @@ export default function ApplyFlow() {
     }
     setBusy(true);
     try {
-      const res = (await interApi.submitApplication(
-        token!, Number(programId), quota, criteria as unknown as Record<string, unknown>,
-        program?.subject_groups?.length ? subjectGroup : null,
-      )) as unknown as {
-        ok?: boolean; error?: string; needs?: string;
-        application_id?: string; tracking_id?: string;
-      };
-      if (res?.ok && res.application_id) {
-        setSubmitResult({ application_id: res.application_id, tracking_id: res.tracking_id! });
+      // EDIT mode → call inter_edit_application (tracking id + payment ref preserved)
+      // NEW mode   → call inter_submit_application (random tracking id generated server-side)
+      const res = isEditing && editId
+        ? (await interApi.editApplication(
+            token!, Number(programId), quota, criteria as unknown as Record<string, unknown>,
+            program?.subject_groups?.length ? subjectGroup : null,
+          )) as unknown as {
+            ok?: boolean; error?: string; needs?: string;
+            application_id?: string; tracking_id?: string;
+          }
+        : (await interApi.submitApplication(
+            token!, Number(programId), quota, criteria as unknown as Record<string, unknown>,
+            program?.subject_groups?.length ? subjectGroup : null,
+          )) as unknown as {
+            ok?: boolean; error?: string; needs?: string;
+            application_id?: string; tracking_id?: string;
+          };
+      if (res?.ok && (res.application_id || editId)) {
+        if (isEditing) {
+          // Editing only changes the form — no payment step. Go straight to
+          // the application view so the applicant sees their (unchanged)
+          // tracking id + payment reference.
+          toast.success("Application updated. Your Tracking ID and payment reference are unchanged.");
+          refresh();
+          navigate(`/admission/application/${editId}`);
+          return;
+        }
+        setSubmitResult({ application_id: res.application_id!, tracking_id: res.tracking_id! });
         setStep("confirm");
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else if (res?.error) {
@@ -245,9 +306,13 @@ export default function ApplyFlow() {
           }}
         />
         <div className="mb-6">
-          <h1 className="font-heading text-2xl sm:text-3xl font-semibold text-foreground">New Admission Request</h1>
+          <h1 className="font-heading text-2xl sm:text-3xl font-semibold text-foreground">
+            {isEditing ? "Edit Application" : "New Admission Request"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {STUDY_LEVEL}. Fields with <span className="text-red-500 font-bold">*</span> are mandatory.
+            {isEditing
+              ? "Change your program, group or quota. Your Tracking ID and payment reference stay the same."
+              : <>{STUDY_LEVEL}. Fields with <span className="text-red-500 font-bold">*</span> are mandatory.</>}
           </p>
         </div>
 
@@ -445,7 +510,7 @@ export default function ApplyFlow() {
 
                   <Button type="submit" disabled={busy} className="w-full h-10 font-semibold text-[13px]">
                     {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                    Submit Application
+                    {isEditing ? "Save Changes" : "Submit Application"}
                   </Button>
                 </form>
               </CardContent>

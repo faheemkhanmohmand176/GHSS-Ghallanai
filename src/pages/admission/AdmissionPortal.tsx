@@ -10,7 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   LayoutDashboard, ClipboardList, UserRound, BookOpen,
-  LogOut, Plus, Search, AlertCircle, BadgeCheck, Wallet,
+  LogOut, Plus, Search, AlertCircle, BadgeCheck, Wallet, PencilLine,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInterSession } from "@/hooks/useInterAdmission";
-import { formatCnic, QUOTA_LABEL, formatDeadline } from "@/lib/interAdmission";
+import { formatCnic, QUOTA_LABEL, formatDeadline, maskMobile } from "@/lib/interAdmission";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 
 export default function AdmissionPortal() {
@@ -29,6 +29,13 @@ export default function AdmissionPortal() {
   const sscDone = Boolean(session?.ssc);
   const profilesDone = personalDone && sscDone;
   const apps = session?.applications ?? [];
+  // ONE active application per cycle — hide "New Application" while one exists.
+  // A cancelled / rejected application does NOT count as active.
+  const activeApp = apps.find(a => !['cancelled','rejected'].includes(a.status));
+  const hasActiveApp = Boolean(activeApp);
+  // The application the applicant can edit (unpaid + not yet locked)
+  const editableApp = apps.find(a => a.payment_status === 'pending'
+    && !['fee_paid','under_review','merit_listed','admitted','rejected','cancelled'].includes(a.status));
 
   const itemCls = "w-full flex items-center gap-2.5 rounded-lg px-3 h-10 text-[13px] font-semibold text-muted-foreground hover:bg-primary/5 hover:text-primary transition-colors text-left";
 
@@ -36,6 +43,11 @@ export default function AdmissionPortal() {
     if (!profilesDone) {
       toast.error("Please complete your profiles before applying.");
       document.getElementById("complete-profile")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (hasActiveApp) {
+      toast.error("You already have an active application for this cycle. Use Edit Application instead.");
+      document.getElementById("all-applications")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
     navigate("/admission/apply");
@@ -56,7 +68,7 @@ export default function AdmissionPortal() {
             <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground">Applicant Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-1">
               {session?.applicant
-                ? <>CNIC/Form-B: <span className="font-mono font-semibold text-foreground">{formatCnic(session.applicant.cnic_formb)}</span> · Mobile: <span className="font-mono">{session.applicant.mobile}</span></>
+                ? <>CNIC/Form-B: <span className="font-mono font-semibold text-foreground">{formatCnic(session.applicant.cnic_formb)}</span> · Mobile: <span className="font-mono">{maskMobile(session.applicant.mobile)}</span></>
                 : "Loading your session…"}
             </p>
           </div>
@@ -102,9 +114,15 @@ export default function AdmissionPortal() {
               <CardContent className="p-4">
                 <h3 className="font-heading font-bold text-sm text-foreground mb-3 px-1">Admission Menu</h3>
                 <nav className="space-y-1">
-                  <button type="button" onClick={goNewApplication} className={itemCls}>
-                    <Plus className="w-4 h-4" /> New Admission Request
-                  </button>
+                  {hasActiveApp ? (
+                    <Link to={editableApp ? `/admission/apply?edit=${editableApp.id}` : `/admission/application/${activeApp?.id ?? ""}`} className={itemCls}>
+                      <PencilLine className="w-4 h-4" /> Edit Application
+                    </Link>
+                  ) : (
+                    <button type="button" onClick={goNewApplication} className={itemCls}>
+                      <Plus className="w-4 h-4" /> New Admission Request
+                    </button>
+                  )}
                   <button type="button" onClick={goAllApplications} className={itemCls}>
                     <LayoutDashboard className="w-4 h-4" /> All Applications
                   </button>
@@ -180,11 +198,20 @@ export default function AdmissionPortal() {
                               </td>
                               <td className="px-3 py-3 text-center align-middle">
                                 {unpaid ? (
-                                  <Link to={`/admission/application/${a.id}?pay=1`}>
-                                    <Button size="sm" className="h-8 text-xs font-semibold">
-                                      <Wallet className="w-3.5 h-3.5" /> Pay Fee
-                                    </Button>
-                                  </Link>
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <Link to={`/admission/application/${a.id}?pay=1`}>
+                                      <Button size="sm" className="h-8 text-xs font-semibold">
+                                        <Wallet className="w-3.5 h-3.5" /> Pay
+                                      </Button>
+                                    </Link>
+                                    {a.status !== 'cancelled' && a.status !== 'rejected' && (
+                                      <Link to={`/admission/apply?edit=${a.id}`}>
+                                        <Button size="sm" variant="outline" className="h-8 text-xs font-semibold">
+                                          <PencilLine className="w-3.5 h-3.5" /> Edit
+                                        </Button>
+                                      </Link>
+                                    )}
+                                  </div>
                                 ) : (
                                   <Link to={`/admission/application/${a.id}`}>
                                     <Button size="sm" variant="outline" className="h-8 text-xs font-semibold">

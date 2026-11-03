@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, Lock, GraduationCap, ArrowRight, Loader2, Clock, XCircle } from "lucide-react";
 import { supabase, signOutSafely } from "@/lib/supabase";
+import { authGateway } from "@/lib/authGateway";
+import Turnstile from "@/components/shared/Turnstile";
 import toast from "react-hot-toast";
 import { useSchoolSettings, safeMediaUrl } from "@/hooks/useSchoolSettings";
 
@@ -19,6 +21,7 @@ function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
 const SignIn = () => {
   const [email, setEmail]             = useState("");
   const [password, setPassword]       = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [loading, setLoading]         = useState(false);
   const [logoFailed, setLogoFailed]   = useState(false);
   const [pendingStatus, setPendingStatus] = useState<"pending" | "rejected" | null>(null);
@@ -28,31 +31,35 @@ const SignIn = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!turnstileToken) { toast.error("Please complete the security check."); return; }
     setLoading(true);
     setPendingStatus(null);
 
     try {
-      // ── 1. Authenticate with hard 10s timeout ─────────────────────────────
-      const { data: authData, error: authError } = await withTimeout(
-        supabase.auth.signInWithPassword({ email, password }),
-        10000
-      );
-
-      if (authError || !authData.user) {
-        // Supabase intentionally returns the same generic error for both
-        // "no account with this email" and "wrong password" (this is a
-        // security best practice — it stops attackers from using the
-        // login form to discover which emails are registered). We surface
-        // a slightly friendlier version of that same generic message
-        // rather than guessing which case it is.
-        toast.error(
-          authError?.message?.includes("Invalid login credentials")
-            ? "No account found with this email/password, or you haven't signed up yet."
-            : (authError?.message || "Login failed.")
-        );
+      // ── 1. Authenticate via the auth-gateway (Turnstile verified server-side)
+      //    The gateway calls supabase.auth.signInWithPassword with the service
+      //    role after verifying the Turnstile token, then returns the session
+      //    tokens.  We establish the session locally with setSession().
+      const gw = await authGateway.signIn({ email, password, turnstile: turnstileToken });
+      if (!gw.ok || !gw.access_token) {
+        toast.error(gw.error || "Login failed.");
+        setTurnstileToken("");
         setLoading(false);
         return;
       }
+
+      const { error: setErr } = await supabase.auth.setSession({
+        access_token: gw.access_token as string,
+        refresh_token: gw.refresh_token as string,
+      });
+      if (setErr) {
+        toast.error(setErr.message || "Could not establish session.");
+        setTurnstileToken("");
+        setLoading(false);
+        return;
+      }
+
+      const userId = (gw.user as { id?: string } | undefined)?.id;
 
       // ── 2. Fetch profile to check approval status (6s timeout each) ───────
       let profile: { role?: string; status?: string } | null = null;
@@ -72,31 +79,19 @@ const SignIn = () => {
             supabase
               .from("profiles")
               .select("role, status")
-              .eq("id", authData.user.id)
+              .eq("id", userId || "")
               .maybeSingle(),
             6000
           );
           profile = directData ?? null;
         }
       } catch {
-        // Both profile fetches timed out — sign out and tell the user
         await signOutSafely();
         toast.error("Server is slow. Please try again in a moment.");
         setLoading(false);
         return;
       }
 
-      // ── 2b. Profile row missing for an existing auth account. ──────────
-      // Previously this silently recreated the profile as "pending" on
-      // EVERY sign-in attempt, which is indistinguishable from a brand
-      // new signup landing in the admin's queue every time someone with
-      // a broken/incomplete account tried to log in — that's the "why do
-      // I keep getting a new pending request" bug you hit. Instead we
-      // tell the user plainly to sign up (or contact admin if they believe
-      // they already have an account), and do NOT touch the profiles table
-      // from the sign-in path at all. Recovering a genuinely admin-deleted
-      // profile is an admin action, not something a failed login should
-      // do on the user's behalf.
       if (!profile) {
         await signOutSafely();
         toast.error("No account found for this email. Please sign up first.");
@@ -107,7 +102,6 @@ const SignIn = () => {
       const status = profile?.status ?? "pending";
       const role   = profile?.role;
 
-      // ── 3. Block pending / rejected accounts ──────────────────────────────
       if (status === "pending") {
         await signOutSafely();
         setPendingStatus("pending");
@@ -122,19 +116,34 @@ const SignIn = () => {
         return;
       }
 
-      // ── 4. Success — clear spinner THEN navigate ───────────────────────────
-      // We reset loading before navigate so the button never stays stuck
-      // if the component somehow stays mounted during the route transition.
+      // ── 3. Admin → require MFA (aal2). If only aal1, go to MFA verify.
+      if (role === "admin") {
+        try {
+          const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aal?.currentLevel !== "aal2") {
+            // Log the admin login attempt to the audit log, then redirect to MFA.
+            try { await supabase.rpc("log_admin_action", { p_action: "admin.login", p_target_type: "auth", p_summary: "Admin signed in (aal1 — MFA pending)" }); } catch { /* ignore */ }
+            toast.success("Signed in — one more step.");
+            navigate("/auth/mfa-verify", { replace: true });
+            setLoading(false);
+            return;
+          }
+        } catch {
+          // If MFA check fails (e.g. not enrolled yet), send to enrol.
+          navigate("/auth/mfa-enroll", { replace: true });
+          setLoading(false);
+          return;
+        }
+        try { await supabase.rpc("log_admin_action", { p_action: "admin.login", p_target_type: "auth", p_summary: "Admin signed in (aal2)" }); } catch { /* ignore */ }
+        navigate("/admin", { replace: true });
+        setLoading(false);
+        return;
+      }
+
+      // Non-admin → home
       toast.success("Signed in successfully!");
       setLoading(false);
-
-      if (role === "admin") {
-        navigate("/admin", { replace: true });
-      } else {
-        // User Dashboard was removed — non-admin accounts have no
-        // dashboard to land on, so send them home.
-        navigate("/", { replace: true });
-      }
+      navigate("/", { replace: true });
 
     } catch (err) {
       const isTimeout = err instanceof Error && err.message === "Request timed out";
@@ -143,6 +152,7 @@ const SignIn = () => {
           ? "Sign in is taking too long. Check your connection and try again."
           : "An unexpected error occurred. Please try again."
       );
+      setTurnstileToken("");
       setLoading(false);
     }
   };
@@ -238,12 +248,16 @@ const SignIn = () => {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !turnstileToken}
               className="w-full gradient-accent text-primary-foreground font-semibold py-3 rounded-xl shadow-card hover:shadow-elevated transition-all flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
               {loading ? "Signing in..." : "Sign In"}
             </button>
+
+            <div className="flex justify-center pt-1">
+              <Turnstile onToken={setTurnstileToken} onExpire={() => setTurnstileToken("")} />
+            </div>
           </form>
 
         </div>

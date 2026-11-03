@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Mail, ArrowRight, Loader2, GraduationCap } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { authGateway } from "@/lib/authGateway";
+import Turnstile from "@/components/shared/Turnstile";
 import toast from "react-hot-toast";
 import { useSchoolSettings, safeMediaUrl } from "@/hooks/useSchoolSettings";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
@@ -15,13 +17,17 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!turnstileToken) { toast.error("Please complete the security check."); return; }
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    });
+    // Route through the auth-gateway: Turnstile is verified server-side,
+    // then the gateway calls supabase.auth.admin.generateLink({type:'recovery'})
+    // with the service role to send the reset email.  The browser no longer
+    // calls supabase.auth.resetPasswordForEmail directly.
+    const res = await authGateway.reset({ email, turnstile: turnstileToken });
     setLoading(false);
-    if (error) {
-      toast.error(error.message);
+    if (res?.error) {
+      toast.error(res.error);
+      setTurnstileToken("");
     } else {
       setSent(true);
     }
@@ -75,11 +81,14 @@ const ForgotPassword = () => {
                 </div>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !turnstileToken}
                   className="w-full gradient-accent text-primary-foreground font-semibold py-3 rounded-xl shadow-card hover:shadow-elevated transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Reset Link"}
                 </button>
+                <div className="flex justify-center">
+                  <Turnstile onToken={setTurnstileToken} onExpire={() => setTurnstileToken("")} />
+                </div>
               </form>
               <Link to="/auth/signin" className="inline-block mt-4 text-sm text-muted-foreground hover:text-foreground">
                 ← Back to Sign In

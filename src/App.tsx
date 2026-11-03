@@ -92,6 +92,8 @@ const Library          = lazyWithRetry(() => import("./pages/Library"));
 const SignIn           = lazyWithRetry(() => import("./pages/auth/SignIn"));
 const ForgotPassword   = lazyWithRetry(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword    = lazyWithRetry(() => import("./pages/auth/ResetPassword"));
+const MfaEnroll        = lazyWithRetry(() => import("./pages/auth/MfaEnroll"));
+const MfaVerify        = lazyWithRetry(() => import("./pages/auth/MfaVerify"));
 const AuthCallback     = lazyWithRetry(() => import("./pages/auth/AuthCallback"));
 const AdminDashboard   = lazyWithRetry(() => import("./pages/admin/AdminDashboard"));
 const RollNoSlip       = lazyWithRetry(() => import("./pages/ExamRollNumbers"));
@@ -253,6 +255,8 @@ const App = () => (
                 <Route path="/auth/signin"          element={<SignIn />} />
                 <Route path="/auth/forgot-password" element={<ForgotPassword />} />
                 <Route path="/auth/reset-password"  element={<ResetPassword />} />
+                <Route path="/auth/mfa-enroll"      element={<MfaEnroll />} />
+                <Route path="/auth/mfa-verify"      element={<MfaVerify />} />
                 <Route path="/auth/callback"         element={<AuthCallback />} />
                 <Route
                   path="/admin"

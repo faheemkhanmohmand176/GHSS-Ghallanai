@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
-  Printer, Loader2, AlertCircle, CheckCircle2, FileText,
+  Printer, Loader2, AlertCircle, CheckCircle2, FileText, Eye, EyeOff, PencilLine,
 } from "lucide-react";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
@@ -23,7 +23,7 @@ import toast from "react-hot-toast";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
   interApi, QUOTA_LABEL, ADMISSION_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
-  formatCnic, formatDateLong, formatDeadline,
+  formatCnic, formatDateLong, formatDeadline, maskCnic, maskMobile,
 } from "@/lib/interAdmission";
 
 interface AppDetail {
@@ -45,6 +45,9 @@ export default function ApplicationView() {
   const ADMISSION_CYCLE = cycleLabel(admSettings);
   const [params, setParams] = useSearchParams();
   const [confirming, setConfirming] = useState(false);
+  // PII (CNIC / mobile) is masked by default on this semi-public screen.
+  // The applicant can click "Show details" to reveal their own values.
+  const [revealPii, setRevealPii] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!token || !id) return;
@@ -149,6 +152,9 @@ export default function ApplicationView() {
   const quotaName = QUOTA_LABEL[String(app.quota)] ?? String(app.quota);
   const deadlineShort = formatDeadline(String(app.fee_deadline)).split(" ").slice(0, 3).join(" ");
   const cnicShown = formatCnic(detail.applicant_cnic ?? "");
+  // Whether this application is still editable (fee unpaid + not locked).
+  const editable = String(app.payment_status) === "pending"
+    && !["fee_paid","under_review","merit_listed","admitted","rejected","cancelled"].includes(String(app.status));
 
   async function downloadChallan() {
     try {
@@ -220,10 +226,10 @@ export default function ApplicationView() {
     personal: [
       { label: "Name", value: String(personal.full_name) },
       { label: "Father Name", value: String(personal.father_name) },
-      { label: "Applicant CNIC", value: cnicShown },
-      { label: "Father CNIC", value: formatCnic(String(personal.father_cnic ?? "")) },
-      { label: "Personal Mobile", value: String(personal.mobile_number) },
-      { label: "Father Mobile", value: String(personal.father_mobile ?? "") },
+      { label: "Applicant CNIC", value: revealPii ? cnicShown : maskCnic(detail.applicant_cnic ?? "") },
+      { label: "Father CNIC", value: revealPii ? formatCnic(String(personal.father_cnic ?? "")) : maskCnic(String(personal.father_cnic ?? "")) },
+      { label: "Personal Mobile", value: revealPii ? String(personal.mobile_number) : maskMobile(String(personal.mobile_number)) },
+      { label: "Father Mobile", value: revealPii ? String(personal.father_mobile ?? "") : maskMobile(String(personal.father_mobile ?? "")) },
       { label: "Date of Birth", value: formatDateLong(String(personal.date_of_birth)) },
       { label: "Gender", value: String(personal.gender) },
       { label: "Nationality", value: String(personal.nationality) },
@@ -270,6 +276,13 @@ export default function ApplicationView() {
             <Button variant="outline" onClick={downloadForm} className={`h-10 font-semibold ${paymentRef ? "" : "col-span-2"}`}>
               <Printer className="w-4 h-4" /> Application PDF
             </Button>
+            {editable && (
+              <Link to={`/admission/apply?edit=${id}`} className="col-span-2">
+                <Button className="h-10 w-full font-semibold">
+                  <PencilLine className="w-4 h-4" /> Edit Application
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -336,7 +349,19 @@ export default function ApplicationView() {
         <Card className="border-border/80 shadow-card">
           <CardContent className="p-5 sm:p-6 space-y-6">
             <div><h3 className={H3}>Application Details</h3><AdmissionInfoGrid items={items.app} /></div>
-            <div><h3 className={H3}>Personal Information</h3><AdmissionInfoGrid items={items.personal} /></div>
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className={H3}>Personal Information</h3>
+                <button
+                  type="button"
+                  onClick={() => setRevealPii(v => !v)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                >
+                  {revealPii ? <><EyeOff className="w-3.5 h-3.5" /> Hide details</> : <><Eye className="w-3.5 h-3.5" /> Show details</>}
+                </button>
+              </div>
+              <AdmissionInfoGrid items={items.personal} />
+            </div>
             <div><h3 className={H3}>Academic Information</h3><AdmissionInfoGrid items={items.academic} /></div>
             <div className="rounded-xl bg-muted/60 border border-border p-3.5 text-center text-[12.5px] leading-relaxed text-muted-foreground">
               <span className="font-semibold text-foreground">Declaration: </span>{ADMISSION_MESSAGES.declaration}

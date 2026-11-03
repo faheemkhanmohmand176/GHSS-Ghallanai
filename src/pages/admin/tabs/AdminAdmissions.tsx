@@ -28,7 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ClipboardList, RefreshCw, Search, Loader2, Wallet, CheckCircle2,
-  XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark, Plus, Trash2, Download, FileSpreadsheet,
+  XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark, Plus, Trash2, Download, FileSpreadsheet, LockOpen,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { exportApplicationsExcel, type ExportRow } from "@/lib/admissionExcel";
@@ -43,6 +43,14 @@ interface AdminApp {
   marks: string | null; grade: string | null; percentage: number | null;
   submitted_at: string; domicile: string | null; uc: string | null;
 }
+
+// Shape of the admission_settings payload saved by the admin. Declared at
+// module scope so both AdminAdmissions and SettingsBody can reference it.
+type SettingsSavePayload = Pick<AdmissionSettings,
+  "is_open" | "session_year" | "open_date" | "last_date" | "processing_fee" |
+  "payment_methods" | "online_payment_enabled" |
+  "rate_register_per_ip_day" | "rate_login_max_attempts" | "rate_login_cooldown_minutes" |
+  "rate_track_per_ip_hour" | "rate_track_per_id_hour" | "rate_reset_per_ip_day" | "turnstile_required">;
 
 const APP_STATUSES = [
   { value: "submitted",     label: "Submitted" },
@@ -81,6 +89,8 @@ export default function AdminAdmissions() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [delApp, setDelApp] = useState<AdminApp | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [unlockDialog, setUnlockDialog] = useState<AdminApp | null>(null);
+  const [unlockReason, setUnlockReason] = useState("");
 
   // debounce search
   const onSearch = (v: string) => {
@@ -154,6 +164,22 @@ export default function AdminAdmissions() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Unlock a fee-paid application so the applicant can edit it again.
+  // The action is logged to audit_log (trigger + explicit log_admin_action).
+  const unlockApp = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { data, error } = await supabase.rpc("inter_admin_unlock_application", {
+        p_application_id: id, p_reason: reason || null,
+      });
+      if (error) throw error;
+      const d = data as { ok?: boolean; error?: string };
+      if (d?.ok === false) throw new Error(d?.error || "Unlock failed.");
+      return d;
+    },
+    onSuccess: () => { toast.success("Application unlocked. The applicant can now edit it."); setUnlockDialog(null); setUnlockReason(""); qc.invalidateQueries({ queryKey: ["inter-admin-apps"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   async function exportExcel() {
     setExporting(true);
     try {
@@ -171,7 +197,7 @@ export default function AdminAdmissions() {
   }
 
   const saveSettings = useMutation({
-    mutationFn: async (v: Pick<AdmissionSettings, "is_open" | "session_year" | "open_date" | "last_date" | "processing_fee" | "payment_methods" | "online_payment_enabled">) => {
+    mutationFn: async (v: SettingsSavePayload) => {
       // upsert: the old UPDATE ... WHERE id = 1 silently changed 0 rows when the row did not exist
       const { data, error } = await supabase
         .from("admission_settings")
@@ -310,6 +336,12 @@ export default function AdminAdmissions() {
                         onClick={() => { setPayDialog(a); setPayRef(""); }}>
                         <Wallet className="w-3 h-3" /> Fee
                       </Button>
+                      {a.payment_status === "paid" && (
+                        <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px] text-amber-700 dark:text-amber-400 border-amber-200 hover:bg-amber-500/5"
+                          onClick={() => { setUnlockDialog(a); setUnlockReason(""); }}>
+                          <LockOpen className="w-3 h-3" /> Unlock
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
                         onClick={() => { setStatusDialog(a); setStatusValue(a.status === "submitted" || a.status === "fee_pending" ? "under_review" : a.status); setStatusNote(""); }}>
                         <CheckCircle2 className="w-3 h-3" /> Status
@@ -369,6 +401,12 @@ export default function AdminAdmissions() {
                               onClick={() => { setPayDialog(a); setPayRef(""); }}>
                               <Wallet className="w-3 h-3" /> Fee
                             </Button>
+                            {a.payment_status === "paid" && (
+                              <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px] text-amber-700 dark:text-amber-400 border-amber-200 hover:bg-amber-500/5"
+                                onClick={() => { setUnlockDialog(a); setUnlockReason(""); }} title="Unlock so applicant can edit">
+                                <LockOpen className="w-3 h-3" /> Unlock
+                              </Button>
+                            )}
                             <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
                               onClick={() => { setStatusDialog(a); setStatusValue(a.status === "submitted" || a.status === "fee_pending" ? "under_review" : a.status); setStatusNote(""); }}>
                               <CheckCircle2 className="w-3 h-3" /> Status
@@ -407,6 +445,44 @@ export default function AdminAdmissions() {
                 <Button className="h-10 flex-1 font-semibold bg-red-600 hover:bg-red-700 text-white" disabled={deleteApp.isPending}
                   onClick={() => deleteApp.mutate(delApp.id)}>
                   {deleteApp.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Unlock dialog — admin unlocks a fee-paid application so the applicant
+          can edit it again. The action is logged to audit_log. */}
+      <Dialog open={Boolean(unlockDialog)} onOpenChange={(o) => !o && setUnlockDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unlock application: {unlockDialog?.tracking_id}</DialogTitle>
+          </DialogHeader>
+          {unlockDialog && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-500/10 p-3.5 text-[12.5px] text-amber-800 dark:text-amber-300">
+                <p className="font-semibold mb-1">This application is currently locked because the fee was paid.</p>
+                <p>Unlocking it sets the payment status back to <strong>Pending</strong> and lets the applicant edit their program, group or quota again. The Tracking ID and payment reference are preserved. The action is recorded in the audit log.</p>
+              </div>
+              <div>
+                <Label className="text-[13px] font-semibold">Reason (optional, shown in audit log)</Label>
+                <Textarea
+                  value={unlockReason}
+                  onChange={(e) => setUnlockReason(e.target.value)}
+                  placeholder="e.g. Applicant paid the wrong program fee and needs to change it."
+                  className="mt-1.5 min-h-[70px]"
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <Button className="flex-1 h-11 font-semibold"
+                  disabled={unlockApp.isPending}
+                  onClick={() => unlockApp.mutate({ id: unlockDialog.id, reason: unlockReason })}>
+                  {unlockApp.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LockOpen className="w-4 h-4" />}
+                  Unlock Application
+                </Button>
+                <Button variant="outline" className="flex-1 h-11 font-semibold" onClick={() => setUnlockDialog(null)}>
+                  Cancel
                 </Button>
               </div>
             </div>
@@ -512,7 +588,7 @@ function SettingsBody({
   settings, onSave, saving,
 }: {
   settings: AdmissionSettings | null;
-  onSave: (v: Pick<AdmissionSettings, "is_open" | "session_year" | "open_date" | "last_date" | "processing_fee" | "payment_methods" | "online_payment_enabled">) => void;
+  onSave: (v: SettingsSavePayload) => void;
   saving: boolean;
 }) {
   const [open, setOpen] = useState(Boolean(settings?.is_open));
@@ -523,6 +599,14 @@ function SettingsBody({
   const [methods, setMethods] = useState<PaymentMethod[]>(settings?.payment_methods ?? []);
   const [onlinePay, setOnlinePay] = useState(settings?.online_payment_enabled !== false);
   const [importing, setImporting] = useState(false);
+  // Rate-limit settings (migration 24) — editable, not hardcoded.
+  const [regPerDay, setRegPerDay] = useState(String(settings?.rate_register_per_ip_day ?? 5));
+  const [loginMax, setLoginMax] = useState(String(settings?.rate_login_max_attempts ?? 5));
+  const [loginCooldown, setLoginCooldown] = useState(String(settings?.rate_login_cooldown_minutes ?? 15));
+  const [trackPerIp, setTrackPerIp] = useState(String(settings?.rate_track_per_ip_hour ?? 20));
+  const [trackPerId, setTrackPerId] = useState(String(settings?.rate_track_per_id_hour ?? 5));
+  const [resetPerDay, setResetPerDay] = useState(String(settings?.rate_reset_per_ip_day ?? 5));
+  const [turnstileReq, setTurnstileReq] = useState(settings?.turnstile_required !== false);
 
   const setPm = (i: number, k: keyof PaymentMethod, v: string) =>
     setMethods((m) => m.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
@@ -555,6 +639,13 @@ function SettingsBody({
       is_open: open, session_year: year.trim(),
       open_date: openDate || null, last_date: lastDate || null,
       processing_fee: f, payment_methods: methods, online_payment_enabled: onlinePay,
+      rate_register_per_ip_day: Math.max(1, Number(regPerDay) || 5),
+      rate_login_max_attempts: Math.max(1, Number(loginMax) || 5),
+      rate_login_cooldown_minutes: Math.max(1, Number(loginCooldown) || 15),
+      rate_track_per_ip_hour: Math.max(1, Number(trackPerIp) || 20),
+      rate_track_per_id_hour: Math.max(1, Number(trackPerId) || 5),
+      rate_reset_per_ip_day: Math.max(1, Number(resetPerDay) || 5),
+      turnstile_required: turnstileReq,
     });
   }
 
@@ -598,6 +689,46 @@ function SettingsBody({
       <p className="text-[11.5px] text-muted-foreground -mt-1">
         Admission stays open until the last date. The homepage shows the days remaining and closes automatically after it.
       </p>
+
+      {/* Security & rate limits (migration 24) */}
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="pr-3">
+            <p className="font-semibold text-sm text-foreground">Require Turnstile (captcha)</p>
+            <p className="text-[12px] text-muted-foreground">Bot protection on register, login, password reset and tracking. If off, the site still works but is unprotected.</p>
+          </div>
+          <Switch checked={turnstileReq} onCheckedChange={setTurnstileReq} />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-[12px] font-semibold">Registrations / IP / day</Label>
+            <Input type="number" min={1} value={regPerDay} onChange={(e) => setRegPerDay(e.target.value)} className={field} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px] font-semibold">Login max attempts</Label>
+            <Input type="number" min={1} value={loginMax} onChange={(e) => setLoginMax(e.target.value)} className={field} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px] font-semibold">Login cooldown (min)</Label>
+            <Input type="number" min={1} value={loginCooldown} onChange={(e) => setLoginCooldown(e.target.value)} className={field} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px] font-semibold">Track / IP / hour</Label>
+            <Input type="number" min={1} value={trackPerIp} onChange={(e) => setTrackPerIp(e.target.value)} className={field} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px] font-semibold">Track / ID / hour</Label>
+            <Input type="number" min={1} value={trackPerId} onChange={(e) => setTrackPerId(e.target.value)} className={field} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[12px] font-semibold">Resets / IP / day</Label>
+            <Input type="number" min={1} value={resetPerDay} onChange={(e) => setResetPerDay(e.target.value)} className={field} />
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          These limits are enforced server-side by the Vercel auth-gateway and the database — a browser cannot bypass them.
+        </p>
+      </div>
 
       <div className="space-y-2.5">
         <div className="flex items-center justify-between gap-2">

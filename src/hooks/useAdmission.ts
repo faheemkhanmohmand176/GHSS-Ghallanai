@@ -27,6 +27,14 @@ export interface AdmissionSettings {
   payment_methods: PaymentMethod[];
   /** Safepay online payment switch (server also needs its env keys). */
   online_payment_enabled: boolean;
+  /** Rate-limit values (migration 24) — editable by the admin, not hardcoded. */
+  rate_register_per_ip_day?: number;
+  rate_login_max_attempts?: number;
+  rate_login_cooldown_minutes?: number;
+  rate_track_per_ip_hour?: number;
+  rate_track_per_id_hour?: number;
+  rate_reset_per_ip_day?: number;
+  turnstile_required?: boolean;
   updated_at?: string;
 }
 

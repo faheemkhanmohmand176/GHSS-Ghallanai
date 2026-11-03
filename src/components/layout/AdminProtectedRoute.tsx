@@ -1,6 +1,7 @@
-import { ReactNode, useRef } from "react";
-import { Navigate } from "react-router-dom";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 
 const Spinner = () => (
@@ -9,27 +10,59 @@ const Spinner = () => (
   </div>
 );
 
+/**
+ * AdminProtectedRoute — gates the entire /admin tree.
+ *
+ *  1. Must be signed in (Supabase Auth session present).
+ *  2. Profile must exist and role === 'admin'.
+ *  3. MFA: the session must be at assurance level aal2. If it is only aal1
+ *     (password verified but no TOTP yet), the admin is redirected to
+ *     /auth/mfa-verify to complete the second step. If no TOTP factor is
+ *     enrolled at all, they are redirected to /auth/mfa-enroll.
+ *
+ * THE LATCH (admitted.current): once the guard has let the dashboard in, it
+ * never takes it away because auth is merely SLOW or INCOMPLETE — this is the
+ * documented fix for the "whole page refreshed while I was editing" bug. It
+ * only removes the children on two definite answers: genuinely signed out, or
+ * a successfully-loaded profile that says "not an admin".
+ */
 const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user, profile, loading, hasCachedSession, sessionPending } = useAuth();
-
-  // ── ROOT CAUSE OF "the whole page refreshed while I was editing" ────────
-  // This guard used to decide what to render from the CURRENT auth snapshot
-  // on every render. Any moment where that snapshot looked incomplete —
-  // `profile` briefly null after a timed-out profile refetch (supabase-js
-  // fires SIGNED_IN on every tab refocus, and on a slow link the refetch
-  // fails), or `user` null while a slow getSession() was still answering —
-  // made it return a bare full-screen spinner INSTEAD of {children}.
-  // Returning a different element type at that position unmounts the entire
-  // admin dashboard, so every open form, draft and scroll position was
-  // destroyed, and the spinner stayed until the retry landed.
-  //
-  // THE RULE NOW: once this guard has let the dashboard in, it never takes
-  // it away because auth is merely SLOW or INCOMPLETE. It only removes it on
-  // two definite answers:
-  //   1. the person is genuinely signed out, or
-  //   2. a profile was successfully loaded and it says "not an admin".
-  // Everything else (loading, pending, null profile) keeps the page mounted.
+  const navigate = useNavigate();
   const admitted = useRef(false);
+  const [aal, setAal] = useState<"aal2" | "aal1" | "unknown" | "checking">("checking");
+
+  // Check MFA assurance level once we have a confirmed admin session.
+  useEffect(() => {
+    if (!user || profile?.role !== "admin") return;
+    if (admitted.current) return; // already past the gate
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (cancelled) return;
+        if (error) { setAal("unknown"); return; }
+        if (data.currentLevel === "aal2") {
+          setAal("aal2");
+        } else {
+          // aal1 — need the second step. But first check whether ANY factor is
+          // enrolled; if not, send to enrollment instead of verify.
+          try {
+            const { data: fac } = await supabase.auth.mfa.listFactors();
+            const has = (fac?.factors ?? []).some((f) => f.factorType === "totp" && f.status === "verified");
+            setAal("aal1");
+            navigate(has ? "/auth/mfa-verify" : "/auth/mfa-enroll", { replace: true });
+          } catch {
+            setAal("aal1");
+            navigate("/auth/mfa-verify", { replace: true });
+          }
+        }
+      } catch {
+        if (!cancelled) setAal("unknown");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user, profile, navigate]);
 
   const definitelySignedOut = !user && !loading && !sessionPending;
   const definitelyNotAdmin = !!profile && profile.role !== "admin";
@@ -40,31 +73,36 @@ const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
     return <>{children}</>;
   }
 
-  // ── First entry (nothing on screen to protect yet) ──────────────────────
-  // A signed-in token in localStorage is synchronous and authoritative
-  // enough to draw the shell while the network round trip finishes.
-  if ((loading || sessionPending) && hasCachedSession) {
+  // First entry — a cached session lets us draw the shell while the network
+  // round trip + MFA check finish.
+  if ((loading || sessionPending || aal === "checking") && hasCachedSession) {
     if (profile && profile.role !== "admin") return <Navigate to="/" replace />;
-    admitted.current = true;
-    return <>{children}</>;
+    // Don't admit yet — wait for the aal2 confirmation from the effect above.
+    return <Spinner />;
   }
 
   if (loading) return <Spinner />;
 
   if (!user) {
-    // getSession() timed out but a session exists locally: the answer is
-    // still coming. Wait — do NOT bounce a valid admin to the sign-in page.
     if (sessionPending) return <Spinner />;
     return <Navigate to="/auth/signin" replace />;
   }
 
-  // Signed in; profile still on its way (AuthContext keeps retrying).
   if (!profile) return <Spinner />;
 
   if (profile.role !== "admin") return <Navigate to="/" replace />;
 
-  admitted.current = true;
-  return <>{children}</>;
+  // Admin confirmed — now the MFA gate
+  if (aal === "aal2") {
+    admitted.current = true;
+    return <>{children}</>;
+  }
+  if (aal === "aal1") {
+    // The effect already navigated to mfa-verify / mfa-enroll.
+    return <Spinner />;
+  }
+  // unknown / checking — keep waiting briefly
+  return <Spinner />;
 };
 
 export default AdminProtectedRoute;

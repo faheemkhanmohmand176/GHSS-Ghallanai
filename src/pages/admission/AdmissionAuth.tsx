@@ -5,7 +5,7 @@
  *   1 Create Account → 2 Board Verification → 3 Personal Information → 4 Academic Information
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { UserPlus, LogIn, Loader2 } from "lucide-react";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
@@ -16,7 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import toast from "react-hot-toast";
 import AdmissionStepper from "@/components/shared/AdmissionStepper";
-import { interApi, setToken, makeMathCaptcha, NATIONALITIES } from "@/lib/interAdmission";
+import Turnstile from "@/components/shared/Turnstile";
+import { interApi, setToken, NATIONALITIES } from "@/lib/interAdmission";
 
 function WizardSteps({ current }: { current: number }) {
   return <AdmissionStepper current={current} steps={["Account", "Board Check", "Personal", "Academic"]} />;
@@ -37,21 +38,18 @@ export default function AdmissionAuth() {
   // login state
   const [loginId, setLoginId] = useState("");
   // shared
-  const [captchaInput, setCaptchaInput] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [busy, setBusy] = useState(false);
-  const captcha = useMemo(() => makeMathCaptcha(), [mode]);
 
-  useEffect(() => { setCaptchaInput(""); }, [mode]);
-
-  const captchaOk = captchaInput.trim() === captcha.answer;
+  useEffect(() => { setTurnstileToken(""); }, [mode]);
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     if (password !== confPassword) { toast.error("Password and Confirm Password do not match."); return; }
-    if (!captchaOk) { toast.error("Solve this simple math problem and enter the result."); return; }
+    if (!turnstileToken) { toast.error("Please complete the security check."); return; }
     setBusy(true);
     try {
-      const res = (await interApi.register(nationality, cnic, mobile, password)) as unknown as {
+      const res = (await interApi.register(nationality, cnic, mobile, password, turnstileToken)) as unknown as {
         ok?: boolean; error?: string; token?: string;
       };
       if (res?.ok && res.token) {
@@ -60,9 +58,11 @@ export default function AdmissionAuth() {
         navigate("/admission/portal?welcome=1");
       } else {
         toast.error(res?.error || "Registration failed. Please check your details.");
+        setTurnstileToken("");
       }
     } catch {
       toast.error("Network error. Please try again.");
+      setTurnstileToken("");
     } finally {
       setBusy(false);
     }
@@ -70,10 +70,10 @@ export default function AdmissionAuth() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!captchaOk) { toast.error("Solve this simple math problem and enter the result."); return; }
+    if (!turnstileToken) { toast.error("Please complete the security check."); return; }
     setBusy(true);
     try {
-      const res = (await interApi.login(loginId, password)) as unknown as {
+      const res = (await interApi.login(loginId, password, turnstileToken)) as unknown as {
         ok?: boolean; error?: string; token?: string;
       };
       if (res?.ok && res.token) {
@@ -82,9 +82,11 @@ export default function AdmissionAuth() {
         navigate("/admission/portal");
       } else {
         toast.error(res?.error || "Invalid CNIC/Form-B or password.");
+        setTurnstileToken("");
       }
     } catch {
       toast.error("Network error. Please try again.");
+      setTurnstileToken("");
     } finally {
       setBusy(false);
     }
@@ -190,22 +192,15 @@ export default function AdmissionAuth() {
                   </div>
                 </div>
 
-                {/* Captcha */}
+                {/* Captcha — now Cloudflare Turnstile (verified server-side) */}
                 <div>
-                  <Label htmlFor="captcha" className="font-semibold text-[13px]">Security Check <span className="text-red-500">*</span></Label>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <div className="h-11 px-5 rounded-xl bg-muted border border-border flex items-center font-heading font-bold text-lg tracking-widest select-none">
-                      {captcha.a} + {captcha.b} =
-                    </div>
-                    <Input
-                      id="captcha" inputMode="numeric" value={captchaInput}
-                      onChange={(e) => setCaptchaInput(e.target.value.replace(/\D/g, ""))}
-                      placeholder="Result" className="h-11 w-28 font-bold text-center" required
-                    />
+                  <Label className="font-semibold text-[13px]">Security Check <span className="text-red-500">*</span></Label>
+                  <div className="mt-1.5 flex justify-center overflow-x-auto">
+                    <Turnstile onToken={setTurnstileToken} onExpire={() => setTurnstileToken("")} />
                   </div>
                 </div>
 
-                <Button type="submit" disabled={busy} className="w-full h-10 font-semibold text-[13px]">
+                <Button type="submit" disabled={busy || !turnstileToken} className="w-full h-10 font-semibold text-[13px]">
                   {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <UserPlus className="w-5 h-5" />}
                   Next Step
                 </Button>
@@ -235,19 +230,12 @@ export default function AdmissionAuth() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="captcha2" className="font-semibold text-[13px]">Security Check <span className="text-red-500">*</span></Label>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <div className="h-11 px-5 rounded-xl bg-muted border border-border flex items-center font-heading font-bold text-lg tracking-widest select-none">
-                      {captcha.a} + {captcha.b} =
-                    </div>
-                    <Input
-                      id="captcha2" inputMode="numeric" value={captchaInput}
-                      onChange={(e) => setCaptchaInput(e.target.value.replace(/\D/g, ""))}
-                      placeholder="Result" className="h-11 w-28 font-bold text-center" required
-                    />
+                  <Label className="font-semibold text-[13px]">Security Check <span className="text-red-500">*</span></Label>
+                  <div className="mt-1.5 flex justify-center overflow-x-auto">
+                    <Turnstile onToken={setTurnstileToken} onExpire={() => setTurnstileToken("")} />
                   </div>
                 </div>
-                <Button type="submit" disabled={busy} className="w-full h-10 font-semibold text-[13px]">
+                <Button type="submit" disabled={busy || !turnstileToken} className="w-full h-10 font-semibold text-[13px]">
                   {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
                   Login
                 </Button>

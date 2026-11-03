@@ -8,9 +8,19 @@
  * CNIC/Form-B + mobile + password (hashed server-side) and receive a session
  * token (uuid) managed by the inter_applicant_sessions table. All data access
  * flows through SECURITY DEFINER RPCs that resolve the token first.
+ *
+ * ── SECURITY CHANGE (migration 24) ──────────────────────────────────────────
+ * inter_register / inter_login / inter_track are NO LONGER callable directly
+ * from the browser with the anon key (anon EXECUTE was revoked).  The browser
+ * must go through the Vercel auth-gateway, which verifies a Cloudflare
+ * Turnstile token first.  So interApi.register / login / track now POST to
+ * /api/auth-gateway instead of supabase.rpc(...).  Everything else still uses
+ * supabase.rpc because those RPCs take a token and are self-gating.
+ * ────────────────────────────────────────────────────────────────────────────
  */
 
 import { supabase } from "@/lib/supabase";
+import { authGateway } from "@/lib/authGateway";
 
 export const INTER_TOKEN_KEY = "inter_admission_token";
 
@@ -167,6 +177,8 @@ export const ADMISSION_MESSAGES = {
     "Your domicile is local; therefore, apply on Local Quota.",
   duplicate:
     "Error! You have already applied for this program in this college, please select a different program.",
+  oneActivePerCycle:
+    "You already have an active application for this admission cycle. Use \"Edit Application\" to change your program, group or quota, or contact the college if you need to submit a new one.",
   overage:
     "You are overage. An age relaxation certificate is required for Inter admission.",
   overageSports: "You are overage and not eligible for the sports quota",
@@ -174,6 +186,8 @@ export const ADMISSION_MESSAGES = {
     "Applications submitted on all quotas except AFGHAN shall be considered in Open Merit.",
   declaration:
     "I declare that the information given in support of the application is accurate and complete. I understand that any misrepresentation will result in disqualification of my application for admission.",
+  locked:
+    "This application is now locked because the fee has been paid. Contact the college office if you need to change it.",
   feeTokenNotice: (reference: string, deadline: string) =>
     `Pay the processing fee online, or by manual transfer to the school account shown on your challan quoting reference ${reference}, on or before ${deadline}.`,
 } as const;
@@ -207,7 +221,12 @@ export function clearToken() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RPC wrappers (all return { ok, ...payload } or { ok:false, error })
+// RPC wrappers
+//
+// register / login / track → go through the Vercel auth-gateway (Turnstile +
+// service role) because migration 24 revoked anon EXECUTE on them.
+// Everything else still calls supabase.rpc directly (those RPCs take a token
+// and are self-gating).
 // ─────────────────────────────────────────────────────────────────────────────
 
 type RpcResult = Record<string, unknown> & { ok?: boolean; error?: string };
@@ -215,20 +234,21 @@ type RpcResult = Record<string, unknown> & { ok?: boolean; error?: string };
 async function rpc(fn: string, params: Record<string, unknown>): Promise<RpcResult> {
   const { data, error } = await supabase.rpc(fn, params);
   if (error) {
-    // Surface network/RPC errors as a normal error payload
+    // Surface network/RPC errors as a normal error payloads
     return { ok: false, error: error.message };
   }
   return (data ?? { ok: false, error: "Unexpected empty response." }) as RpcResult;
 }
 
 export const interApi = {
-  register: (nationality: string, cnic: string, mobile: string, password: string) =>
-    rpc("inter_register", {
-      p_nationality: nationality, p_cnic_formb: cnic,
-      p_mobile: mobile, p_password: password,
-    }),
-  login: (loginId: string, password: string) =>
-    rpc("inter_login", { p_login_id: loginId, p_password: password }),
+  /** Admission registration — routed via the auth-gateway (Turnstile verified). */
+  register: (nationality: string, cnic: string, mobile: string, password: string, turnstile: string) =>
+    authGateway.register({ nationality, cnic, mobile, password, turnstile }) as Promise<RpcResult>,
+
+  /** Admission login — routed via the auth-gateway (Turnstile verified). */
+  login: (loginId: string, password: string, turnstile: string) =>
+    authGateway.login({ loginId, password, turnstile }) as Promise<RpcResult>,
+
   logout: (token: string) => rpc("inter_logout", { p_token: token }),
   sessionState: (token: string) => rpc("inter_session_state", { p_token: token }),
   savePersonal: (token: string, data: Record<string, unknown>) =>
@@ -239,6 +259,7 @@ export const interApi = {
   ucsList: () => rpc("inter_ucs_list", {}),
   checkQuota: (token: string, quota: string, criteria: Record<string, unknown> | null) =>
     rpc("inter_check_quota", { p_token: token, p_quota: quota, p_criteria: criteria }),
+
   submitApplication: (
     token: string, programId: number, quota: string,
     criteria: Record<string, unknown>, subjectGroup?: string | null,
@@ -247,14 +268,48 @@ export const interApi = {
       p_token: token, p_program_id: programId, p_quota: quota, p_criteria: criteria,
       p_subject_group: subjectGroup ?? null,
     }),
+
+  /** NEW — edit an existing UNPAID application (program / group / quota). */
+  editApplication: (
+    token: string, applicationId: string, programId: number, quota: string,
+    criteria: Record<string, unknown>, subjectGroup?: string | null,
+  ) =>
+    rpc("inter_edit_application", {
+      p_token: token, p_application_id: applicationId, p_program_id: programId,
+      p_quota: quota, p_criteria: criteria, p_subject_group: subjectGroup ?? null,
+    }),
+
   proceedPayment: (token: string, applicationId: string) =>
     rpc("inter_proceed_payment", { p_token: token, p_application_id: applicationId }),
   applicationDetail: (token: string, applicationId: string) =>
     rpc("inter_application_detail", { p_token: token, p_application_id: applicationId }),
-  track: (trackingId: string) => rpc("inter_track", { p_tracking_id: trackingId }),
+
+  /** Public tracking — routed via the auth-gateway (Turnstile + 2nd factor). */
+  track: (trackingId: string, secondFactor: string, turnstile: string) =>
+    authGateway.track({ trackingId, secondFactor, turnstile }) as Promise<RpcResult>,
+
   meritListsPublic: () => rpc("inter_merit_lists_public", {}),
   meritListView: (meritListId: string) =>
     rpc("inter_merit_list_view", { p_merit_list_id: meritListId }),
+
+  // ── Admin-only (caller is an authenticated Supabase admin) ──────────────
+  adminUnlockApplication: (applicationId: string, reason?: string) =>
+    rpc("inter_admin_unlock_application", { p_application_id: applicationId, p_reason: reason ?? null }),
+  adminAllowNewApplication: (applicantId: string, reason?: string) =>
+    rpc("inter_admin_allow_new_application", { p_applicant_id: applicantId, p_reason: reason ?? null }),
+  adminAuditLog: (params: {
+    action?: string; actor?: string; from?: string; to?: string;
+    search?: string; limit?: number; offset?: number;
+  }) =>
+    rpc("get_admin_audit_log", {
+      p_action: params.action ?? null,
+      p_actor: params.actor ?? null,
+      p_from: params.from ?? null,
+      p_to: params.to ?? null,
+      p_search: params.search ?? null,
+      p_limit: params.limit ?? 100,
+      p_offset: params.offset ?? 0,
+    }),
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -327,9 +382,13 @@ export function formatDeadline(d: string | Date): string {
   return `${day} ${time}`;
 }
 
-/** Client-side math captcha (two operands + result input) */
+/** Client-side math captcha — KEPT for backward compatibility; admission auth
+ *  now uses Turnstile instead. */
 export function makeMathCaptcha() {
   const a = Math.floor(Math.random() * 9) + 1;
   const b = Math.floor(Math.random() * 9) + 1;
   return { a, b, answer: String(a + b) };
 }
+
+// Re-export the masking helpers so callers can import them from one place.
+export { maskCnic, maskMobile, maskCnicFormatted } from "@/lib/masking";
