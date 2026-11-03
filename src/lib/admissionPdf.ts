@@ -160,84 +160,251 @@ export interface ApplicationFormData {
   fee: number;
   sections: { title: string; rows: [string, string][] }[];
   declaration: string;
+  /** Institution name used in the undertaking / header strip. */
+  institution?: string;
+  /** Applicant portal username (CNIC). */
+  username?: string;
+  /** Payment deadline, e.g. "05 November 2026". */
+  deadline?: string;
+  /** Date the application was submitted. */
+  appliedOn?: string;
+  /** Applicant details for the affidavit and undertaking pages. */
+  applicant?: { name: string; fatherName: string; cnic: string; address: string; program: string };
+  /** Document checklist lines (defaults provided). */
+  checklist?: string[];
 }
+
+const DEFAULT_CHECKLIST = [
+  "This online application form (printed) and the Fee Challan receipt.",
+  "All original documents for verification.",
+  "Four recent passport size photographs (white background).",
+  "Undertaking and Affidavit on this form, signed by the applicant and the father/guardian.",
+  "Attested copies of SSC DMC/certificate, Character Certificate, Domicile, applicant CNIC/Form-B and father CNIC.",
+  "Certificate for any quota claimed (Sports / Hafiz-e-Quran / College Employee / Disabled / Parent-Spouse Service).",
+  "Original Migration Certificate, if SSC or Intermediate was passed from another Board.",
+];
 
 export async function downloadApplicationForm(d: ApplicationFormData) {
   const { jsPDF, autoTable } = await lib();
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const w = 210, m = 12, inner = w - m * 2;
+  const inst = d.institution || SCHOOL;
+  const lastY = (fallback: number) =>
+    (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? fallback;
+  const ensure = (y: number, need: number, top = 16) => {
+    if (y + need > 282) { doc.addPage(); return top; }
+    return y;
+  };
+  const sigLine = (x1: number, x2: number, y: number, label: string) => {
+    draw(doc, C.sub); doc.setLineWidth(0.25); doc.line(x1, y, x2, y);
+    ink(doc, C.muted); doc.setFont("times", "italic"); doc.setFontSize(8);
+    doc.text(label, (x1 + x2) / 2, y + 4, { align: "center" });
+  };
+  const sectionBar = (y: number, title: string) => {
+    fill(doc, C.green); doc.roundedRect(m, y, inner, 6.5, 1.2, 1.2, "F");
+    ink(doc, C.white); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+    doc.text(title.toUpperCase(), w / 2, y + 4.4, { align: "center" });
+    return y + 9.5;
+  };
+  const para = (text: string, y: number, size = 8.2, width = inner - 4) => {
+    ink(doc, C.ink); doc.setFont("helvetica", "normal"); doc.setFontSize(size);
+    const lines = doc.splitTextToSize(text, width);
+    doc.text(lines, m + 2, y, { lineHeightFactor: 1.4 });
+    return y + lines.length * (size * 0.4 * 1.4) + 2;
+  };
 
+  // ── Page 1: header, photo box, key details ──
   header(doc, 8, m, inner, w, "DISTRICT MOHMAND  |  KHYBER PAKHTUNKHWA");
   ink(doc, C.ink); doc.setFont("times", "bold"); doc.setFontSize(16);
-  doc.text("APPLICATION FORM", w / 2, 32, { align: "center" });
+  doc.text("APPLICATION FORM", m + (inner - 34) / 2, 32, { align: "center" });
   ink(doc, C.muted); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-  doc.text(d.cycle, w / 2, 37, { align: "center" });
+  doc.text(d.cycle, m + (inner - 34) / 2, 37, { align: "center" });
 
-  // Key strip
+  // Photo box (right)
+  const px = w - m - 30, py = 26;
+  draw(doc, C.gold); doc.setLineWidth(0.4); fill(doc, C.white);
+  (doc as unknown as { setLineDashPattern: (a: number[], b: number) => void }).setLineDashPattern([1.5, 1.2], 0);
+  doc.rect(px, py, 30, 36, "FD");
+  (doc as unknown as { setLineDashPattern: (a: number[], b: number) => void }).setLineDashPattern([], 0);
+  ink(doc, C.muted); doc.setFont("helvetica", "bold"); doc.setFontSize(6.5);
+  doc.text(["ATTACH", "PASSPORT SIZE", "PHOTO", "(white background)"], px + 15, py + 13, { align: "center", lineHeightFactor: 1.5 });
+
+  // Key strip (2 x 3 grid, left of the photo box)
   const strip: [string, string][] = [
     ["TRACKING ID", d.trackingId],
+    ["USERNAME", na(d.username)],
     ["PAYMENT STATUS", d.paymentStatus],
-    ["PAYMENT REFERENCE", na(d.reference)],
+    ["PAYMENT TOKEN", na(d.reference)],
     ["PROCESSING FEE", `Rs. ${d.fee}`],
+    ["PAY BEFORE", na(d.deadline)],
   ];
-  const cw = inner / 4;
+  const gw = inner - 34, cw = gw / 2, ch = 7.6, gy = 41;
   strip.forEach(([label, value], i) => {
-    const cx = m + i * cw;
-    fill(doc, i % 2 === 0 ? C.goldTint : C.white); draw(doc, C.gold); doc.setLineWidth(0.25);
-    doc.rect(cx, 41, cw, 13, "FD");
-    ink(doc, C.muted); doc.setFont("helvetica", "bold"); doc.setFontSize(6);
-    doc.text(label, cx + cw / 2, 45.5, { align: "center" });
-    ink(doc, C.green); doc.setFont("times", "bold"); doc.setFontSize(10);
-    doc.text(value, cx + cw / 2, 51, { align: "center", maxWidth: cw - 3 });
+    const cx = m + (i % 2) * cw, cy = gy + Math.floor(i / 2) * ch;
+    fill(doc, Math.floor(i / 2) % 2 === 0 ? C.goldTint : C.white); draw(doc, C.gold); doc.setLineWidth(0.25);
+    doc.rect(cx, cy, cw, ch, "FD");
+    ink(doc, C.muted); doc.setFont("helvetica", "bold"); doc.setFontSize(5.8);
+    doc.text(label, cx + 2, cy + 3);
+    ink(doc, C.green); doc.setFont("times", "bold"); doc.setFontSize(9.5);
+    doc.text(value, cx + 2, cy + 6.4, { maxWidth: cw - 4 });
   });
 
-  let y = 60;
-  d.sections.forEach((s) => {
+  ink(doc, C.sub); doc.setFont("helvetica", "italic"); doc.setFontSize(7);
+  const tokenNote = doc.splitTextToSize(
+    `The processing fee token must be paid at any JazzCash shop or through the JazzCash App on or before ${na(d.deadline)}. Applications are considered in Open Merit unless a quota is claimed.`,
+    inner,
+  );
+  doc.text(tokenNote, m, 66, { lineHeightFactor: 1.3 });
+
+  let y = 66 + tokenNote.length * 3.2 + 2;
+  d.sections.forEach((sec) => {
     const body: string[][] = [];
-    for (let i = 0; i < s.rows.length; i += 2) {
-      const a = s.rows[i], b = s.rows[i + 1];
-      body.push([a[0], na(a[1]), b ? b[0] : "", b ? na(b[1]) : ""]);
+    for (let i = 0; i < sec.rows.length; i += 2) {
+      const a = sec.rows[i], b = sec.rows[i + 1];
+      body.push([a[0], na(a[1]), b ? b[0] : "", b && b[0] ? na(b[1]) : ""]);
     }
     autoTable(doc, {
       startY: y,
       margin: { left: m, right: m },
       tableWidth: inner,
       theme: "grid",
-      head: [[{ content: s.title.toUpperCase(), colSpan: 4, styles: { halign: "center" } }]],
+      head: [[{ content: sec.title.toUpperCase(), colSpan: 4, styles: { halign: "center" } }]],
       body,
-      styles: { font: "helvetica", fontSize: 8.5, halign: "center", valign: "middle", cellPadding: 2, lineColor: C.grid, lineWidth: 0.15, textColor: C.ink },
+      styles: { font: "helvetica", fontSize: 8.2, halign: "center", valign: "middle", cellPadding: 1.7, lineColor: C.grid, lineWidth: 0.15, textColor: C.ink },
       headStyles: { fillColor: C.green, textColor: C.white, fontStyle: "bold", fontSize: 8, lineColor: C.green },
       columnStyles: {
-        0: { cellWidth: 34, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.5 },
+        0: { cellWidth: 34, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.3 },
         1: { cellWidth: "auto" },
-        2: { cellWidth: 34, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.5 },
+        2: { cellWidth: 34, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.3 },
         3: { cellWidth: "auto" },
       },
     } as never);
-    y = ((doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y + 20) + 5;
+    y = lastY(y + 20) + 4;
   });
 
-  if (y > 250) { doc.addPage(); y = 20; }
-  ink(doc, C.sub); doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
-  doc.text("DECLARATION", w / 2, y, { align: "center" });
+  // ── Documents checklist ──
+  const list = d.checklist && d.checklist.length ? d.checklist : DEFAULT_CHECKLIST;
+  const listLines = list.map((t) => doc.splitTextToSize(t, inner - 14) as string[]);
+  const listH = listLines.reduce((n, l) => n + l.length * 3.7 + 1.2, 0) + 18;
+  y = ensure(y, listH);
+  y = sectionBar(y, "Documents Checklist (bring with this form)");
   doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-  const dl = doc.splitTextToSize(d.declaration, inner - 10);
-  doc.text(dl, w / 2, y + 4.5, { align: "center", lineHeightFactor: 1.35 });
-  y += 4.5 + dl.length * 4 + 14;
+  list.forEach((_, i) => {
+    const lines = listLines[i];
+    draw(doc, C.green); doc.setLineWidth(0.3); doc.rect(m + 2, y - 2.7, 3, 3);
+    ink(doc, C.ink); doc.text(lines, m + 8, y, { lineHeightFactor: 1.3 });
+    y += lines.length * 3.7 + 1.2;
+  });
+  ink(doc, C.sub); doc.setFont("helvetica", "italic"); doc.setFontSize(7.2);
+  doc.text("Note: Hafiz-e-Quran marks are awarded only after passing the Hifz test.", m + 2, y + 1);
+  y += 7;
 
-  if (y > 275) { doc.addPage(); y = 30; }
-  draw(doc, C.sub); doc.setLineWidth(0.25);
-  doc.line(m + 8, y, m + 62, y); doc.line(w - m - 62, y, w - m - 8, y);
-  ink(doc, C.muted); doc.setFont("times", "italic"); doc.setFontSize(8);
-  doc.text("Applicant Signature", m + 35, y + 4, { align: "center" });
-  doc.text("Admission Incharge", w - m - 35, y + 4, { align: "center" });
+  // ── Declaration + signatures ──
+  y = ensure(y, 40);
+  y = sectionBar(y, "Declaration");
+  y = para(d.declaration, y, 8.2);
+  y += 9;
+  sigLine(m + 2, m + 58, y, "Applicant Signature");
+  sigLine(m + 74, m + 130, y, "Parent / Guardian Signature");
+  ink(doc, C.muted); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+  doc.text("Date: ____ / ____ / ________", w - m - 2, y - 1, { align: "right" });
+  y += 11;
+
+  // ── Office use box ──
+  y = ensure(y, 32);
+  fill(doc, C.alt); draw(doc, C.gold); doc.setLineWidth(0.3);
+  doc.roundedRect(m, y, inner, 30, 1.5, 1.5, "FD");
+  ink(doc, C.sub); doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
+  doc.text("FOR OFFICE USE ONLY", m + 3, y + 5);
+  ink(doc, C.ink); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+  doc.text("Roll No.: ____________________", w - m - 3, y + 5, { align: "right" });
+  sigLine(m + 6, m + 52, y + 22, "Member 1");
+  sigLine(m + 62, m + 108, y + 22, "Member 2");
+  sigLine(m + 118, m + 164, y + 22, "Chairman");
+
+  // ── Page 2: Affidavit, Undertaking, Endorsement, Witnesses ──
+  const ap = d.applicant;
+  const nm = ap?.name || "____________________";
+  const fn = ap?.fatherName || "____________________";
+  y += 38;
+  y = ensure(y, 22, 16);
+  y = sectionBar(y, "Affidavit");
+  y = para(
+    `Certified that I ${nm} had not taken admission in the same level of studies in any other institution during the previous year(s). It is further certified that till date I am not registered with any Education Board for the same class or level of studies. In this respect, if my statement is found incorrect at any stage, my right of admission or even admission shall stand cancelled without any further notice.`,
+    y,
+  );
+  y += 0;
+
+  y = ensure(y, 36, 16);
+  y = sectionBar(y, "Undertaking");
+  y = para(
+    `In compliance with the order of the Supreme Court of Pakistan, I, Mr./Mrs. ${nm} Son/Ward of ${fn}, candidate for admission to ${ap?.program || "Intermediate"} at ${inst}, do hereby undertake that, after my admission and during the course of my studies, I shall not indulge in politics. In case I violate this undertaking, I shall be expelled without any further notice from the Principal. Furthermore, the finding with regard to my "indulgence in politics" given by the Principal under his seal and signature shall be final and shall not be questioned except only before the Supreme Court of Pakistan.`,
+    y,
+  );
+  y += 1;
+
+  const idRows = (who: string, name: string, father: string, cnic: string, addr: string) => {
+    y = ensure(y, 30, 16);
+    autoTable(doc, {
+      startY: y, margin: { left: m, right: m }, tableWidth: inner, theme: "grid",
+      head: [[{ content: who, colSpan: 4, styles: { halign: "center" } }]],
+      body: [[ "Student Name", name || " ", "National Identity Card / Reg. No.", cnic || " " ],
+             [ "Father's/Guardian's Name", father || " ", "Permanent Address", addr || " " ],
+             [ "Dated", " ", "Signature", " " ]],
+      styles: { font: "helvetica", fontSize: 8, halign: "center", valign: "middle", cellPadding: 1.6, lineColor: C.grid, lineWidth: 0.15, textColor: C.ink, minCellHeight: 6.5 },
+      headStyles: { fillColor: C.green, textColor: C.white, fontStyle: "bold", fontSize: 7.5, lineColor: C.green },
+      columnStyles: {
+        0: { cellWidth: 36, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.2 },
+        1: { cellWidth: "auto" },
+        2: { cellWidth: 40, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.2 },
+        3: { cellWidth: "auto" },
+      },
+    } as never);
+    y = lastY(y + 25) + 3;
+  };
+  idRows("DEPONENT — SIGNATURE OF STUDENT", nm, fn, ap?.cnic || "", ap?.address || "");
+
+  y = ensure(y, 34, 16);
+  y = sectionBar(y, "Endorsement by Father / Guardian");
+  y = para(
+    `I, Mr./Mrs. ${fn} Son/Wife of ____________________ Father/Guardian of ${nm} hereby fully endorse the undertaking by my son/ward and assure that he shall abide by this undertaking during his stay at the institution. In case my son/ward indulges in politics, the finding with regard to which given by the Principal under his seal and signature shall be final and shall not be questioned except only before the Supreme Court of Pakistan, he shall be expelled without any further notice.`,
+    y,
+  );
+  y += 1;
+  idRows("DEPONENT — SIGNATURE OF FATHER / GUARDIAN", nm, fn, "", "");
+
+  // Witnesses
+  y = ensure(y, 46, 20);
+  y = sectionBar(y, "Witnesses");
+  const wit = (n: number) => [`Witness No. ${n} Name`, " ", "Father Name", " ", "National Identity No.", " ", "Permanent Address", " ", "Signature", " "];
+  const wb: string[][] = [];
+  const labels = ["Name", "Father Name", "National Identity No.", "Permanent Address", "Signature"];
+  labels.forEach((l) => wb.push([l, " ", l, " "]));
+  void wit;
+  autoTable(doc, {
+    startY: y, margin: { left: m, right: m }, tableWidth: inner, theme: "grid",
+    head: [[{ content: "WITNESS NO. 1", colSpan: 2, styles: { halign: "center" } }, { content: "WITNESS NO. 2", colSpan: 2, styles: { halign: "center" } }]],
+    body: wb,
+    styles: { font: "helvetica", fontSize: 8, halign: "center", valign: "middle", cellPadding: 1.4, lineColor: C.grid, lineWidth: 0.15, textColor: C.ink, minCellHeight: 6.3 },
+    headStyles: { fillColor: C.green, textColor: C.white, fontStyle: "bold", fontSize: 7.5, lineColor: C.green },
+    columnStyles: {
+      0: { cellWidth: 34, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.2 },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 34, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.2 },
+      3: { cellWidth: "auto" },
+    },
+  } as never);
+  y = lastY(y + 50) + 10;
+
+  y = ensure(y, 10, 24);
+  sigLine(w - m - 90, w - m - 6, y, "Attested (Signature & Seal of the Competent Authority)");
 
   // Footer on every page
   const pages = doc.getNumberOfPages();
-  for (let p = 1; p <= pages; p++) {
-    doc.setPage(p);
+  for (let pg = 1; pg <= pages; pg++) {
+    doc.setPage(pg);
     ink(doc, C.muted); doc.setFont("helvetica", "normal"); doc.setFontSize(7);
-    doc.text(`Application ${d.trackingId}   |   Page ${p} of ${pages}`, w / 2, 291, { align: "center" });
+    doc.text(`${inst}   |   Application ${d.trackingId}   |   Page ${pg} of ${pages}`, w / 2, 291, { align: "center" });
   }
   doc.save(`Application-${d.trackingId}.pdf`);
 }
