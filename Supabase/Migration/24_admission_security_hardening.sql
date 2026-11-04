@@ -50,6 +50,34 @@ UPDATE public.inter_applications
 -- per-cycle ONE-active-application-per-applicant index.  An application is
 -- "active" unless it was cancelled or rejected.
 DROP INDEX IF EXISTS public.uq_inter_apps_one_per_quota;
+
+-- DATA FIX (needed before the unique index): old rules allowed one application
+-- per program/quota, so an applicant can already hold SEVERAL active
+-- applications in the same cycle and the unique index below would fail with
+-- 23505. Keep ONE per (applicant, cycle): the fee-paid one first, otherwise the
+-- most recently submitted. The others are set to 'cancelled' (never deleted, so
+-- the record stays and the applicant may re-apply via the admin override).
+DO $fix$
+DECLARE v_n bigint;
+BEGIN
+    WITH ranked AS (
+        SELECT id,
+               row_number() OVER (
+                   PARTITION BY applicant_id, cycle
+                   ORDER BY (payment_status::text = 'paid') DESC, submitted_at DESC, id DESC
+               ) AS rn
+          FROM public.inter_applications
+         WHERE status::text NOT IN ('cancelled', 'rejected')
+    )
+    UPDATE public.inter_applications a
+       SET status = 'cancelled'
+      FROM ranked r
+     WHERE a.id = r.id AND r.rn > 1;
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    RAISE NOTICE 'duplicate active applications set to cancelled: %', v_n;
+END
+$fix$;
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_inter_apps_one_per_cycle
     ON public.inter_applications (applicant_id, cycle)
     WHERE (status NOT IN ('cancelled', 'rejected'));
