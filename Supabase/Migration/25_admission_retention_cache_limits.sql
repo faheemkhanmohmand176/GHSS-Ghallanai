@@ -183,13 +183,12 @@ GRANT EXECUTE  ON FUNCTION public.admission_retention_cleanup() TO service_role;
 --   03:17 / 03:23 / 03:41 jobs.
 -- ===========================================================================
 DO $mig$
-DECLARE jobid int;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
     RAISE NOTICE 'pg_cron not installed - admission retention job skipped (fine on Supabase, which ships pg_cron)';
     RETURN;
   END IF;
-  PERFORM cron.unschedule(jobid) FROM cron.job WHERE jobname = 'ghss-admission-retention';
+  PERFORM cron.unschedule(j.jobid) FROM cron.job j WHERE j.jobname = 'ghss-admission-retention';
   PERFORM cron.schedule('ghss-admission-retention', '37 3 * * *',
     $$select public.admission_retention_cleanup();$$);
   RAISE NOTICE 'cron job registered: ghss-admission-retention';
