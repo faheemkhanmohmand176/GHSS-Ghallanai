@@ -1,7 +1,6 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { ReactNode, useRef } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 
 const Spinner = () => (
@@ -15,61 +14,17 @@ const Spinner = () => (
  *
  *  1. Must be signed in (Supabase Auth session present).
  *  2. Profile must exist and role === 'admin'.
- *  3. MFA: the session must be at assurance level aal2. If it is only aal1
- *     (password verified but no TOTP yet), the admin is redirected to
- *     /auth/mfa-verify to complete the second step. If no TOTP factor is
- *     enrolled at all, they are redirected to /auth/mfa-enroll.
+ *
+ * (Two-step / authenticator-app MFA has been removed.)
  *
  * THE LATCH (admitted.current): once the guard has let the dashboard in, it
- * never takes it away because auth is merely SLOW or INCOMPLETE — this is the
- * documented fix for the "whole page refreshed while I was editing" bug. It
- * only removes the children on two definite answers: genuinely signed out, or
- * a successfully-loaded profile that says "not an admin".
+ * never takes it away because auth is merely SLOW or INCOMPLETE. It only
+ * removes the children on two definite answers: genuinely signed out, or a
+ * successfully-loaded profile that says "not an admin".
  */
 const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user, profile, loading, hasCachedSession, sessionPending } = useAuth();
-  const navigate = useNavigate();
   const admitted = useRef(false);
-  const [aal, setAal] = useState<"aal2" | "aal1" | "unknown" | "checking">("checking");
-
-  // Check MFA assurance level once we have a confirmed admin session.
-  useEffect(() => {
-    if (!user || profile?.role !== "admin") return;
-    if (admitted.current) return; // already past the gate
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (cancelled) return;
-        if (error) { setAal("unknown"); return; }
-        if (data.currentLevel === "aal2") {
-          setAal("aal2");
-        } else {
-          // aal1 — need the second step. But first check whether ANY factor is
-          // enrolled; if not, send to enrollment instead of verify.
-          try {
-            const { data: fac } = await supabase.auth.mfa.listFactors();
-            // supabase-js ≥2.100 groups factors as { all, totp, phone, webauthn,
-            // recovery_code } — the old flat `factors` array no longer exists
-            // (it typed-errored and was ALWAYS undefined at runtime, so every
-            // admin was wrongly sent to re-enroll). `totp` holds the VERIFIED
-            // TOTP factors; `all` is checked as a belt-and-braces fallback for
-            // older library versions.
-            const has = (fac?.totp?.length ?? 0) > 0
-              || (fac?.all ?? []).some((f) => f.factor_type === "totp" && f.status === "verified");
-            setAal("aal1");
-            navigate(has ? "/auth/mfa-verify" : "/auth/mfa-enroll", { replace: true });
-          } catch {
-            setAal("aal1");
-            navigate("/auth/mfa-verify", { replace: true });
-          }
-        }
-      } catch {
-        if (!cancelled) setAal("unknown");
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [user, profile, navigate]);
 
   const definitelySignedOut = !user && !loading && !sessionPending;
   const definitelyNotAdmin = !!profile && profile.role !== "admin";
@@ -80,11 +35,9 @@ const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
     return <>{children}</>;
   }
 
-  // First entry — a cached session lets us draw the shell while the network
-  // round trip + MFA check finish.
-  if ((loading || sessionPending || aal === "checking") && hasCachedSession) {
+  // First entry — a cached session lets us wait for the profile to load.
+  if ((loading || sessionPending) && hasCachedSession) {
     if (profile && profile.role !== "admin") return <Navigate to="/" replace />;
-    // Don't admit yet — wait for the aal2 confirmation from the effect above.
     return <Spinner />;
   }
 
@@ -99,17 +52,8 @@ const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
 
   if (profile.role !== "admin") return <Navigate to="/" replace />;
 
-  // Admin confirmed — now the MFA gate
-  if (aal === "aal2") {
-    admitted.current = true;
-    return <>{children}</>;
-  }
-  if (aal === "aal1") {
-    // The effect already navigated to mfa-verify / mfa-enroll.
-    return <Spinner />;
-  }
-  // unknown / checking — keep waiting briefly
-  return <Spinner />;
+  admitted.current = true;
+  return <>{children}</>;
 };
 
 export default AdminProtectedRoute;
