@@ -1,7 +1,7 @@
 import { Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { startActivityTracking } from "@/lib/idlePolling";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { HelmetProvider } from "react-helmet-async";
 import { LazyMotion, domAnimation } from "framer-motion";
@@ -92,8 +92,6 @@ const Library          = lazyWithRetry(() => import("./pages/Library"));
 const SignIn           = lazyWithRetry(() => import("./pages/auth/SignIn"));
 const ForgotPassword   = lazyWithRetry(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword    = lazyWithRetry(() => import("./pages/auth/ResetPassword"));
-const MfaEnroll        = lazyWithRetry(() => import("./pages/auth/MfaEnroll"));
-const MfaVerify        = lazyWithRetry(() => import("./pages/auth/MfaVerify"));
 const AuthCallback     = lazyWithRetry(() => import("./pages/auth/AuthCallback"));
 const AdminDashboard   = lazyWithRetry(() => import("./pages/admin/AdminDashboard"));
 const RollNoSlip       = lazyWithRetry(() => import("./pages/ExamRollNumbers"));
@@ -263,8 +261,8 @@ const App = () => (
                 <Route path="/auth/signin"          element={<SignIn />} />
                 <Route path="/auth/forgot-password" element={<ForgotPassword />} />
                 <Route path="/auth/reset-password"  element={<ResetPassword />} />
-                <Route path="/auth/mfa-enroll"      element={<MfaEnroll />} />
-                <Route path="/auth/mfa-verify"      element={<MfaVerify />} />
+                <Route path="/auth/mfa-enroll"      element={<Navigate to="/admin" replace />} />
+                <Route path="/auth/mfa-verify"      element={<Navigate to="/admin" replace />} />
                 <Route path="/auth/callback"         element={<AuthCallback />} />
                 <Route
                   path="/admin"
