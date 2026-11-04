@@ -18,7 +18,7 @@
 --                              deletes from ONE authorised cleanup function.
 --                                                             → trimmed daily
 --
--- NOTHING IS HARNCODED: every retention window and the gateway flood limit
+-- NOTHING IS HARDCODED: every retention window and the gateway flood limit
 -- live in admission_settings (editable with a single UPDATE, or later from
 -- the admin Admission Settings screen):
 --
@@ -60,24 +60,33 @@ INSERT INTO public.admission_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHIN
 -- postgres / service_role only — sets that flag.  Everyone else still gets
 -- the exception, so the table stays append-only in practice.
 -- ===========================================================================
-CREATE OR REPLACE FUNCTION public.audit_log_block_mutation()
-RETURNS trigger LANGUAGE plpgsql AS $$
+DO $mig$
 BEGIN
-    IF coalesce(current_setting('ghss.admission_retention', true), '') = 'on' THEN
-        -- authorised retention run (public.admission_retention_cleanup only)
-        IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
-    END IF;
-    RAISE EXCEPTION 'audit_log is append-only: UPDATE/DELETE not permitted';
-END;
-$$;
+  IF to_regclass('public.audit_log') IS NULL THEN
+    RAISE NOTICE 'audit_log not found - run 24_admission_security_hardening.sql first; audit trigger step skipped';
+    RETURN;
+  END IF;
 
--- Re-attach (same names as migration 24, so a re-run stays consistent).
-DROP TRIGGER IF EXISTS trg_audit_log_block_update ON public.audit_log;
-DROP TRIGGER IF EXISTS trg_audit_log_block_delete ON public.audit_log;
-CREATE TRIGGER trg_audit_log_block_update BEFORE UPDATE ON public.audit_log
-    FOR EACH ROW EXECUTE FUNCTION public.audit_log_block_mutation();
-CREATE TRIGGER trg_audit_log_block_delete BEFORE DELETE ON public.audit_log
-    FOR EACH ROW EXECUTE FUNCTION public.audit_log_block_mutation();
+  CREATE OR REPLACE FUNCTION public.audit_log_block_mutation()
+  RETURNS trigger LANGUAGE plpgsql AS $f$
+  BEGIN
+      IF coalesce(current_setting('ghss.admission_retention', true), '') = 'on' THEN
+          -- authorised retention run (public.admission_retention_cleanup only)
+          IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
+      END IF;
+      RAISE EXCEPTION 'audit_log is append-only: UPDATE/DELETE not permitted';
+  END;
+  $f$;
+
+  -- Re-attach (same names as migration 24, so a re-run stays consistent).
+  DROP TRIGGER IF EXISTS trg_audit_log_block_update ON public.audit_log;
+  DROP TRIGGER IF EXISTS trg_audit_log_block_delete ON public.audit_log;
+  CREATE TRIGGER trg_audit_log_block_update BEFORE UPDATE ON public.audit_log
+      FOR EACH ROW EXECUTE FUNCTION public.audit_log_block_mutation();
+  CREATE TRIGGER trg_audit_log_block_delete BEFORE DELETE ON public.audit_log
+      FOR EACH ROW EXECUTE FUNCTION public.audit_log_block_mutation();
+END
+$mig$;
 
 
 -- ===========================================================================
