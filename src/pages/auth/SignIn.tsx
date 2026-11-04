@@ -116,25 +116,9 @@ const SignIn = () => {
         return;
       }
 
-      // ── 3. Admin → require MFA (aal2). If only aal1, go to MFA verify.
+      // ── 3. Admin → straight to the dashboard (no 2-step / authenticator).
       if (role === "admin") {
-        try {
-          const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-          if (aal?.currentLevel !== "aal2") {
-            // Log the admin login attempt to the audit log, then redirect to MFA.
-            try { await supabase.rpc("log_admin_action", { p_action: "admin.login", p_target_type: "auth", p_summary: "Admin signed in (aal1 — MFA pending)" }); } catch { /* ignore */ }
-            toast.success("Signed in — one more step.");
-            navigate("/auth/mfa-verify", { replace: true });
-            setLoading(false);
-            return;
-          }
-        } catch {
-          // If MFA check fails (e.g. not enrolled yet), send to enrol.
-          navigate("/auth/mfa-enroll", { replace: true });
-          setLoading(false);
-          return;
-        }
-        try { await supabase.rpc("log_admin_action", { p_action: "admin.login", p_target_type: "auth", p_summary: "Admin signed in (aal2)" }); } catch { /* ignore */ }
+        try { await supabase.rpc("log_admin_action", { p_action: "admin.login", p_target_type: "auth", p_summary: "Admin signed in" }); } catch { /* ignore */ }
         navigate("/admin", { replace: true });
         setLoading(false);
         return;
