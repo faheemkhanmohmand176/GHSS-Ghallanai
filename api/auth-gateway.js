@@ -19,6 +19,17 @@
 //   browser that bypasses the Turnstile widget (or a bot) still cannot reach
 //   the RPC — the gateway refuses it.
 //
+// FREE-PLAN PROTECTION (admission hardening, migration 25)
+//   • LIMITS SNAPSHOT — admission_settings was read once per request. It is
+//     now cached in memory for 30 s per warm instance, so a burst (or a bot
+//     hammering the gateway) no longer multiplies that select.
+//   • PER-IP FLOOD BRAKE — a free in-memory counter (hashed IP → requests in
+//     the last minute) stops a flood BEFORE it costs any Supabase query.
+//     Tunable: admission_settings.rate_gateway_per_ip_minute (default 90;
+//     0 disables). Best-effort per warm instance — the DB-backed limits
+//     below stay authoritative.
+//   • Retry-After on every 429 so well-behaved clients back off politely.
+//
 // FAIL-SAFE
 //   If TURNSTILE_SECRET_KEY is not set in Vercel env, the gateway does NOT
 //   block the request (the site stays usable) but returns
@@ -37,16 +48,17 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY;
 
-// Tiny JSON helper
-const json = (code, body) =>
-  new Response(JSON.stringify(body), {
-    status: code,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
+// Tiny JSON helper — optional third argument adds a Retry-After header
+// (seconds) so polite clients back off instead of retrying immediately.
+const json = (code, body, retryAfterSec) => {
+  const headers = {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+  };
+  if (retryAfterSec) headers["Retry-After"] = String(retryAfterSec);
+  return new Response(JSON.stringify(body), { status: code, headers });
+};
 
 // ── IP extraction (Vercel puts the client IP in x-forwarded-for or x-real-ip)
 function clientIp(req) {
@@ -109,14 +121,59 @@ async function rateLimit(supabase, bucket, key, maxPerWindow, windowMinutes) {
   return { allowed: true };
 }
 
-// Read the editable limits from admission_settings (single row, id=1)
+// Read the editable limits from admission_settings (single row, id=1).
+// CACHED IN MEMORY for 30 s per warm instance: during a burst the same row
+// was re-read for every request, which is exactly when the free-plan compute
+// budget is precious. Limit values do not need second-level freshness —
+// admin edits apply on the next snapshot. On error we cache an empty object
+// (callers keep their defaults) instead of hammering a broken table.
+const LIMITS_TTL_MS = 30_000;
+let limitsSnapshot = { at: 0, data: {} };
 async function readLimits(supabase) {
+  if (Date.now() - limitsSnapshot.at < LIMITS_TTL_MS) return limitsSnapshot.data;
   const { data } = await supabase
     .from("admission_settings")
-    .select("rate_register_per_ip_day, rate_login_max_attempts, rate_login_cooldown_minutes, rate_track_per_ip_hour, rate_reset_per_ip_day, turnstile_required")
+    .select("rate_register_per_ip_day, rate_login_max_attempts, rate_login_cooldown_minutes, rate_track_per_ip_hour, rate_reset_per_ip_day, turnstile_required, rate_gateway_per_ip_minute")
     .eq("id", 1)
     .maybeSingle();
-  return data || {};
+  limitsSnapshot = { at: Date.now(), data: data || {} };
+  return limitsSnapshot.data;
+}
+
+// ── Per-IP flood brake (in-memory, free, per warm instance) ───────────────
+// FIRST gate every request passes — before Turnstile, before ANY Supabase
+// query. A real applicant needs a handful of gateway calls per minute; a
+// shared school NAT stays far below the default 90. A flood gets 429 at
+// zero database cost. Tunable via admission_settings.rate_gateway_per_ip_minute
+// (migration 25; 0 disables). Serverless instances are recycled often, so
+// this is best-effort — the DB-backed limits below remain authoritative.
+const FLOOD_WINDOW_MS = 60_000;
+const floodMap = new Map(); // hashed IP → timestamps of allowed requests
+let floodSweptAt = 0;
+
+async function floodBrake(ip, supabase) {
+  const limits = await readLimits(supabase);   // cached — no extra query
+  const max = Number(limits.rate_gateway_per_ip_minute ?? 90);
+  if (!max || max <= 0) return { allowed: true };
+
+  const key = await hashKey(ip);
+  const now = Date.now();
+
+  // Periodic sweep so the Map can never grow without bound.
+  if (now - floodSweptAt > FLOOD_WINDOW_MS * 5) {
+    for (const [k, arr] of floodMap) {
+      const alive = arr.filter((t) => now - t < FLOOD_WINDOW_MS);
+      if (alive.length === 0) floodMap.delete(k);
+      else floodMap.set(k, alive);
+    }
+    floodSweptAt = now;
+  }
+
+  const arr = (floodMap.get(key) || []).filter((t) => now - t < FLOOD_WINDOW_MS);
+  if (arr.length >= max) return { allowed: false, retryAfter: 60 };
+  arr.push(now);
+  floodMap.set(key, arr);
+  return { allowed: true };
 }
 
 // ── Service-role Supabase client (only the gateway ever holds this key)
@@ -139,7 +196,7 @@ async function handleRegister(body, ip, supabase) {
   const limits = await readLimits(supabase);
   const ipKey = await hashKey(ip);
   const rl = await rateLimit(supabase, "register", ipKey, limits.rate_register_per_ip_day ?? 5, 24 * 60);
-  if (!rl.allowed) return json(429, { ok: false, error: "Too many registration attempts from this network today. Please try again tomorrow." });
+  if (!rl.allowed) return json(429, { ok: false, error: "Too many registration attempts from this network today. Please try again tomorrow." }, (rl.retryAfter || 24 * 60) * 60);
 
   const { data, error } = await supabase.rpc("inter_register", {
     p_nationality: body.nationality,
@@ -171,7 +228,7 @@ async function handleLogin(body, ip, supabase) {
     .eq("success", false)
     .gt("created_at", since);
   if ((count || 0) >= maxAttempts) {
-    return json(429, { ok: false, error: `Too many failed attempts. Try again in ${cooldown} minutes.` });
+    return json(429, { ok: false, error: `Too many failed attempts. Try again in ${cooldown} minutes.` }, cooldown * 60);
   }
 
   const { data, error } = await supabase.rpc("inter_login", {
@@ -194,7 +251,7 @@ async function handleTrack(body, ip, supabase) {
   const limits = await readLimits(supabase);
   const ipKey = await hashKey(ip);
   const rl = await rateLimit(supabase, "track", ipKey, limits.rate_track_per_ip_hour ?? 20, 60);
-  if (!rl.allowed) return json(429, { ok: false, error: "Too many tracking lookups from this network. Please try again later." });
+  if (!rl.allowed) return json(429, { ok: false, error: "Too many tracking lookups from this network. Please try again later." }, (rl.retryAfter || 60) * 60);
 
   const { data, error } = await supabase.rpc("inter_track", {
     p_tracking_id: body.trackingId,
@@ -216,7 +273,7 @@ async function handleReset(body, ip, supabase, req) {
   const limits = await readLimits(supabase);
   const ipKey = await hashKey(ip);
   const rl = await rateLimit(supabase, "reset", ipKey, limits.rate_reset_per_ip_day ?? 5, 24 * 60);
-  if (!rl.allowed) return json(429, { ok: false, error: "Too many reset requests from this network today." });
+  if (!rl.allowed) return json(429, { ok: false, error: "Too many reset requests from this network today." }, (rl.retryAfter || 24 * 60) * 60);
 
   // Use the service-role admin API so the reset email is sent server-side.
   // redirectTo must be an allowed URL in Supabase Auth settings.
@@ -244,7 +301,7 @@ async function handleSignIn(body, ip, supabase) {
   // lockout too; this is the network-level gate).
   const ipKey = await hashKey(ip);
   const rl = await rateLimit(supabase, "login", ipKey, 20, 15);
-  if (!rl.allowed) return json(429, { ok: false, error: "Too many sign-in attempts from this network. Please try again later." });
+  if (!rl.allowed) return json(429, { ok: false, error: "Too many sign-in attempts from this network. Please try again later." }, (rl.retryAfter || 15) * 60);
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email: body.email,
@@ -285,15 +342,23 @@ export default async function handler(req) {
 
   const url = new URL(req.url);
   const action = url.searchParams.get("action");
-  let body;
-  try { body = await req.json(); }
-  catch { return json(400, { ok: false, error: "Invalid JSON body." }); }
 
   const ip = clientIp(req);
   const supabase = serviceClient();
   if (!supabase) {
     return json(500, { ok: false, error: "Server not configured (SUPABASE_SERVICE_ROLE_KEY missing)." });
   }
+
+  // Per-IP flood brake — the FIRST gate, before body parsing, Turnstile or
+  // any DB query, so even garbage-JSON floods are stopped for free.
+  const flood = await floodBrake(ip, supabase);
+  if (!flood.allowed) {
+    return json(429, { ok: false, error: "Too many requests. Please slow down and try again shortly." }, flood.retryAfter || 60);
+  }
+
+  let body;
+  try { body = await req.json(); }
+  catch { return json(400, { ok: false, error: "Invalid JSON body." }); }
 
   try {
     switch (action) {

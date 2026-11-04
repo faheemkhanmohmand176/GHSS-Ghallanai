@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
+import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
@@ -84,7 +85,7 @@ export default function PersonalProfileForm() {
   const { data: ucsData } = useQuery({
     queryKey: ["inter-ucs"],
     queryFn: () => interApi.ucsList() as Promise<unknown>,
-    staleTime: 24 * 60 * 60 * 1000,
+    staleTime: ADMISSION_CLIENT_CACHE.ucsStaleMs,
     enabled: isMohmand,
   });
   const ucs = (Array.isArray(ucsData) ? ucsData : []) as InterUc[];

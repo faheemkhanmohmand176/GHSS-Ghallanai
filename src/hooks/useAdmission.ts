@@ -5,10 +5,23 @@
  * date, days remaining, processing fee and the school's own payment
  * accounts. The server (migration 21, inter_admission_open) enforces the
  * same rule, so closing admissions locks the whole flow, not just the UI.
+ *
+ * ── FREE-PLAN PROTECTION (admission cache plan, migration 25) ──────────
+ * This hook is what put the ADMISSION banner on the homepage — and it used
+ * to query Supabase directly, once per visitor per 30 s, plus once per
+ * window focus. It now reads through the /api/public-data CDN cache
+ * (kind “admission-settings”, 60 s window) with the ORIGINAL direct query
+ * kept as the fallback, so the site works unchanged when the function is
+ * cold / unconfigured. The admin save flow busts the CDN key instantly
+ * (markAdmissionSettingsBust). StaleTime comes from ONE config file:
+ * src/config/admissionCache.ts.
+ * ────────────────────────────────────────────────────────────────────────
  */
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { cachedOrDirect } from "@/lib/publicData";
+import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
 import type { PaymentMethod } from "@/hooks/useFees";
 
 export function normalizePhone(phone: string | null | undefined): string {
@@ -44,14 +57,23 @@ export function useAdmissionSettings() {
   return useQuery<AdmissionSettings | null>({
     queryKey: ADMISSION_SETTINGS_KEY,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("admission_settings")
-        .select("*")
-        .eq("id", 1)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) return null;
-      const row = data as Record<string, unknown>;
+      // CDN-cached read (one origin hit per minute for the WHOLE site), with
+      // the exact original direct query as the fallback. Both paths return
+      // the same row, normalised below — the JSON shape is identical.
+      const row = await cachedOrDirect<Record<string, unknown> | null>(
+        "admission-settings",
+        {},
+        async () => {
+          const { data, error } = await supabase
+            .from("admission_settings")
+            .select("*")
+            .eq("id", 1)
+            .maybeSingle();
+          if (error) throw error;
+          return (data as Record<string, unknown> | null) ?? null;
+        },
+      );
+      if (!row) return null;
       return {
         ...(row as unknown as AdmissionSettings),
         processing_fee: Number(row.processing_fee ?? 100) || 100,
@@ -59,8 +81,12 @@ export function useAdmissionSettings() {
         online_payment_enabled: row.online_payment_enabled !== false,
       };
     },
-    staleTime: 30 * 1000,
-    refetchOnWindowFocus: true,
+    // Tunable in ONE place: src/config/admissionCache.ts. Freshness is kept
+    // by route remounts and the admin-save bust — NOT by re-querying
+    // Supabase on every window focus (that was one DB query per visitor per
+    // tab switch on the homepage, for the same single row).
+    staleTime: ADMISSION_CLIENT_CACHE.settingsStaleMs,
+    refetchOnWindowFocus: false,
   });
 }
 

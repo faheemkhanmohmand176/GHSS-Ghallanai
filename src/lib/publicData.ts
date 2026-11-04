@@ -20,6 +20,14 @@
 //   calls markPublishBust(). For the next 75 s, "results family" kinds append a
 //   `_=<ms>` param — a fresh CDN cache key — so every student's post-publish
 //   refetch reads the just-published rows instead of a cached pre-publish copy.
+//
+// ADMISSION-BUST (admin save exactness)
+//   The admin Admission Settings screen calls markAdmissionSettingsBust()
+//   right after a successful save. For the next 75 s the admission-settings
+//   kind appends the same `_` param, so the admin (and every visitor whose
+//   hook refetches) reads the JUST-SAVED row instead of a CDN copy that is
+//   up to 60 s old. Without this the admin form could re-fill itself with
+//   pre-save values for a minute.
 // ═══════════════════════════════════════════════════════════════════════════
 
 // 8 s hard client timeout. The API answers in well under a second when the
@@ -46,10 +54,31 @@ const RESULTS_FAMILY = new Set([
   "ticker",
 ]);
 
-let bustUntil = 0;
+/** Kinds whose freshness must survive an admin Admission Settings save. */
+const ADMISSION_FAMILY = new Set([
+  "admission-settings",
+]);
+
+/** family name → “busted until” timestamp (ms epoch). */
+const busts = new Map<string, number>();
+
 /** Called by autoPublish the moment a scheduled publish is confirmed. */
 export function markPublishBust(): void {
-  bustUntil = Date.now() + 75_000;
+  busts.set("results", Date.now() + 75_000);
+}
+
+/** Called by the admin Admission Settings screen right after a save, so the
+ *  new values reach every visitor immediately (not after the CDN window). */
+export function markAdmissionSettingsBust(): void {
+  busts.set("admission", Date.now() + 75_000);
+}
+
+/** Is this kind currently inside a bust window? */
+function isBusted(kind: string): boolean {
+  const until = RESULTS_FAMILY.has(kind) ? busts.get("results")
+    : ADMISSION_FAMILY.has(kind) ? busts.get("admission")
+    : undefined;
+  return until !== undefined && until > Date.now();
 }
 
 export class PublicDataError extends Error {
@@ -68,7 +97,7 @@ function buildUrl(kind: string, params: Record<string, string | number | boolean
     if (v === undefined || v === null || v === "") continue;
     q.set(k, String(v));
   }
-  if (bustUntil > Date.now() && RESULTS_FAMILY.has(kind)) {
+  if (isBusted(kind)) {
     // New cache key ⇒ guaranteed origin read, so the just-published rows are
     // never served from a pre-publish copy. The key is a 10-second BUCKET shared by
     // every visitor (not a per-request timestamp): the first student's request

@@ -16,6 +16,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAdmissionSettings, getAdmissionState, formatAdmissionDate, ADMISSION_SETTINGS_KEY, type AdmissionSettings } from "@/hooks/useAdmission";
+import { markAdmissionSettingsBust } from "@/lib/publicData";
 import type { PaymentMethod } from "@/hooks/useFees";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -209,6 +210,10 @@ export default function AdminAdmissions() {
       return data as AdmissionSettings;
     },
     onSuccess: (row) => {
+      // Bust the shared /api/public-data CDN key FIRST so the refetch below
+      // (and every visitor’s next refetch) reads the just-saved row instead
+      // of a cached copy up to 60 s old.
+      markAdmissionSettingsBust();
       toast.success("Admission settings saved.");
       qc.setQueryData(ADMISSION_SETTINGS_KEY, row);
       qc.invalidateQueries({ queryKey: ADMISSION_SETTINGS_KEY });

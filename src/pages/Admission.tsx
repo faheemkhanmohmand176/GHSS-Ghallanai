@@ -22,6 +22,7 @@ import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
 import { AdmissionClosedCard } from "@/components/shared/AdmissionGate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdmissionSettings, getAdmissionState, formatAdmissionDate } from "@/hooks/useAdmission";
+import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -263,7 +264,7 @@ function MeritLists() {
   const { data, isLoading } = useQuery({
     queryKey: ["inter-merit-public"],
     queryFn: () => interApi.meritListsPublic() as Promise<unknown>,
-    staleTime: 60 * 1000,
+    staleTime: ADMISSION_CLIENT_CACHE.meritListsStaleMs,
   });
   const lists = (Array.isArray(data) ? data : []) as PublicMeritList[];
 
@@ -271,7 +272,7 @@ function MeritLists() {
     queryKey: ["inter-merit-view", viewId],
     queryFn: () => interApi.meritListView(viewId!) as Promise<unknown>,
     enabled: Boolean(viewId),
-    staleTime: 60 * 1000,
+    staleTime: ADMISSION_CLIENT_CACHE.meritListStaleMs,
   });
   const view = (viewData ?? null) as null | {
     ok: boolean;
@@ -521,7 +522,7 @@ export default function Admission() {
   const { data: programs } = useQuery({
     queryKey: ["inter-programs-public"],
     queryFn: () => interApi.programsList() as Promise<{ ok?: boolean } & { [k: string]: unknown }>,
-    staleTime: 5 * 60 * 1000,
+    staleTime: ADMISSION_CLIENT_CACHE.programsStaleMs,
     enabled: state.open || settingsError,
   });
   const programList = (programs as unknown as { id?: number; name: string; study_level: string; seats: number }[] | undefined) ?? [];

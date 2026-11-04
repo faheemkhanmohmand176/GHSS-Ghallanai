@@ -21,6 +21,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { authGateway } from "@/lib/authGateway";
+import { cachedOrDirect } from "@/lib/publicData";
 
 export const INTER_TOKEN_KEY = "inter_admission_token";
 
@@ -255,8 +256,13 @@ export const interApi = {
     rpc("inter_save_personal", { p_token: token, p_data: data }),
   saveSsc: (token: string, data: Record<string, unknown>) =>
     rpc("inter_save_ssc", { p_token: token, p_data: data }),
-  programsList: () => rpc("inter_programs_list", {}),
-  ucsList: () => rpc("inter_ucs_list", {}),
+  // ── Public reads — CDN-cached (api/public-data.js, migration 25 plan) with
+  //    the original RPC as the fallback. Bots and repeated visitors hit the
+  //    Vercel edge, not the Supabase Nano compute.
+  programsList: () =>
+    cachedOrDirect<RpcResult>("admission-programs", {}, () => rpc("inter_programs_list", {})),
+  ucsList: () =>
+    cachedOrDirect<RpcResult>("admission-ucs", {}, () => rpc("inter_ucs_list", {})),
   checkQuota: (token: string, quota: string, criteria: Record<string, unknown> | null) =>
     rpc("inter_check_quota", { p_token: token, p_quota: quota, p_criteria: criteria }),
 
@@ -288,9 +294,11 @@ export const interApi = {
   track: (trackingId: string, secondFactor: string, turnstile: string) =>
     authGateway.track({ trackingId, secondFactor, turnstile }) as Promise<RpcResult>,
 
-  meritListsPublic: () => rpc("inter_merit_lists_public", {}),
+  meritListsPublic: () =>
+    cachedOrDirect<RpcResult>("admission-merit-lists", {}, () => rpc("inter_merit_lists_public", {})),
   meritListView: (meritListId: string) =>
-    rpc("inter_merit_list_view", { p_merit_list_id: meritListId }),
+    cachedOrDirect<RpcResult>("admission-merit-list", { id: meritListId }, () =>
+      rpc("inter_merit_list_view", { p_merit_list_id: meritListId })),
 
   // ── Admin-only (caller is an authenticated Supabase admin) ──────────────
   adminUnlockApplication: (applicationId: string, reason?: string) =>

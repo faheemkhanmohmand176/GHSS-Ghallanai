@@ -40,9 +40,16 @@
 //   • 30 s  — things that flip on a countdown or right after an admin
 //             publish (notices, ticker, has-results, roll sessions,
 //             result rank pools, class averages, result schedule).
-//   • 60 s  — latest-exam meta.
+//   • 60 s  — latest-exam meta; ADMISSION settings (open/closed, fee,
+//             payment accounts).  The admin Admission Settings screen busts
+//             this cache the moment it saves (see src/lib/publicData.ts),
+//             so 60 s here costs nothing in freshness but removes the
+//             homepage admission banner + every public admission page
+//             from the Supabase query path entirely.
 //   • 120 s — date sheet, merit entries, roll rosters, library listing.
-//   • 300 s — school settings, result years (change a few times a year).
+//   • 300 s — school settings, result years, ADMISSION programs (change a
+//             few times a year), one admission merit list.
+//   • 3600 s — ADMISSION union councils (never change in practice).
 //   Every response also carries `stale-while-revalidate`, so even an expired
 //   entry is served instantly and refreshed in the background.
 //
@@ -65,6 +72,23 @@
 const SB_TIMEOUT_MS = 10000;
 
 // kind → { s: s-maxage seconds, swr: stale-while-revalidate seconds }
+//
+// ADMISSION kinds (added with migration 25 / admission cache plan):
+//   admission-settings    the admission_settings row the homepage banner,
+//                         the public admission page, the apply flow and the
+//                         admin tab all read.  Was ONE Supabase query per
+//                         visitor per 30 s — now ONE per minute for the whole
+//                         site, busted instantly when the admin saves.
+//   admission-programs    inter_programs_list RPC (public: active programs,
+//                         seats, subject groups — no applicant data).
+//   admission-ucs         inter_ucs_list RPC (public union-council names).
+//   admission-merit-lists inter_merit_lists_public RPC (published lists).
+//   admission-merit-list  inter_merit_list_view RPC (one published list +
+//                         entries — the big payload that used to be
+//                         re-downloaded by every visitor).
+//   RPCs are called with the service role server-side but they are the SAME
+//   SECURITY DEFINER public-read RPCs the browser called with the anon key;
+//   they return identical public bytes (see migration 20 definitions).
 const CACHE = {
   notices:          { s: 30,  swr: 120 },
   notice:           { s: 30,  swr: 120 },
@@ -84,6 +108,11 @@ const CACHE = {
   "result-schedule":{ s: 5,   swr: 10 },
   "result-rank":    { s: 30,  swr: 120 },
   "class-average":  { s: 30,  swr: 120 },
+  "admission-settings":    { s: 60,   swr: 300 },
+  "admission-programs":    { s: 300,  swr: 600 },
+  "admission-ucs":         { s: 3600, swr: 86400 },
+  "admission-merit-lists": { s: 120,  swr: 600 },
+  "admission-merit-list":  { s: 300,  swr: 600 },
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -116,6 +145,23 @@ async function sb(path) {
     signal: AbortSignal.timeout(SB_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`GET ${path.split("?")[0]} → ${res.status}`);
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+/** POST /rest/v1/rpc/<fn> with the service role key + hard timeout.
+ *  For PUBLIC-read SECURITY DEFINER admission RPCs only — the same calls
+ *  the browser makes with the anon key, so the returned bytes are identical
+ *  and nothing private is ever exposed. */
+async function sbRpc(fn, body = {}) {
+  const { url, key } = cfg();
+  const res = await fetch(`${url}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(SB_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`rpc ${fn} → ${res.status}`);
   const text = await res.text();
   return text ? JSON.parse(text) : null;
 }
@@ -368,6 +414,44 @@ const FETCHERS = {
     if (!res.ok) throw new Error(`rpc get_class_exam_average → ${res.status}`);
     const t = await res.text();
     return t ? JSON.parse(t) : null;
+  },
+
+  // ── ADMISSION (public reads only — no applicant/personal data) ─────────
+
+  // The admission_settings row (id=1) with an explicit allow-list of the
+  // columns the browser already reads today (the direct query selects the
+  // same row with the anon key, so nothing new is exposed).  Retention
+  // knobs (migration 25) are server-only and deliberately NOT selected.
+  // The admin save flow busts this cache immediately, so the 60 s window
+  // never delays an admin change.
+  async "admission-settings"() {
+    const rows = await sb(
+      `admission_settings?select=id,is_open,session_year,open_date,last_date,banner_message,notes,processing_fee,payment_methods,online_payment_enabled,rate_register_per_ip_day,rate_login_max_attempts,rate_login_cooldown_minutes,rate_track_per_ip_hour,rate_track_per_id_hour,rate_reset_per_ip_day,turnstile_required,updated_at` +
+      `&id=eq.1&limit=1`,
+    );
+    return rows?.[0] ?? null;
+  },
+
+  // inter_programs_list RPC — active programs + seats + subject groups.
+  async "admission-programs"() {
+    return (await sbRpc("inter_programs_list", {})) ?? [];
+  },
+
+  // inter_ucs_list RPC — union-council names for the domicile picker.
+  async "admission-ucs"() {
+    return (await sbRpc("inter_ucs_list", {})) ?? [];
+  },
+
+  // inter_merit_lists_public RPC — published admission merit lists.
+  async "admission-merit-lists"() {
+    return (await sbRpc("inter_merit_lists_public", {})) ?? [];
+  },
+
+  // inter_merit_list_view RPC — ONE published merit list + its entries.
+  async "admission-merit-list"(q) {
+    const id = q.get("id") || "";
+    if (!UUID_RE.test(id)) return null;
+    return (await sbRpc("inter_merit_list_view", { p_merit_list_id: id })) ?? null;
   },
 };
 

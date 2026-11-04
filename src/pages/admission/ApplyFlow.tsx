@@ -27,6 +27,7 @@ import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
 import OnlinePayPanel from "@/components/shared/OnlinePayPanel";
 import { useAdmissionSettings, cycleLabel } from "@/hooks/useAdmission";
+import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
 import { downloadFeeChallan } from "@/lib/admissionPdf";
 import AdmissionStepper from "@/components/shared/AdmissionStepper";
 import toast from "react-hot-toast";
@@ -102,7 +103,7 @@ export default function ApplyFlow() {
   const { data: programsData } = useQuery({
     queryKey: ["inter-programs"],
     queryFn: () => interApi.programsList() as Promise<unknown>,
-    staleTime: 5 * 60 * 1000,
+    staleTime: ADMISSION_CLIENT_CACHE.programsStaleMs,
   });
   const programs = useMemo(() => {
     const d = programsData as unknown as Array<{
@@ -200,7 +201,10 @@ export default function ApplyFlow() {
       // NEW mode   → call inter_submit_application (random tracking id generated server-side)
       const res = isEditing && editId
         ? (await interApi.editApplication(
-            token!, Number(programId), quota, criteria as unknown as Record<string, unknown>,
+            // BUG FIX (admission): the application id was missing here, so the
+            // RPC received the program number as p_application_id and could
+            // never find the application — Edit Application always failed.
+            token!, editId, Number(programId), quota, criteria as unknown as Record<string, unknown>,
             program?.subject_groups?.length ? subjectGroup : null,
           )) as unknown as {
             ok?: boolean; error?: string; needs?: string;
