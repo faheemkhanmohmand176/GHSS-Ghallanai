@@ -22,6 +22,7 @@
 import { supabase } from "@/lib/supabase";
 import { authGateway } from "@/lib/authGateway";
 import { cachedOrDirect } from "@/lib/publicData";
+import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
 
 export const INTER_TOKEN_KEY = "inter_admission_token";
 
@@ -228,17 +229,64 @@ export function clearToken() {
 // service role) because migration 24 revoked anon EXECUTE on them.
 // Everything else still calls supabase.rpc directly (those RPCs take a token
 // and are self-gating).
+//
+// SLOW-INTERNET HARDENING (two properties every wrapper now guarantees):
+//   1. NEVER HANGS — supabase-js has no default timeout, so a stalled request
+//      on 2G kept queries "loading" forever. Every RPC is raced against a
+//      hard cap (ADMISSION_CLIENT_CACHE.rpcTimeoutMs).
+//   2. NETWORK ≠ REJECTED — a fetch failure must never be confused with the
+//      server's own {ok:false} answers. Results carry `network: true` so the
+//      session hook can retry instead of logging the applicant out (the old
+//      behaviour: one dropped packet mid-application → bounced to login).
 // ─────────────────────────────────────────────────────────────────────────────
 
-type RpcResult = Record<string, unknown> & { ok?: boolean; error?: string };
+type RpcResult = Record<string, unknown> & { ok?: boolean; error?: string; network?: boolean };
+
+/** Messages supabase-js produces when the REQUEST never reached the server
+ *  (as opposed to the server answering "no / invalid"). Checked case-blind. */
+const NETWORK_ERROR_RE =
+  /failed to fetch|fetch failed|networkerror|network request failed|load failed|timeout|timed out|aborted|aborterror|econn|enotfound|dns|socket|connection (refused|reset|closed)|service unavailable|temporarily unavailable|offline/i;
+
+/** True when an interApi result failed because of the CONNECTION, not the
+ *  server's verdict. Callers must retry these, never treat them as a final
+ *  "session expired" / "not found" answer. */
+export function isAdmissionNetworkError(r: unknown): boolean {
+  if (!r || typeof r !== "object") return false;
+  if ((r as RpcResult).network === true) return true;
+  const err = (r as RpcResult).error;
+  return typeof err === "string" && NETWORK_ERROR_RE.test(err);
+}
+
+const NETWORK_FAIL: RpcResult = {
+  ok: false,
+  error: "Network error. Please check your connection and try again.",
+  network: true,
+};
 
 async function rpc(fn: string, params: Record<string, unknown>): Promise<RpcResult> {
-  const { data, error } = await supabase.rpc(fn, params);
-  if (error) {
-    // Surface network/RPC errors as a normal error payloads
-    return { ok: false, error: error.message };
+  let outcome: { data: unknown; error?: { message?: string } | null };
+  try {
+    // Race the real call against the hard cap. The abandoned request (if any)
+    // finishes harmlessly in the background — its result is discarded.
+    outcome = await Promise.race([
+      supabase.rpc(fn, params),
+      new Promise<{ data: null; error: { message: string } }>((resolve) =>
+        setTimeout(
+          () => resolve({ data: null, error: { message: `Request timed out after ${Math.round(ADMISSION_CLIENT_CACHE.rpcTimeoutMs / 1000)} seconds.` } }),
+          ADMISSION_CLIENT_CACHE.rpcTimeoutMs,
+        ),
+      ),
+    ]);
+  } catch {
+    // supabase-js can also reject outright (aborted request, storage errors)
+    return { ...NETWORK_FAIL };
   }
-  return (data ?? { ok: false, error: "Unexpected empty response." }) as RpcResult;
+  if (outcome.error) {
+    const message = String(outcome.error.message ?? "");
+    // Surface network/RPC errors as normal error payloads
+    return { ok: false, error: message, network: NETWORK_ERROR_RE.test(message) };
+  }
+  return (outcome.data ?? { ok: false, error: "Unexpected empty response." }) as RpcResult;
 }
 
 export const interApi = {
@@ -360,6 +408,9 @@ export interface ApplicationRow {
 export interface SessionState {
   ok: boolean;
   error?: string;
+  /** True when the call failed for a network reason (never a server verdict).
+   *  Callers RETRY instead of treating the session as expired. */
+  network?: boolean;
   applicant?: { id: string; cnic_formb: string; mobile: string; nationality: string };
   personal?: PersonalProfileData | null;
   ssc?: (SscProfileData & { marks_percentage: number; grade: string }) | null;

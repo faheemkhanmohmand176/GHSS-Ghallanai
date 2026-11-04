@@ -20,9 +20,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import { formatCnic, QUOTA_LABEL, formatDeadline, maskMobile } from "@/lib/interAdmission";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
+import AdmissionSessionRetry from "@/components/shared/AdmissionSessionRetry";
 
 export default function AdmissionPortal() {
-  const { session, loading, logout } = useInterSession();
+  const { session, loading, logout, netError, refresh } = useInterSession();
   const navigate = useNavigate();
 
   const personalDone = Boolean(session?.personal);
@@ -38,6 +39,25 @@ export default function AdmissionPortal() {
     && !['fee_paid','under_review','merit_listed','admitted','rejected','cancelled'].includes(a.status));
 
   const itemCls = "w-full flex items-center gap-2.5 rounded-lg px-3 h-10 text-[13px] font-semibold text-muted-foreground hover:bg-primary/5 hover:text-primary transition-colors text-left";
+
+  // Slow-internet guard: while the session call is failing (after its network
+  // retries), show ONE calm retry card instead of an empty dashboard. The old
+  // behaviour fell through to "No applications yet" — genuinely alarming for
+  // an applicant whose applications DO exist.
+  if (netError && !session) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto max-w-xl px-4 py-12">
+          <AdmissionBackBar to="/admission" />
+          <AdmissionSessionRetry
+            what="your dashboard"
+            onRetry={refresh}
+            backTo={{ to: "/admission", label: "Back to Admission Home" }}
+          />
+        </div>
+      </PageLayout>
+    );
+  }
 
   function goNewApplication() {
     if (!profilesDone) {

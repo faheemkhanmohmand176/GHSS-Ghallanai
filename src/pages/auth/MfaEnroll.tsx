@@ -55,7 +55,11 @@ export default function MfaEnroll() {
         setFactorId(data.id);
         setQr(data.totp?.qr_code ?? null);
         setSecret(data.totp?.secret ?? null);
-        setRecovery(data.recovery_codes ?? []);
+        // supabase-js ≥2.100 no longer returns recovery_codes from enroll()
+        // (the field is always undefined at runtime). Type-safe access so the
+        // compiler stays clean; when the server does supply codes (older
+        // library / future re-addition) they are shown exactly as before.
+        setRecovery((data as { recovery_codes?: string[] | null }).recovery_codes ?? []);
         setPhase("enroll");
       } catch {
         if (!cancelled) toast.error("Network error during enrollment.");
@@ -103,26 +107,42 @@ export default function MfaEnroll() {
           <div className="bg-card rounded-2xl shadow-elevated p-7">
             <div className="text-center mb-5">
               <KeyRound className="w-10 h-10 mx-auto text-gold" />
-              <h1 className="text-2xl font-heading font-bold text-foreground mt-2">Save your recovery codes</h1>
+              <h1 className="text-2xl font-heading font-bold text-foreground mt-2">
+                {recovery.length > 0 ? "Save your recovery codes" : "Two-step login is enabled"}
+              </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                If you lose your phone, these codes let you sign in once each. Store them somewhere safe — you will NOT see them again.
+                {recovery.length > 0
+                  ? "If you lose your phone, these codes let you sign in once each. Store them somewhere safe — you will NOT see them again."
+                  : "Your authenticator is verified and MFA is now active for your account."}
               </p>
             </div>
-            <div className="rounded-xl border border-border bg-muted/50 p-4 grid grid-cols-2 gap-1.5 font-mono text-[12.5px]">
-              {recovery.map((r, i) => <span key={i} className="text-foreground">{r}</span>)}
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => { navigator.clipboard?.writeText(recovery.join("\n")); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-                className="flex-1 h-10 rounded-xl border border-border text-sm font-semibold flex items-center justify-center gap-2 hover:bg-muted"
-              >
-                {copied ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy all</>}
-              </button>
+            {recovery.length > 0 ? (
+              <>
+                <div className="rounded-xl border border-border bg-muted/50 p-4 grid grid-cols-2 gap-1.5 font-mono text-[12.5px]">
+                  {recovery.map((r, i) => <span key={i} className="text-foreground">{r}</span>)}
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => { navigator.clipboard?.writeText(recovery.join("\n")); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                    className="flex-1 h-10 rounded-xl border border-border text-sm font-semibold flex items-center justify-center gap-2 hover:bg-muted"
+                  >
+                    {copied ? <><Check className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy all</>}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/40 p-4 text-[13px] leading-relaxed text-muted-foreground">
+                <span className="font-semibold text-foreground">Lost your phone?</span> Ask another admin to sign
+                in, open the Supabase dashboard → Authentication → Users → find your account → "MFA Factors" →
+                delete the lost factor. Then sign in and enrol a new authenticator.
+              </div>
+            )}
+            <div className="mt-4">
               <button
                 onClick={() => { setPhase("done"); navigate("/auth/mfa-verify", { replace: true }); }}
-                className="flex-1 h-10 rounded-xl gradient-accent text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2"
+                className="w-full h-10 rounded-xl gradient-accent text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2"
               >
-                I saved them <ArrowRight className="w-4 h-4" />
+                Continue <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>

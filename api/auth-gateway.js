@@ -48,6 +48,17 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY;
 
+// Every outbound fetch (Supabase REST, Turnstile) gets a hard 8 s timeout.
+// Vercel Hobby kills a Node function at ~10 s, and a slow/hung database call
+// used to turn into a platform-level FUNCTION_INVOCATION_FAILED (a body-less
+// 500) instead of a JSON error the browser can show as "please try again".
+// 8 s always leaves the function time to answer first. supabase-js accepts a
+// custom fetch via createClient({ global: { fetch } }) — this wrapper keeps
+// the exact same fetch signature and only adds the abort timer.
+const OUTBOUND_TIMEOUT_MS = 8000;
+const timeoutFetch = (input, init) =>
+  fetch(input, { ...init, signal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS) });
+
 // Tiny JSON helper — optional third argument adds a Retry-After header
 // (seconds) so polite clients back off instead of retrying immediately.
 const json = (code, body, retryAfterSec) => {
@@ -90,6 +101,7 @@ async function verifyTurnstile(token, ip) {
     const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
       method: "POST",
       body: form,
+      signal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS),
     });
     const data = await r.json();
     if (data.success) return { ok: true };
@@ -181,6 +193,7 @@ function serviceClient() {
   if (!SUPABASE_URL || !SERVICE_KEY) return null;
   return createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: timeoutFetch },
   });
 }
 
@@ -324,6 +337,22 @@ async function handleSignIn(body, ip, supabase) {
 // Entry point
 // ─────────────────────────────────────────────────────────────────────────────
 export default async function handler(req) {
+  // ── CRASH-PROOF WRAPPER ───────────────────────────────────────────────
+  // A previously-deployed build of this function crashed at invocation time
+  // (Vercel FUNCTION_INVOCATION_FAILED — a body-less 500) which made
+  // register / login / track permanently unusable from the browser: the
+  // applicant only ever saw "Network error. Please try again." Every step
+  // of the request — including CORS, IP extraction and the flood brake — now
+  // lives inside this one try/catch, so whatever happens the browser gets a
+  // JSON answer it can render.
+  try {
+    return await handle(req);
+  } catch (e) {
+    return json(500, { ok: false, error: "Gateway error." });
+  }
+}
+
+async function handle(req) {
   // CORS: only the same origin may call this gateway
   const origin = req.headers.get("origin");
   const allow = origin && (origin === new URL(req.url).origin);
@@ -351,7 +380,14 @@ export default async function handler(req) {
 
   // Per-IP flood brake — the FIRST gate, before body parsing, Turnstile or
   // any DB query, so even garbage-JSON floods are stopped for free.
-  const flood = await floodBrake(ip, supabase);
+  // (Never let the brake itself kill the request: a database hiccup inside
+  // readLimits is swallowed and treated as "no limits known".)
+  let flood;
+  try {
+    flood = await floodBrake(ip, supabase);
+  } catch (_e) {
+    flood = { allowed: true };
+  }
   if (!flood.allowed) {
     return json(429, { ok: false, error: "Too many requests. Please slow down and try again shortly." }, flood.retryAfter || 60);
   }

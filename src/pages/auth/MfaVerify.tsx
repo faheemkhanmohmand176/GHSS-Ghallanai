@@ -39,7 +39,13 @@ export default function MfaVerify() {
         navigate("/auth/signin", { replace: true });
         return;
       }
-      const totp = (data?.factors ?? []).find((f) => f.factorType === "totp" && f.status === "verified");
+      // supabase-js ≥2.100 groups factors as { all, totp, phone, webauthn,
+      // recovery_code }. The old flat `factors` array no longer exists — it
+      // was ALWAYS undefined at runtime, which made this page show "MFA not
+      // set up" for admins who HAD enrolled (a lockout loop between this
+      // page and /auth/mfa-enroll). `totp` holds the VERIFIED TOTP factors.
+      const all = data?.all ?? [];
+      const totp = data?.totp?.[0] ?? all.find((f) => f.factor_type === "totp" && f.status === "verified");
       if (!totp) {
         setNoFactor(true);
         return;

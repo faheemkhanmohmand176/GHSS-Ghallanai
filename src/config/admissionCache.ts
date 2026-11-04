@@ -44,4 +44,26 @@ export const ADMISSION_CLIENT_CACHE = {
 
   /** One merit list + entries (admission-merit-list kind). */
   meritListStaleMs: 5 * 60 * 1000,
+
+  // ── SLOW-INTERNET RESILIENCE (network layer) ─────────────────────────────
+  // These are NOT school facts — they are how long the browser waits before
+  // deciding a request is not coming back. supabase-js has NO default
+  // timeout, so without these a stalled request on 2G keeps the applicant
+  // staring at a spinner (and keeps the query "loading") indefinitely.
+
+  /** Hard cap on any admission RPC (session state, save, submit, pay). */
+  rpcTimeoutMs: 20 * 1000,
+
+  /** Hard cap on auth-gateway calls (register / login / track). */
+  gatewayTimeoutMs: 20 * 1000,
+
+  /** Hard cap on Safepay payment calls (config + create checkout). */
+  paymentTimeoutMs: 20 * 1000,
+
+  /** Automatic retries when the applicant-session RPC fails for a NETWORK
+   *  reason (never for a real "session expired" answer). */
+  sessionNetworkRetries: 2,
+
+  /** Backoff between those retries (ms, exponential base). */
+  sessionRetryDelayMs: 1500,
 } as const;

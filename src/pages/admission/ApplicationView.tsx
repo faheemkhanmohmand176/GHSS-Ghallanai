@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
+import AdmissionSessionRetry from "@/components/shared/AdmissionSessionRetry";
 import OnlinePayPanel from "@/components/shared/OnlinePayPanel";
 import { useAdmissionSettings, cycleLabel } from "@/hooks/useAdmission";
 import { downloadFeeChallan, downloadApplicationForm } from "@/lib/admissionPdf";
@@ -22,12 +23,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
-  interApi, QUOTA_LABEL, ADMISSION_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
+  interApi, isAdmissionNetworkError, QUOTA_LABEL, ADMISSION_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
   formatCnic, formatDateLong, formatDeadline, maskCnic, maskMobile,
 } from "@/lib/interAdmission";
 
 interface AppDetail {
-  ok: boolean; error?: string;
+  ok: boolean; error?: string; network?: boolean;
   application?: Record<string, string | number | boolean | null>;
   personal?: Record<string, string | boolean | null>;
   ssc?: Record<string, string | number | boolean | null>;
@@ -41,6 +42,11 @@ export default function ApplicationView() {
   const { token, loading: sessionLoading } = useInterSession();
   const [detail, setDetail] = useState<AppDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  // NETWORK ≠ NOT FOUND: on a slow connection the old page showed "Application
+  // not found or session expired" for a request that never reached the server.
+  // A network failure now shows a retry card instead (the application exists;
+  // only the connection failed).
+  const [netFailed, setNetFailed] = useState(false);
   const { data: admSettings } = useAdmissionSettings();
   const ADMISSION_CYCLE = cycleLabel(admSettings);
   const [params, setParams] = useSearchParams();
@@ -55,9 +61,14 @@ export default function ApplicationView() {
     try {
       const res = (await interApi.applicationDetail(token, id)) as unknown as AppDetail;
       setDetail(res);
-      if (!res?.ok) toast.error(res?.error || "Application not found.");
+      if (isAdmissionNetworkError(res)) {
+        setNetFailed(true);
+      } else {
+        setNetFailed(false);
+        if (!res?.ok) toast.error(res?.error || "Application not found.");
+      }
     } catch {
-      toast.error("Network error.");
+      setNetFailed(true);
     } finally {
       setLoading(false);
     }
@@ -85,7 +96,10 @@ export default function ApplicationView() {
       try {
         const res = (await interApi.applicationDetail(token, id)) as unknown as AppDetail;
         if (stopped) return;
-        setDetail(res);
+        // Only a SUCCESSFUL poll may replace the on-screen detail — a single
+        // dropped request during the 3 s polling used to flash the whole page
+        // to "Application not found" until the next tick succeeded.
+        if (res?.ok) setDetail(res);
         if (res?.application?.payment_status === "paid") {
           toast.success("Payment received. Thank you!");
           setConfirming(false);
@@ -131,6 +145,21 @@ export default function ApplicationView() {
         <div className="container mx-auto px-4 py-16 max-w-3xl space-y-4">
           <Skeleton className="h-10 w-72 rounded-xl" />
           {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (netFailed && !detail?.ok) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto max-w-xl px-4 py-12">
+          <AdmissionBackBar to="/admission/portal" />
+          <AdmissionSessionRetry
+            what="this application"
+            onRetry={() => { void load(); }}
+            backTo={{ to: "/admission/portal", label: "Back to Dashboard" }}
+          />
         </div>
       </PageLayout>
     );

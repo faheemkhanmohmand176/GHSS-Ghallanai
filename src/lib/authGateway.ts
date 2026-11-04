@@ -12,7 +12,14 @@
  * inter_register / inter_login / inter_track, a browser that bypasses the
  * Turnstile widget (or a bot) still cannot reach those RPCs — the gateway
  * refuses it.
+ *
+ * SLOW-INTERNET HARDENING: every call now carries a hard timeout
+ * (ADMISSION_CLIENT_CACHE.gatewayTimeoutMs). A cold serverless instance on a
+ * 2G link used to leave the Register / Login / Track button spinning forever;
+ * now it fails at the cap with the friendly "check your connection" message.
  */
+
+import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
 
 export interface GatewayResult {
   ok?: boolean;
@@ -27,6 +34,7 @@ async function postAction(action: string, payload: Record<string, unknown>): Pro
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(ADMISSION_CLIENT_CACHE.gatewayTimeoutMs),
     });
     const data = await res.json().catch(() => ({ ok: false, error: "Gateway returned invalid JSON." }));
     return data as GatewayResult;

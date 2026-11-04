@@ -69,7 +69,13 @@
 //   dependency.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const SB_TIMEOUT_MS = 10000;
+// A stuck Supabase fetch must never outlive the function: Vercel Hobby kills
+// a Node function at ~10 s. The old 10 s timeout fired at EXACTLY the same
+// moment the platform killed the invocation, so a slow database call turned
+// into FUNCTION_INVOCATION_FAILED (a platform 502 with no JSON body) instead
+// of this handler's clean, fallback-friendly 502. 8 s always leaves the
+// function time to answer first.
+const SB_TIMEOUT_MS = 8000;
 
 // kind → { s: s-maxage seconds, swr: stale-while-revalidate seconds }
 //
@@ -424,11 +430,27 @@ const FETCHERS = {
   // knobs (migration 25) are server-only and deliberately NOT selected.
   // The admin save flow busts this cache immediately, so the 60 s window
   // never delays an admin change.
+  //
+  // SELF-HEALING: if the live database has not run migrations 24/25 yet,
+  // selecting the rate_* columns makes PostgREST answer 400 (unknown
+  // column) and this kind used to fail for EVERY visitor (falling back to
+  // per-visitor direct Supabase queries — the exact load this cache exists
+  // to prevent). The fetcher now retries once with the CORE column list
+  // that exists in the oldest schema, so the cache keeps working no matter
+  // which migrations have been applied.
   async "admission-settings"() {
-    const rows = await sb(
-      `admission_settings?select=id,is_open,session_year,open_date,last_date,banner_message,notes,processing_fee,payment_methods,online_payment_enabled,rate_register_per_ip_day,rate_login_max_attempts,rate_login_cooldown_minutes,rate_track_per_ip_hour,rate_track_per_id_hour,rate_reset_per_ip_day,turnstile_required,updated_at` +
-      `&id=eq.1&limit=1`,
-    );
+    const FULL = `id,is_open,session_year,open_date,last_date,banner_message,notes,processing_fee,payment_methods,online_payment_enabled,rate_register_per_ip_day,rate_login_max_attempts,rate_login_cooldown_minutes,rate_track_per_ip_hour,rate_track_per_id_hour,rate_reset_per_ip_day,turnstile_required,updated_at`;
+    const CORE = `id,is_open,session_year,open_date,last_date,banner_message,notes,processing_fee,payment_methods,online_payment_enabled,updated_at`;
+    let rows;
+    try {
+      rows = await sb(`admission_settings?select=${FULL}&id=eq.1&limit=1`);
+    } catch (e) {
+      // 400 = unknown column (migrations not applied yet); anything else
+      // (5xx, timeout) would fail the same way on the core list — rethrow
+      // so the caller gets its normal 502 fallback.
+      if (!/→ 400/.test(String(e && e.message))) throw e;
+      rows = await sb(`admission_settings?select=${CORE}&id=eq.1&limit=1`);
+    }
     return rows?.[0] ?? null;
   },
 
@@ -456,6 +478,26 @@ const FETCHERS = {
 };
 
 export default async function handler(req, res) {
+  // ── CRASH-PROOF WRAPPER ─────────────────────────────────────────────────
+  // Every line below is now inside one try/catch. The previously-deployed
+  // build could die BEFORE the per-kind try/catch was reached (a bad header
+  // value, an unexpected shape) and Vercel turned that into a platform-level
+  // FUNCTION_INVOCATION_FAILED — a body-less 502 that Cloudflare shows as
+  // "error code: 502" and that the browser CANNOT fall back from cleanly.
+  // From now on, whatever happens, this function answers with JSON.
+  try {
+    return await handle(req, res);
+  } catch (e) {
+    try {
+      return res.status(500).json({ error: "function error" });
+    } catch (_e2) {
+      // res itself is broken — nothing more we can do.
+      return;
+    }
+  }
+}
+
+async function handle(req, res) {
   // GET only — this is a public read cache, nothing more.
   if (req.method !== "GET" && req.method !== "HEAD") {
     res.setHeader("Allow", "GET, HEAD");

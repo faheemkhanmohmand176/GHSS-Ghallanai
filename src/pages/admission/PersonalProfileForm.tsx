@@ -6,7 +6,7 @@
  * blood group, hafiz e quran). Mobile number is locked.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Loader2, Save, UserRound, BadgeCheck } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
+import AdmissionSessionRetry from "@/components/shared/AdmissionSessionRetry";
 import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
@@ -43,7 +44,7 @@ const EMPTY: PersonalProfileData = {
 };
 
 export default function PersonalProfileForm() {
-  const { session, loading, token } = useInterSession();
+  const { session, loading, token, netError, refresh } = useInterSession();
   const [form, setForm] = useState<PersonalProfileData>(EMPTY);
   const [dobDay, setDobDay] = useState("");
   const [dobMonth, setDobMonth] = useState("");
@@ -51,10 +52,16 @@ export default function PersonalProfileForm() {
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // HYDRATE ONCE. The old effect re-ran whenever the session object changed
+  // (background refetch, invalidation after another save) and reset the form
+  // to the SAVED values — silently throwing away the edits the applicant was
+  // still typing on a slow connection. The form is seeded exactly once.
+  const hydratedRef = useRef(false);
 
-  // Hydrate from session (once)
   useEffect(() => {
+    if (hydratedRef.current) return;
     if (session?.personal) {
+      hydratedRef.current = true;
       const p = session.personal;
       setForm({ ...EMPTY, ...p });
       if (p.date_of_birth) {
@@ -66,6 +73,7 @@ export default function PersonalProfileForm() {
         }
       }
     } else if (session?.applicant) {
+      hydratedRef.current = true;
       // New profile: prefill mobile + nationality from the account (locked fields)
       setForm((f) => ({
         ...f,
@@ -119,6 +127,23 @@ export default function PersonalProfileForm() {
 
   const F = "space-y-1.5 min-w-0";
   const inp = "h-11";
+
+  // Session failed for network reasons (after retries) → retry card instead
+  // of a form whose save would fail confusingly.
+  if (netError && !session) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto max-w-xl px-4 py-12">
+          <AdmissionBackBar to="/admission/portal" />
+          <AdmissionSessionRetry
+            what="your personal information"
+            onRetry={refresh}
+            backTo={{ to: "/admission/portal", label: "Back to Dashboard" }}
+          />
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout>

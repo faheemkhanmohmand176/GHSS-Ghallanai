@@ -161,7 +161,15 @@ const queryClient = new QueryClient({
       // connection flicker on a slow network mass-refetched all queries and
       // interrupted edits). false is the correct "completely off" value.
       refetchOnReconnect: false,
-      retry: 2,                   // Fail fast on hard errors; SW cache keeps the UI alive
+      // OFFLINE-AWARE RETRY: while the device is offline, retrying a query is
+      // guaranteed to fail again — it just burns 2 × backoff of the visitor's
+      // time while the page sits on its loading/error state. Queries fail
+      // fast instead, so the persisted IndexedDB cache keeps rendering and
+      // the page reacts the moment the connection returns.
+      retry: (failureCount) => {
+        if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+        return failureCount < 2;
+      },
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000), // Short backoff
       // Structural sharing ON (default): identical refetch payloads keep
       // their object identities → no cascading re-renders on background polls.

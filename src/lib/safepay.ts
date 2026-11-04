@@ -7,10 +7,14 @@
  * decided on the server from the database, not sent from here.
  */
 import { useQuery } from "@tanstack/react-query";
+import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
 
 export async function fetchOnlinePaymentEnabled(): Promise<boolean> {
   try {
-    const res = await fetch("/api/safepay?kind=config", { headers: { Accept: "application/json" } });
+    const res = await fetch("/api/safepay?kind=config", {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(ADMISSION_CLIENT_CACHE.paymentTimeoutMs),
+    });
     if (!res.ok) return false;
     const j = (await res.json()) as { enabled?: boolean };
     return j.enabled === true;
@@ -38,6 +42,7 @@ export async function createOnlinePayment(token: string, applicationId: string):
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ token, application_id: applicationId }),
+      signal: AbortSignal.timeout(ADMISSION_CLIENT_CACHE.paymentTimeoutMs),
     });
     const j = (await res.json().catch(() => ({}))) as CreatePaymentResult;
     if (!res.ok || !j.ok || !j.url) {

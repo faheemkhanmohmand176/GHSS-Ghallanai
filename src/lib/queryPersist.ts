@@ -89,6 +89,18 @@ const PERSISTED_KEY_PREFIXES = [
   // (see useAllExamSchedule in src/hooks/useNewFeatures.ts) — persisted so
   // the paper-by-paper schedule still renders on a cached/offline slip.
   "all-exam-schedule",
+  // ── ADMISSION (public read-only data, never applicant-personal) ─────────
+  // "admission-settings" is already persisted above (homepage banner).
+  // The programs list + union councils + published merit lists are PUBLIC,
+  // tiny and change rarely — persisting them lets the admission page and the
+  // apply flow paint instantly on a repeat visit (or fully offline) instead
+  // of skeletons, with React Query refreshing in the background.
+  // NOTE: "inter-session" is deliberately NOT here — it is applicant-personal
+  // (CNIC, applications) and must never be written to disk.
+  "inter-programs-public",
+  "inter-ucs",
+  "inter-merit-public",
+  "inter-merit-view",
 ];
 
 function shouldPersist(queryKey: readonly unknown[]): boolean {

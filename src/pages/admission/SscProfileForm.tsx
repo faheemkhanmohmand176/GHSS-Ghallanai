@@ -6,7 +6,7 @@
  * (hafiz = +20 marks; A+ ≥ 80%).
  */
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Loader2, Save, BookOpen, BadgeCheck } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import toast from "react-hot-toast";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
+import AdmissionSessionRetry from "@/components/shared/AdmissionSessionRetry";
 import { useQueryClient } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
@@ -44,30 +45,33 @@ function gradeFor(pct: number): string {
 }
 
 export default function SscProfileForm() {
-  const { session, loading, token } = useInterSession();
+  const { session, loading, token, netError, refresh } = useInterSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SscProfileData>(EMPTY);
   const [busy, setBusy] = useState(false);
+  // HYDRATE ONCE — a background session refetch must never reset the marks a
+  // student is still typing (see PersonalProfileForm for the full rationale).
+  const hydratedRef = useRef(false);
 
   useEffect(() => {
-    if (session?.ssc) {
-      const s = session.ssc;
-      setForm({
-        exam_session: s.exam_session ?? "Annual",
-        exam_board: s.exam_board ?? "",
-        passing_year: String(s.passing_year ?? ""),
-        study_group: s.study_group ?? "",
-        roll_number: s.roll_number ?? "",
-        marks_obtained: String(s.marks_obtained ?? ""),
-        marks_total: String(s.marks_total ?? "600"),
-        hafiz_e_quran: Boolean(s.hafiz_e_quran),
-        sport_certificate: s.sport_certificate ?? "",
-        institute_province: s.institute_province ?? "Khyber Pakhtunkhwa",
-        institute_district: s.institute_district ?? "Mohmand",
-        institute_name: s.institute_name ?? "",
-      });
-    }
+    if (hydratedRef.current || !session?.ssc) return;
+    hydratedRef.current = true;
+    const s = session.ssc;
+    setForm({
+      exam_session: s.exam_session ?? "Annual",
+      exam_board: s.exam_board ?? "",
+      passing_year: String(s.passing_year ?? ""),
+      study_group: s.study_group ?? "",
+      roll_number: s.roll_number ?? "",
+      marks_obtained: String(s.marks_obtained ?? ""),
+      marks_total: String(s.marks_total ?? "600"),
+      hafiz_e_quran: Boolean(s.hafiz_e_quran),
+      sport_certificate: s.sport_certificate ?? "",
+      institute_province: s.institute_province ?? "Khyber Pakhtunkhwa",
+      institute_district: s.institute_district ?? "Mohmand",
+      institute_name: s.institute_name ?? "",
+    });
   }, [session]);
 
   const set = <K extends keyof SscProfileData>(k: K, v: SscProfileData[K]) =>
@@ -109,6 +113,23 @@ export default function SscProfileForm() {
   const F = "space-y-1.5 min-w-0";
   const inp = "h-11";
   const sel = `${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`;
+
+  // Session failed for network reasons (after retries) → retry card instead
+  // of a form whose save would fail confusingly.
+  if (netError && !session) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto max-w-xl px-4 py-12">
+          <AdmissionBackBar to="/admission/portal" />
+          <AdmissionSessionRetry
+            what="your matric profile"
+            onRetry={refresh}
+            backTo={{ to: "/admission/portal", label: "Back to Dashboard" }}
+          />
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout>

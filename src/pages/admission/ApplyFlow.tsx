@@ -10,7 +10,7 @@
  * duplicate-application block, overage notices and similar eligibility rules.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -25,6 +25,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
+import AdmissionSessionRetry from "@/components/shared/AdmissionSessionRetry";
 import OnlinePayPanel from "@/components/shared/OnlinePayPanel";
 import { useAdmissionSettings, cycleLabel } from "@/hooks/useAdmission";
 import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
@@ -34,7 +35,7 @@ import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import {
-  interApi, QUOTAS, QUOTA_LABEL, LOCAL_CRITERIA, SPORT_CERTIFICATES,
+  interApi, isAdmissionNetworkError, QUOTAS, QUOTA_LABEL, LOCAL_CRITERIA, SPORT_CERTIFICATES,
   DISABILITY_TYPES, ADMISSION_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
   formatCnic, formatDateLong, formatDeadline, DISTRICTS,
 } from "@/lib/interAdmission";
@@ -77,7 +78,7 @@ function SwalDialog({ message, onClose }: { message: string; onClose: () => void
 }
 
 export default function ApplyFlow() {
-  const { session, loading, token, refresh } = useInterSession();
+  const { session, loading, token, refresh, netError } = useInterSession();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // ?edit=<id> → edit an existing UNPAID application instead of creating a new one.
@@ -96,12 +97,18 @@ export default function ApplyFlow() {
   const [dialog, setDialog] = useState<string | null>(null);
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [quotaChecking, setQuotaChecking] = useState(false);
+  const [editLoadFailed, setEditLoadFailed] = useState<null | "network" | "missing">(null);
   const [submitResult, setSubmitResult] = useState<{ application_id: string; tracking_id: string } | null>(null);
   const [payResult, setPayResult] = useState<{ token: string; deadline: string; tracking_id: string } | null>(null);
 
   // ── Programs from RPC ─────────────────────────────────────────────────
+  // SAME query key as the public admission page ("inter-programs-public") —
+  // previously this page used "inter-programs", so every applicant's visit
+  // issued a SECOND identical fetch (double CDN hit + double fallback query
+  // when the function is cold). One key, one fetch, shared cache.
   const { data: programsData } = useQuery({
-    queryKey: ["inter-programs"],
+    queryKey: ["inter-programs-public"],
     queryFn: () => interApi.programsList() as Promise<unknown>,
     staleTime: ADMISSION_CLIENT_CACHE.programsStaleMs,
   });
@@ -126,60 +133,80 @@ export default function ApplyFlow() {
   }, [loading, session, navigate]);
 
   // ── Edit mode: load the existing application and pre-fill the form ──────
+  // Slow-internet rule: a NETWORK failure while loading the application for
+  // editing must NOT kick the applicant back to the portal (the old behaviour
+  // — they lost the screen and had to find their way back). It shows an
+  // inline retry instead; only a definitive "not found / locked" navigates.
+  const loadEditApplication = useCallback(async () => {
+    if (!editId || !token) return;
+    setEditLoadFailed(null);
+    const res = (await interApi.applicationDetail(token, editId)) as unknown as {
+      ok?: boolean; error?: string;
+      application?: Record<string, string | number | boolean | null>;
+    };
+    const app = res?.application;
+    if (isAdmissionNetworkError(res) || (!res?.ok && !res?.error)) {
+      setEditLoadFailed("network");
+      return;
+    }
+    if (!res?.ok || !app) {
+      setEditLoadFailed("missing");
+      return;
+    }
+    // Lock check — if already paid, the RPC will also refuse, but show a
+    // friendly message up front.
+    if (String(app.payment_status ?? "") === "paid") {
+      toast.error("This application is locked because the fee has been paid.");
+      navigate(`/admission/application/${editId}`);
+      return;
+    }
+    // Find the program id from the programs list by name
+    const prog = programs.find((p) => p.name === String(app.program_name ?? ""));
+    if (prog) setProgramId(prog.id);
+    setQuota(String(app.quota ?? ""));
+    setSubjectGroup(String(app.subject_group ?? ""));
+    setCriteria({
+      ...EMPTY_CRITERIA,
+      criteria: String(app.quota_criteria ?? "") || EMPTY_CRITERIA.criteria,
+    });
+  }, [editId, token, programs, navigate]);
+
   useEffect(() => {
     if (!isEditing || !token || !editId || loading) return;
     let cancelled = false;
-    (async () => {
-      const res = (await interApi.applicationDetail(token, editId)) as unknown as {
-        ok?: boolean; error?: string;
-        application?: Record<string, string | number | boolean | null>;
-      };
-      if (cancelled) return;
-      const app = res?.application;
-      if (!res?.ok || !app) {
-        toast.error(res?.error || "Could not load the application for editing.");
-        navigate("/admission/portal");
-        return;
-      }
-      // Lock check — if already paid, the RPC will also refuse, but show a
-      // friendly message up front.
-      if (String(app.payment_status ?? "") === "paid") {
-        toast.error("This application is locked because the fee has been paid.");
-        navigate(`/admission/application/${editId}`);
-        return;
-      }
-      // Find the program id from the programs list by name
-      const prog = programs.find((p) => p.name === String(app.program_name ?? ""));
-      if (prog) setProgramId(prog.id);
-      setQuota(String(app.quota ?? ""));
-      setSubjectGroup(String(app.subject_group ?? ""));
-      setCriteria({
-        ...EMPTY_CRITERIA,
-        criteria: String(app.quota_criteria ?? "") || EMPTY_CRITERIA.criteria,
-      });
-    })();
+    loadEditApplication().catch(() => { if (!cancelled) setEditLoadFailed("network"); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing, token, editId, loading, programs]);
 
   // ── Quota change → cascade behaviour ─────────────────────────────
+  // Slow-internet rule: the eligibility RPC can be slow, so the select shows
+  // the choice IMMEDIATELY with a small "checking…" hint; a network failure
+  // never blocks the choice — the server re-checks everything on submit.
   async function handleQuotaChange(q: string) {
     setQuota(q);
     // reset conditional fields when quota changes ( reset_form())
     setCriteria({ ...EMPTY_CRITERIA });
-    if (!q) return;
-    // shows the swal immediately for local applicants picking Open Merit
-    const res = (await interApi.checkQuota(token!, q, null)) as unknown as {
-      ok?: boolean; error?: string; warning?: string; needs?: string;
-    };
-    // `needs` = a follow-up field (criteria, certificate, etc.) is still to be filled — not a block.
-    if (res?.ok === false && res.error && !res.needs) {
-      setDialog(res.error);           // e.g. "Your domicile is local; therefore, apply on Local Quota."
-      setQuota("");                   // resets the select
-      return;
-    }
-    if (res?.warning) {
-      toast(res.warning, { icon: "⚠️", duration: 6000 });
+    if (!q || !token) return;
+    setQuotaChecking(true);
+    try {
+      // shows the swal immediately for local applicants picking Open Merit
+      const res = (await interApi.checkQuota(token, q, null)) as unknown as {
+        ok?: boolean; error?: string; warning?: string; needs?: string;
+      };
+      // `needs` = a follow-up field (criteria, certificate, etc.) is still to be filled — not a block.
+      if (res?.ok === false && res.error && !res.needs) {
+        setDialog(res.error);           // e.g. "Your domicile is local; therefore, apply on Local Quota."
+        setQuota("");                   // resets the select
+        return;
+      }
+      if (res?.warning) {
+        toast(res.warning, { icon: "⚠️", duration: 6000 });
+      }
+    } catch {
+      toast("Couldn't verify this category right now — it will be checked again when you submit.", { icon: "📡", duration: 5000 });
+    } finally {
+      setQuotaChecking(false);
     }
   }
 
@@ -294,6 +321,47 @@ export default function ApplyFlow() {
     );
   }
 
+  // Session could not be loaded because of the network (after retries) — one
+  // calm retry card instead of a form whose every submit would fail.
+  if (netError && !session) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto max-w-xl px-4 py-12">
+          <AdmissionBackBar to="/admission/portal" />
+          <AdmissionSessionRetry
+            what="your application"
+            onRetry={refresh}
+            backTo={{ to: "/admission/portal", label: "Back to Dashboard" }}
+          />
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Edit mode: the application itself could not be loaded.
+  if (editLoadFailed) {
+    return (
+      <PageLayout>
+        <div className="container mx-auto max-w-xl px-4 py-12">
+          <AdmissionBackBar to="/admission/portal" />
+          {editLoadFailed === "network" ? (
+            <AdmissionSessionRetry
+              what="this application for editing"
+              onRetry={() => { void loadEditApplication(); }}
+              backTo={{ to: "/admission/portal", label: "Back to Dashboard" }}
+            />
+          ) : (
+            <AdmissionSessionRetry
+              what="this application for editing"
+              onRetry={() => navigate("/admission/portal")}
+              backTo={{ to: "/admission/portal", label: "Back to Dashboard" }}
+            />
+          )}
+        </div>
+      </PageLayout>
+    );
+  }
+
   const quotaLabel = QUOTA_LABEL[quota] ?? quota;
 
   const sel = "block w-full min-w-0 max-w-full truncate h-11 rounded-xl border border-input bg-background px-3 text-sm";
@@ -382,7 +450,10 @@ export default function ApplyFlow() {
 
                   {/* Quota */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="quota" className="font-semibold text-[13px]">Category of Admission <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="quota" className="font-semibold text-[13px]">
+                      Category of Admission <span className="text-red-500">*</span>
+                      {quotaChecking && <Loader2 className="ml-1.5 inline h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                    </Label>
                     <select id="quota" className={sel} value={quota} onChange={(e) => handleQuotaChange(e.target.value)} required>
                       <option value="">Select a Category</option>
                       {QUOTAS.map((q) => <option key={q.value} value={q.value}>{q.label}</option>)}

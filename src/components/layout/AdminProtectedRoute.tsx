@@ -49,7 +49,14 @@ const AdminProtectedRoute = ({ children }: { children: ReactNode }) => {
           // enrolled; if not, send to enrollment instead of verify.
           try {
             const { data: fac } = await supabase.auth.mfa.listFactors();
-            const has = (fac?.factors ?? []).some((f) => f.factorType === "totp" && f.status === "verified");
+            // supabase-js ≥2.100 groups factors as { all, totp, phone, webauthn,
+            // recovery_code } — the old flat `factors` array no longer exists
+            // (it typed-errored and was ALWAYS undefined at runtime, so every
+            // admin was wrongly sent to re-enroll). `totp` holds the VERIFIED
+            // TOTP factors; `all` is checked as a belt-and-braces fallback for
+            // older library versions.
+            const has = (fac?.totp?.length ?? 0) > 0
+              || (fac?.all ?? []).some((f) => f.factor_type === "totp" && f.status === "verified");
             setAal("aal1");
             navigate(has ? "/auth/mfa-verify" : "/auth/mfa-enroll", { replace: true });
           } catch {
