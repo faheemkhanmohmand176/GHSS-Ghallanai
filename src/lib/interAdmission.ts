@@ -294,6 +294,46 @@ async function rpc(fn: string, params: Record<string, unknown>): Promise<RpcResu
   return (outcome.data ?? { ok: false, error: "Unexpected empty response." }) as RpcResult;
 }
 
+// ── Fast public tracking ────────────────────────────────────────────────────
+// • An obviously wrong ID is answered instantly, with no network at all.
+// • Repeat searches are answered from memory (30 s found / 15 s not found).
+// • Each attempt is capped at 6 s and a failed attempt is retried ONCE, so a
+//   dropped packet never shows "slow internet" while the connection is fine.
+const TRACK_ATTEMPT_MS = 6000;
+const trackCache = new Map<string, { at: number; ttl: number; res: RpcResult }>();
+
+async function trackByTrackingId(trackingId: string): Promise<RpcResult> {
+  const key = String(trackingId ?? "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  if (key.length < 8 || key.length > 24) return { ok: false };
+
+  const hit = trackCache.get(key);
+  if (hit && Date.now() - hit.at < hit.ttl) return hit.res;
+
+  let lastError = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const outcome = await Promise.race([
+        supabase.rpc("inter_track_by_id", { p_tracking_id: key }),
+        new Promise<{ data: null; error: { message: string } }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: { message: "timed out" } }), TRACK_ATTEMPT_MS)),
+      ]);
+      if (!outcome.error) {
+        const res = ((outcome.data ?? { ok: false }) as RpcResult);
+        trackCache.set(key, { at: Date.now(), ttl: res.ok ? 30_000 : 15_000, res });
+        return res;
+      }
+      lastError = String(outcome.error.message ?? "");
+      // A real server answer (e.g. function missing) will not improve on retry.
+      if (!NETWORK_ERROR_RE.test(lastError)) break;
+    } catch {
+      lastError = "network";
+    }
+  }
+  return NETWORK_ERROR_RE.test(lastError) || lastError === "network"
+    ? { ...NETWORK_FAIL }
+    : { ok: false, error: "Could not check right now." };
+}
+
 export const interApi = {
   /** Final submit — ONE atomic write (applicant + profiles + application),
    *  routed via the auth-gateway (Turnstile verified). Returns a session token. */
@@ -347,9 +387,9 @@ export const interApi = {
   applicationDetail: (token: string, applicationId: string) =>
     rpc("inter_application_detail", { p_token: token, p_application_id: applicationId }),
 
-  /** Public tracking by Tracking ID only (read-only) — routed via the auth-gateway. */
-  track: (trackingId: string) =>
-    authGateway.track({ trackingId }) as Promise<RpcResult>,
+  /** Public tracking by Tracking ID only (read-only). ONE direct, indexed
+   *  database call — no server function in between (migration 28). */
+  track: (trackingId: string) => trackByTrackingId(trackingId),
 
   meritListsPublic: () =>
     cachedOrDirect<RpcResult>("admission-merit-lists", {}, () => rpc("inter_merit_lists_public", {})),
