@@ -80,11 +80,20 @@ interface TurnstileProps {
   onError?: () => void;
   /** "interaction-only" = invisible unless Cloudflare needs a tap. */
   appearance?: "always" | "interaction-only";
+  /** "flexible" = ONE thin full-width line (default); "compact" = small square. */
+  size?: "flexible" | "normal" | "compact";
+  /** Cloudflare needs the person to tap the box. */
+  onInteractive?: () => void;
+  /** The tap was done (or the challenge ended). */
+  onInteractiveDone?: () => void;
+  /** The challenge timed out waiting for a tap. */
+  onTimeout?: () => void;
   className?: string;
 }
 
 export default function Turnstile({
-  onToken, onExpire, onError, appearance = "always", className,
+  onToken, onExpire, onError, appearance = "always", size = "flexible",
+  onInteractive, onInteractiveDone, onTimeout, className,
 }: TurnstileProps) {
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -93,8 +102,8 @@ export default function Turnstile({
   const [attempt, setAttempt] = useState(0);
 
   // Always call the LATEST callbacks without ever re-creating the widget.
-  const cb = useRef({ onToken, onExpire, onError });
-  cb.current = { onToken, onExpire, onError };
+  const cb = useRef({ onToken, onExpire, onError, onInteractive, onInteractiveDone, onTimeout });
+  cb.current = { onToken, onExpire, onError, onInteractive, onInteractiveDone, onTimeout };
 
   const removeWidget = useCallback(() => {
     if (widgetIdRef.current && window.turnstile) {
@@ -111,11 +120,10 @@ export default function Turnstile({
       if (cancelled) return;
       if (!ok || !window.turnstile || !containerRef.current) { setLoadFailed(true); return; }
       removeWidget();
-      const isMobile = window.innerWidth < 640;
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
         theme: "auto",
-        size: isMobile ? "compact" : "normal",
+        size,
         appearance,
         retry: "auto",
         "retry-interval": 3000,
@@ -123,6 +131,9 @@ export default function Turnstile({
         callback: (token: string) => cb.current.onToken(token),
         "expired-callback": () => cb.current.onExpire?.(),
         "error-callback": () => { cb.current.onError?.(); },
+        "before-interactive-callback": () => cb.current.onInteractive?.(),
+        "after-interactive-callback": () => cb.current.onInteractiveDone?.(),
+        "timeout-callback": () => cb.current.onTimeout?.(),
       });
     });
     return () => {
@@ -130,7 +141,7 @@ export default function Turnstile({
       removeWidget();
     };
     // Created once per mount — only the site key / appearance / retry matter.
-  }, [siteKey, appearance, attempt, removeWidget]);
+  }, [siteKey, appearance, size, attempt, removeWidget]);
 
   if (!siteKey) {
     return (
