@@ -347,9 +347,9 @@ export const interApi = {
   applicationDetail: (token: string, applicationId: string) =>
     rpc("inter_application_detail", { p_token: token, p_application_id: applicationId }),
 
-  /** Public tracking — routed via the auth-gateway (Turnstile + 2nd factor). */
-  track: (trackingId: string, secondFactor: string, turnstile: string) =>
-    authGateway.track({ trackingId, secondFactor, turnstile }) as Promise<RpcResult>,
+  /** Public tracking by Tracking ID only (read-only) — routed via the auth-gateway. */
+  track: (trackingId: string) =>
+    authGateway.track({ trackingId }) as Promise<RpcResult>,
 
   meritListsPublic: () =>
     cachedOrDirect<RpcResult>("admission-merit-lists", {}, () => rpc("inter_merit_lists_public", {})),
