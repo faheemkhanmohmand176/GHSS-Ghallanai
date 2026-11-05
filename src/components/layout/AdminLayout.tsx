@@ -2,8 +2,8 @@ import { useState, useCallback, useRef, useEffect, memo, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LogOut, Menu, X, ExternalLink, Moon, Sun, type LucideIcon,
-  LayoutDashboard, Settings2, UserPlus, Trophy, Wallet, CalendarDays, Ticket,
-  Armchair, Medal, GraduationCap, Clock, Megaphone, Library, ShieldCheck, ScrollText,
+  LayoutDashboard, Settings2, UserPlus, Trophy, CalendarDays, Ticket,
+  Armchair, Medal, GraduationCap, Clock, Megaphone, Library, ShieldCheck,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { pingDispatch } from "@/lib/push";
@@ -36,7 +36,6 @@ const navSections: NavSection[] = [
     items: [
       { id: "admissions",    label: "Admissions",          short: "Admit", icon: UserPlus },
       { id: "results",       label: "Manage Results",      short: "Results", icon: Trophy },
-      { id: "fees",           label: "Fee Management",       short: "Fees", icon: Wallet },
     ],
   },
   {
@@ -61,7 +60,6 @@ const navSections: NavSection[] = [
     heading: "ADMIN ACCESS",
     items: [
       { id: "users",  label: "Manage Users", short: "Users", icon: ShieldCheck },
-      { id: "audit",  label: "Audit Log",   short: "Audit", icon: ScrollText },
     ],
   },
 ];
