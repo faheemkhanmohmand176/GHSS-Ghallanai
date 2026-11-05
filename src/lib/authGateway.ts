@@ -56,8 +56,8 @@ export const authGateway = {
     subjectGroup: string | null; turnstile: string;
   }) => postAction("apply", p),
 
-  /** Public application tracking (inter_track via gateway, with 2nd factor). */
-  track: (p: { trackingId: string; secondFactor: string; turnstile: string }) =>
+  /** Public application tracking by Tracking ID only (read-only status). */
+  track: (p: { trackingId: string }) =>
     postAction("track", p),
 
   /** Main-site password reset (Supabase Auth admin via gateway). */
