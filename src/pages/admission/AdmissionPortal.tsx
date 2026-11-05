@@ -1,8 +1,6 @@
 /**
  * AdmissionPortal — applicant dashboard:
- * "All Applications" table with the exact columns:
- *   # | Tracking ID | Program | Quota | Hafiz e Quran | Fee Submission Deadline | Action
- * plus the sidebar menu (New Admission Request, Personal Information,
+ * the applicant's single admission request (one per applicant) as a card, plus the sidebar menu (New Admission Request, Personal Information,
  * Matric Profile) and profile-completion prompts.
  *
  * NO ACCOUNT / LOGIN: before the final Submit this page shows the applicant's
@@ -14,7 +12,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
-  LayoutDashboard, ClipboardList, UserRound, BookOpen,
+  ClipboardList, ArrowRight, UserRound, BookOpen,
   LogOut, Plus, Search, AlertCircle, BadgeCheck, Wallet, PencilLine,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -71,17 +69,12 @@ export default function AdmissionPortal() {
       return;
     }
     if (hasActiveApp) {
-      toast.error("You already have an active application for this cycle. Use Edit Application instead.");
-      document.getElementById("all-applications")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      toast.error("You already have an admission request. Opening it.");
+      navigate(`/admission/application/${activeApp?.id ?? ""}`);
       return;
     }
     navigate("/admission/apply");
   }
-
-  function goAllApplications() {
-    document.getElementById("all-applications")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
 
   return (
     <PageLayout>
@@ -169,9 +162,6 @@ export default function AdmissionPortal() {
                       <Plus className="w-4 h-4" /> New Admission Request
                     </button>
                   )}
-                  <button type="button" onClick={goAllApplications} className={itemCls}>
-                    <LayoutDashboard className="w-4 h-4" /> All Applications
-                  </button>
                   <Link to="/admission/profile" className={itemCls}>
                     <UserRound className="w-4 h-4" /> Personal Information
                     {personalDone && <BadgeCheck className="w-4 h-4 text-green-600 ml-auto" />}
@@ -187,96 +177,84 @@ export default function AdmissionPortal() {
 
           {/* Main */}
           <div className="space-y-5 min-w-0">
-            {/* All Applications */}
-            <Card id="all-applications" className="border-border/80 shadow-card scroll-mt-24">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-center justify-between gap-3 mb-4">
-                  <h2 className="font-heading text-lg font-bold text-foreground">All Applications</h2>
-                </div>
+            {/* Direct flow: profiles done, nothing submitted yet → one clear next step */}
+            {!loading && profilesDone && apps.length === 0 && (
+              <Card className="border-primary/30 bg-primary/[0.04] shadow-card">
+                <CardContent className="p-5 sm:p-6 text-center">
+                  <BadgeCheck className="w-10 h-10 text-green-600 mx-auto mb-2" />
+                  <h2 className="font-heading text-lg font-bold text-foreground">Your profiles are complete</h2>
+                  <p className="text-sm text-muted-foreground mt-1 mb-4">
+                    Next: choose your program and submit your one admission request.
+                  </p>
+                  <Button onClick={goNewApplication} className="h-11 px-6 font-semibold">
+                    Continue to Admission Request <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
-                {loading ? (
-                  <div className="space-y-2.5">
-                    {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
-                  </div>
-                ) : apps.length === 0 ? (
-                  <div className="text-center py-10">
-                    <ClipboardList className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">
-                      {isDraft
-                        ? "Not submitted yet. Complete your Personal Information and Matric Profile, then use New Admission Request to choose your program and submit."
-                        : "No applications yet."}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto -mx-4 sm:mx-0">
-                    <table className="w-full text-[13px] min-w-[760px]">
-                      <thead className="bg-muted/60">
-                        <tr>
-                          <th className="px-3 py-2.5 text-center align-middle font-semibold">#</th>
-                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Tracking ID</th>
-                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Program</th>
-                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Quota</th>
-                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Hafiz e Quran</th>
-                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Fee Submission Deadline</th>
-                          <th className="px-3 py-2.5 text-center align-middle font-semibold">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {apps.map((a, i) => {
-                          const unpaid = a.payment_status === "pending";
-                          return (
-                            <tr key={a.id} className="border-t border-border hover:bg-muted/30">
-                              <td className="px-3 py-3 text-center align-middle">{i + 1}</td>
-                              <td className="px-3 py-3 text-center align-middle">
-                                <Link to={`/admission/application/${a.id}`} className="font-mono font-bold text-primary hover:underline">
-                                  {a.tracking_id}
-                                </Link>
-                              </td>
-                              <td className="px-3 py-3 text-center align-middle font-semibold text-foreground">{a.program_name}</td>
-                              <td className="px-3 py-3 text-center align-middle">{QUOTA_LABEL[a.quota] ?? a.quota}</td>
-                              <td className="px-3 py-3 text-center align-middle">{a.hafiz_e_quran ? "Yes" : "No"}</td>
-                              <td className="px-3 py-3 text-center align-middle whitespace-nowrap">
-                                {formatDeadline(a.fee_deadline_iso)}
-                                <Badge
-                                  variant="secondary"
-                                  className={`ml-2 ${unpaid ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" : "bg-green-500/15 text-green-700 dark:text-green-400"}`}
-                                >
-                                  {unpaid ? "Pending" : "Paid"}
-                                </Badge>
-                              </td>
-                              <td className="px-3 py-3 text-center align-middle">
-                                {unpaid ? (
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    <Link to={`/admission/application/${a.id}?pay=1`}>
-                                      <Button size="sm" className="h-8 text-xs font-semibold">
-                                        <Wallet className="w-3.5 h-3.5" /> Pay
-                                      </Button>
-                                    </Link>
-                                    {a.status !== 'cancelled' && a.status !== 'rejected' && (
-                                      <Link to={`/admission/apply?edit=${a.id}`}>
-                                        <Button size="sm" variant="outline" className="h-8 text-xs font-semibold">
-                                          <PencilLine className="w-3.5 h-3.5" /> Edit
-                                        </Button>
-                                      </Link>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <Link to={`/admission/application/${a.id}`}>
-                                    <Button size="sm" variant="outline" className="h-8 text-xs font-semibold">
-                                      <Search className="w-3.5 h-3.5" /> View
-                                    </Button>
-                                  </Link>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {loading && (
+              <Card className="border-border/80 shadow-card"><CardContent className="p-5 space-y-2.5">
+                {[1, 2].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
+              </CardContent></Card>
+            )}
+
+            {/* Not complete yet (draft) — short guidance instead of an empty list */}
+            {!loading && !profilesDone && apps.length === 0 && (
+              <Card className="border-border/80 shadow-card">
+                <CardContent className="p-6 text-center">
+                  <ClipboardList className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Complete your Personal Information and Matric Profile, then you will go straight to your admission request.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* The submitted application — one per applicant, shown as a card */}
+            {!loading && apps.map((a) => {
+              const unpaid = a.payment_status === "pending";
+              const closed = a.status === "cancelled" || a.status === "rejected";
+              return (
+                <Card key={a.id} className="border-border/80 shadow-card">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                      <h2 className="font-heading text-lg font-bold text-foreground">Your Admission Request</h2>
+                      <Badge variant="secondary" className={unpaid ? "bg-amber-500/15 text-amber-700 dark:text-amber-400" : "bg-green-500/15 text-green-700 dark:text-green-400"}>
+                        Fee {unpaid ? "Pending" : "Paid"}
+                      </Badge>
+                    </div>
+                    <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-[13px]">
+                      <div><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Tracking ID</dt>
+                        <dd><Link to={`/admission/application/${a.id}`} className="font-mono font-bold text-primary hover:underline break-all">{a.tracking_id}</Link></dd></div>
+                      <div><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Program</dt>
+                        <dd className="font-semibold text-foreground">{a.program_name}</dd></div>
+                      <div><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Quota</dt>
+                        <dd>{QUOTA_LABEL[a.quota] ?? a.quota}</dd></div>
+                      <div><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Hafiz e Quran</dt>
+                        <dd>{a.hafiz_e_quran ? "Yes" : "No"}</dd></div>
+                      <div className="sm:col-span-2"><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Fee Submission Deadline</dt>
+                        <dd>{formatDeadline(a.fee_deadline_iso)}</dd></div>
+                    </dl>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {unpaid && !closed && (
+                        <Link to={`/admission/application/${a.id}?pay=1`}>
+                          <Button className="h-10 font-semibold"><Wallet className="w-4 h-4" /> Pay Fee</Button>
+                        </Link>
+                      )}
+                      {unpaid && !closed && (
+                        <Link to={`/admission/apply?edit=${a.id}`}>
+                          <Button variant="outline" className="h-10 font-semibold"><PencilLine className="w-4 h-4" /> Edit</Button>
+                        </Link>
+                      )}
+                      <Link to={`/admission/application/${a.id}`}>
+                        <Button variant="outline" className="h-10 font-semibold"><Search className="w-4 h-4" /> View</Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
 
           </div>
         </div>
