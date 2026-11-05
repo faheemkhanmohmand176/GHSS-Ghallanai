@@ -5,8 +5,8 @@
 // per protected endpoint.
 //
 //   ?action=apply      admission application, ONE atomic write (Turnstile + inter_apply)
-//   ?action=track      public application tracking        (Turnstile + RPC + 2nd factor)
-//                      and, on success, a private session to edit / pay it
+//   ?action=track      public application tracking by Tracking ID only
+//                      (read-only status; per-IP rate limited, no captcha)
 //   (register / login were REMOVED: admission has no accounts any more.)
 //   ?action=reset      main-site password reset           (Turnstile + Supabase Auth admin)
 //   ?action=signin     main-site admin/user login         (Turnstile + Supabase Auth)
@@ -235,37 +235,22 @@ async function handleApply(body, ip, supabase) {
   return json(200, { ...data, turnstile_unconfigured: ts.unconfigured });
 }
 
-// ?action=track  body: { trackingId, secondFactor, turnstile }
+// ?action=track  body: { trackingId }
+// Read-only status lookup by Tracking ID.  No captcha and no second factor
+// (by design).  It returns status only - never names, CNIC or phone numbers -
+// and is still throttled per IP by the flood brake and the track bucket.
 async function handleTrack(body, ip, supabase) {
-  const ts = await verifyTurnstile(body.turnstile, ip);
-  if (!ts.ok) return json(400, { ok: false, error: ts.error });
-
   const limits = await readLimits(supabase);
   const ipKey = await hashKey(ip);
   const rl = await rateLimit(supabase, "track", ipKey, limits.rate_track_per_ip_hour ?? 20, 60);
   if (!rl.allowed) return json(429, { ok: false, error: "Too many tracking lookups from this network. Please try again later." }, (rl.retryAfter || 60) * 60);
 
-  const { data, error } = await supabase.rpc("inter_track", {
-    p_tracking_id: body.trackingId,
-    p_second_factor: body.secondFactor,
-    p_ip: ip,
-  });
-  // inter_track returns {ok:false} for ALL failure modes (wrong id, wrong
-  // factor, rate-limited per id) so the response is identical and cannot be
-  // used to probe for valid tracking IDs.
-  if (error) return json(200, { ok: false });
-
-  // Verified (Tracking ID + 2nd factor + captcha) → also open a private,
-  // 7-day session so the applicant can edit / pay this application without
-  // any account or password.  Never blocks the status result itself.
-  let access = null;
-  if (data && data.ok) {
-    try {
-      const g = await supabase.rpc("inter_access_grant", { p_tracking_id: body.trackingId });
-      if (g.data && g.data.ok) access = { token: g.data.token, application_id: g.data.application_id };
-    } catch (_e) { access = null; }
-  }
-  return json(200, { ...data, access, turnstile_unconfigured: ts.unconfigured });
+  const id = String(body.trackingId ?? "").slice(0, 40);
+  const { data, error } = await supabase.rpc("inter_track_by_id", { p_tracking_id: id });
+  // {ok:false} (no error string) for "not found"; a real failure is a 200 too
+  // so the page shows the calm "no application found" card.
+  if (error) return json(200, { ok: false, error: "Could not check right now." });
+  return json(200, data);
 }
 
 // ?action=reset  body: { email, turnstile }   (main-site Supabase Auth)
