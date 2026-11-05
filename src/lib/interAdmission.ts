@@ -362,19 +362,6 @@ export const interApi = {
     rpc("inter_admin_unlock_application", { p_application_id: applicationId, p_reason: reason ?? null }),
   adminAllowNewApplication: (applicantId: string, reason?: string) =>
     rpc("inter_admin_allow_new_application", { p_applicant_id: applicantId, p_reason: reason ?? null }),
-  adminAuditLog: (params: {
-    action?: string; actor?: string; from?: string; to?: string;
-    search?: string; limit?: number; offset?: number;
-  }) =>
-    rpc("get_admin_audit_log", {
-      p_action: params.action ?? null,
-      p_actor: params.actor ?? null,
-      p_from: params.from ?? null,
-      p_to: params.to ?? null,
-      p_search: params.search ?? null,
-      p_limit: params.limit ?? 100,
-      p_offset: params.offset ?? 0,
-    }),
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
