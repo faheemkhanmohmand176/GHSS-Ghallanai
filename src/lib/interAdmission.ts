@@ -295,10 +295,13 @@ async function rpc(fn: string, params: Record<string, unknown>): Promise<RpcResu
 }
 
 // ── Fast public tracking ────────────────────────────────────────────────────
-// • An obviously wrong ID is answered instantly, with no network at all.
-// • Repeat searches are answered from memory (30 s found / 15 s not found).
-// • Each attempt is capped at 6 s and a failed attempt is retried ONCE, so a
-//   dropped packet never shows "slow internet" while the connection is fine.
+// A plain fetch straight to the database REST endpoint: no server function,
+// and no supabase-js session / auth-lock handling that could stall a public
+// lookup.  • An obviously wrong ID is answered instantly (no network).
+// • Repeat searches come from memory (30 s found / 15 s not found).
+// • Each attempt is capped at 6 s and retried ONCE.
+// • A server-side problem is reported as such (with a short technical detail)
+//   instead of being mislabelled as "slow internet".
 const TRACK_ATTEMPT_MS = 6000;
 const trackCache = new Map<string, { at: number; ttl: number; res: RpcResult }>();
 
@@ -309,29 +312,45 @@ async function trackByTrackingId(trackingId: string): Promise<RpcResult> {
   const hit = trackCache.get(key);
   if (hit && Date.now() - hit.at < hit.ttl) return hit.res;
 
-  let lastError = "";
+  const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  if (!base || !anon) return { ok: false, error: "Could not check right now.", detail: "Site configuration is missing." };
+
+  let netFailed = false;
   for (let attempt = 0; attempt < 2; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), TRACK_ATTEMPT_MS);
     try {
-      const outcome = await Promise.race([
-        supabase.rpc("inter_track_by_id", { p_tracking_id: key }),
-        new Promise<{ data: null; error: { message: string } }>((resolve) =>
-          setTimeout(() => resolve({ data: null, error: { message: "timed out" } }), TRACK_ATTEMPT_MS)),
-      ]);
-      if (!outcome.error) {
-        const res = ((outcome.data ?? { ok: false }) as RpcResult);
+      const r = await fetch(`${base}/rest/v1/rpc/inter_track_by_id`, {
+        method: "POST",
+        headers: { apikey: anon, Authorization: `Bearer ${anon}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ p_tracking_id: key }),
+        signal: ctrl.signal,
+      });
+      if (r.ok) {
+        const data = (await r.json().catch(() => ({ ok: false }))) as RpcResult;
+        const res: RpcResult = data && typeof data === "object" ? data : { ok: false };
         trackCache.set(key, { at: Date.now(), ttl: res.ok ? 30_000 : 15_000, res });
         return res;
       }
-      lastError = String(outcome.error.message ?? "");
-      // A real server answer (e.g. function missing) will not improve on retry.
-      if (!NETWORK_ERROR_RE.test(lastError)) break;
+      // The server ANSWERED with an error — retrying will not help.
+      let msg = "";
+      try { const j = await r.json(); msg = String(j?.message ?? j?.hint ?? ""); } catch { /* ignore */ }
+      const missing = r.status === 404 || /could not find the function|PGRST202/i.test(msg);
+      return {
+        ok: false,
+        error: "Could not check right now.",
+        detail: missing
+          ? "Tracking is not enabled on the server yet (database update 28 has not been run)."
+          : `Server answered ${r.status}${msg ? `: ${msg.slice(0, 120)}` : ""}`,
+      };
     } catch {
-      lastError = "network";
+      netFailed = true;           // timeout / offline — worth one retry
+    } finally {
+      clearTimeout(timer);
     }
   }
-  return NETWORK_ERROR_RE.test(lastError) || lastError === "network"
-    ? { ...NETWORK_FAIL }
-    : { ok: false, error: "Could not check right now." };
+  return netFailed ? { ...NETWORK_FAIL } : { ok: false, error: "Could not check right now." };
 }
 
 export const interApi = {
