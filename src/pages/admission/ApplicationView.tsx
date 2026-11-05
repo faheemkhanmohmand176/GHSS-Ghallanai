@@ -39,7 +39,7 @@ interface AppDetail {
 export default function ApplicationView() {
   const { id } = useParams<{ id: string }>();
   
-  const { token, loading: sessionLoading } = useInterSession();
+  const { token, loading: sessionLoading } = useInterSession({ requireToken: true });
   const [detail, setDetail] = useState<AppDetail | null>(null);
   const [loading, setLoading] = useState(true);
   // NETWORK ≠ NOT FOUND: on a slow connection the old page showed "Application
