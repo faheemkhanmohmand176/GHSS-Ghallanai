@@ -1,15 +1,18 @@
 /**
  * authGateway — browser-side wrapper for the Vercel auth-gateway function.
  *
- * The browser no longer calls inter_register / inter_login / inter_track or
+ * The browser no longer calls inter_apply / inter_track or
  * supabase.auth.signInWithPassword / resetPasswordForEmail directly.  Instead
  * it POSTs to /api/auth-gateway?action=<action> with the form fields + a
  * Turnstile token.  The gateway verifies the Turnstile token server-side,
  * applies IP rate limits, then calls the (anon-revoked) Supabase RPC or the
  * Supabase Auth admin API with the service role.
  *
- * This is the ONLY safe path: because migration 24 REVOKEs anon EXECUTE on
- * inter_register / inter_login / inter_track, a browser that bypasses the
+ * Admission has NO accounts or logins any more: the applicant's data stays on
+ * their device until the final captcha-verified "apply" call (migration 26).
+ *
+ * This is the ONLY safe path: because anon EXECUTE is revoked on
+ * inter_apply / inter_track, a browser that bypasses the
  * Turnstile widget (or a bot) still cannot reach those RPCs — the gateway
  * refuses it.
  *
@@ -44,13 +47,14 @@ async function postAction(action: string, payload: Record<string, unknown>): Pro
 }
 
 export const authGateway = {
-  /** Admission applicant registration (inter_register via gateway). */
-  register: (p: { nationality: string; cnic: string; mobile: string; password: string; turnstile: string }) =>
-    postAction("register", p),
-
-  /** Admission applicant login (inter_login via gateway). */
-  login: (p: { loginId: string; password: string; turnstile: string }) =>
-    postAction("login", p),
+  /** Final submit — ONE atomic write of applicant + profiles + application
+   *  (inter_apply via gateway, Turnstile verified). */
+  apply: (p: {
+    nationality: string; cnic: string;
+    personal: Record<string, unknown>; ssc: Record<string, unknown>;
+    programId: number; quota: string; criteria: Record<string, unknown>;
+    subjectGroup: string | null; turnstile: string;
+  }) => postAction("apply", p),
 
   /** Public application tracking (inter_track via gateway, with 2nd factor). */
   track: (p: { trackingId: string; secondFactor: string; turnstile: string }) =>
