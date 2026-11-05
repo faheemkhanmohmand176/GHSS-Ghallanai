@@ -34,7 +34,7 @@ import AdmissionStepper from "@/components/shared/AdmissionStepper";
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
-import Turnstile from "@/components/shared/Turnstile";
+import SecurityStrip from "@/components/shared/SecurityStrip";
 import { clearDraft } from "@/lib/admissionDraft";
 import {
   interApi, setToken, isAdmissionNetworkError, QUOTAS, QUOTA_LABEL, LOCAL_CRITERIA, SPORT_CERTIFICATES,
@@ -762,14 +762,11 @@ export default function ApplyFlow() {
                 </div>
 
                 {draftMode && (
-                  <div className="flex justify-center">
-                    <Turnstile
-                      key={turnstileKey}
-                      appearance="interaction-only"
-                      onToken={handleTurnstileToken}
-                      onExpire={handleTurnstileExpire}
-                    />
-                  </div>
+                  <SecurityStrip
+                    key={turnstileKey}
+                    onToken={handleTurnstileToken}
+                    onExpire={handleTurnstileExpire}
+                  />
                 )}
 
                 <div className="flex flex-col gap-2.5">
