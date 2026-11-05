@@ -95,6 +95,11 @@ export default function ApplyFlow() {
   const draftMode = isDraft && !isEditing;
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileKey, setTurnstileKey] = useState(0);
+  // If the site has no Turnstile key the gateway skips the check, so the
+  // Submit button must not wait for a token that can never arrive.
+  const turnstileRequired = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
+  const handleTurnstileToken = useCallback((t: string) => setTurnstileToken(t), []);
+  const handleTurnstileExpire = useCallback(() => setTurnstileToken(""), []);
 
   const [step, setStep] = useState<Step>("form");
   const { data: admSettings } = useAdmissionSettings();
@@ -332,7 +337,7 @@ export default function ApplyFlow() {
   // applicant continues straight to payment on this device.
   async function handleFinalSubmit() {
     if (!personal || !ssc || !programId || !quota) return;
-    if (!turnstileToken) { toast.error("Please complete the security check."); return; }
+    if (turnstileRequired && !turnstileToken) { toast.error("Security check is still verifying. Please wait a moment."); return; }
     setBusy(true);
     try {
       const res = (await interApi.apply({
@@ -760,18 +765,21 @@ export default function ApplyFlow() {
                   <div className="flex justify-center">
                     <Turnstile
                       key={turnstileKey}
-                      onToken={setTurnstileToken}
-                      onExpire={() => setTurnstileToken("")}
+                      appearance="interaction-only"
+                      onToken={handleTurnstileToken}
+                      onExpire={handleTurnstileExpire}
                     />
                   </div>
                 )}
 
                 <div className="flex flex-col gap-2.5">
                   {draftMode ? (
-                    <Button onClick={handleFinalSubmit} disabled={busy || !turnstileToken}
+                    <Button onClick={handleFinalSubmit} disabled={busy || (turnstileRequired && !turnstileToken)}
                       className="h-12 w-full font-semibold">
-                      {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                      Submit Application
+                      {busy || (turnstileRequired && !turnstileToken)
+                        ? <Loader2 className="w-5 h-5 animate-spin" />
+                        : <Send className="w-5 h-5" />}
+                      {busy ? "Submitting…" : turnstileRequired && !turnstileToken ? "Verifying…" : "Submit Application"}
                     </Button>
                   ) : (
                     <Button onClick={() => { setStep("pay"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
