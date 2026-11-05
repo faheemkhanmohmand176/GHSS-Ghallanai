@@ -4,7 +4,7 @@
  *
  * Sections: hero + how-to-apply steps · Track Application (public, tracking
  * ID only) · programs & seats · important instructions (EN/UR) · helpline.
- * The full applicant portal lives under /admission/{register,login,portal}.
+ * The applicant portal lives under /admission/portal (no account, no login).
  */
 
 import { useState, useCallback } from "react";
@@ -12,7 +12,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import { motion } from "framer-motion";
 import {
-  GraduationCap, Search, UserPlus, LogIn, LayoutDashboard, ClipboardList,
+  GraduationCap, Search, UserPlus, LayoutDashboard, ClipboardList,
   AlertCircle, Phone, Mail, Loader2, CheckCircle2, XCircle,
   BadgeCheck, BookOpen, Landmark, Wallet, Printer, Trophy, ArrowRight,
 } from "lucide-react";
@@ -33,13 +33,15 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
-  interApi, getToken, QUOTA_LABEL, COLLEGE_SHORT, STUDY_LEVEL, FACULTIES,
+  interApi, getToken, setToken, QUOTA_LABEL, COLLEGE_SHORT, STUDY_LEVEL, FACULTIES,
 } from "@/lib/interAdmission";
+import { hasDraftData } from "@/lib/admissionDraft";
 import Turnstile from "@/components/shared/Turnstile";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Track Application (public: Tracking ID or payment reference, no login)
+// Track Application (public: Tracking ID + 2nd factor, no account). A verified
+// lookup can also open a private session to edit / pay the application.
 // ─────────────────────────────────────────────────────────────────────────────
 interface TrackResult {
   ok?: boolean; tracking_id?: string; college?: string; program?: string;
@@ -47,6 +49,8 @@ interface TrackResult {
   status?: string; processing_fee?: number; payment_reference?: string | null;
   application_date?: string; fee_deadline?: string;
   timeline?: Array<{ title: string; details: string | null; date: string }>;
+  /** Private session issued by the gateway for a verified lookup. */
+  access?: { token: string; application_id: string } | null;
 }
 
 /** Status to stepper position (1 based). Rejected and cancelled are shown separately. */
@@ -72,6 +76,7 @@ const STATUS_TEXT: Record<string, { label: string; tone: string; note: string }>
 };
 
 function TrackApplication() {
+  const navigate = useNavigate();
   const [trackingId, setTrackingId] = useState("");
   // Second factor: the applicant's mobile number (11 digits) OR the last 4
   // digits of their CNIC.  This stops anyone from probing for valid tracking
@@ -199,6 +204,20 @@ function TrackApplication() {
                     { label: "College", value: result.college, wide: true },
                   ]}
                 />
+
+                {/* Open the private session — edit / pay / print without any account */}
+                {result.access?.token && !closedOut && (
+                  <div className="flex justify-center">
+                    <Button
+                      type="button"
+                      onClick={() => { setToken(result.access!.token); navigate("/admission/portal"); }}
+                      className="h-10 rounded-full px-6 text-[13px] font-semibold"
+                    >
+                      <LayoutDashboard className="mr-1.5 h-4 w-4" />
+                      {paid ? "Open My Application" : "Edit / Pay My Application"}
+                    </Button>
+                  </div>
+                )}
 
                 {/* Timeline */}
                 {timeline.length > 0 && (
@@ -413,11 +432,10 @@ function MeritLists() {
 // ─────────────────────────────────────────────────────────────────────────────
 function buildSteps(fee: number) {
   return [
-    { icon: UserPlus,      title: "Create Account",     desc: "Register with CNIC or Form-B, mobile number and a password." },
-    { icon: ClipboardList, title: "Personal Profile",   desc: "Name, date of birth, domicile, parents and address." },
+    { icon: ClipboardList, title: "Personal Profile",   desc: "CNIC or Form-B, name, date of birth, domicile, parents and address." },
     { icon: BookOpen,      title: "Matric Profile",     desc: "SSC board, session, roll number and marks." },
     { icon: Landmark,      title: "Submit Application", desc: `Choose a program (${FACULTIES.join(", ")}) and a category.` },
-    { icon: BadgeCheck,    title: "Confirm and Pay",    desc: `Review everything, then submit with the Rs ${fee} processing fee.` },
+    { icon: BadgeCheck,    title: "Confirm and Pay",    desc: `Review everything, pass the security check and submit. Then pay the Rs ${fee} processing fee.` },
     { icon: Wallet,        title: "Pay the Fee",        desc: "Pay into the school account printed on your fee challan." },
     { icon: Search,        title: "Track Status",       desc: "Check payment and application status with your Tracking ID." },
     { icon: Printer,       title: "Print and Visit",    desc: "Print the form and bring original documents to the school." },
@@ -494,14 +512,17 @@ function AdmissionHero({
         )}
 
         {/* Actions */}
-        <div className={`mt-4 grid w-full gap-2 ${hasSession ? "max-w-xl sm:grid-cols-2" : "max-w-3xl sm:grid-cols-3"}`}>
+        <div className="mt-4 grid w-full max-w-xl gap-2 sm:grid-cols-2">
           {hasSession ? (
-            <ActionTile icon={LayoutDashboard} title="My Portal" sub="Continue your application" gold onClick={() => navigate("/admission/portal")} />
+            <ActionTile icon={LayoutDashboard} title="My Application" sub="Pay, edit or view" gold onClick={() => navigate("/admission/portal")} />
           ) : (
-            <>
-              <ActionTile icon={UserPlus} title="Create Account" sub="Start your application" gold to="/admission/register" />
-              <ActionTile icon={LogIn} title="Login" sub="Continue your application" to="/admission/login" />
-            </>
+            <ActionTile
+              icon={ClipboardList}
+              title="Apply Online"
+              sub={hasDraftData() ? "Continue your application" : "Start your application"}
+              gold
+              onClick={() => navigate("/admission/portal")}
+            />
           )}
           <ActionTile icon={Search} title="Track Application" sub="Check your status" href="#track" />
         </div>
