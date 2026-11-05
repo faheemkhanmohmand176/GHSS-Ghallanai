@@ -35,7 +35,7 @@ import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
 import SecurityStrip from "@/components/shared/SecurityStrip";
-import { clearDraft } from "@/lib/admissionDraft";
+import { clearDraft, getWip, setWip } from "@/lib/admissionDraft";
 import {
   interApi, setToken, isAdmissionNetworkError, QUOTAS, QUOTA_LABEL, LOCAL_CRITERIA, SPORT_CERTIFICATES,
   DISABILITY_TYPES, ADMISSION_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
@@ -136,6 +136,27 @@ export default function ApplyFlow() {
   }, [programsData]);
 
   const program = programs.find((p) => p.id === programId);
+
+  // ── Autosave of the half-filled application form (new applications only) ──
+  const [wipReady, setWipReady] = useState(false);
+  useEffect(() => {
+    if (!draftMode) return;
+    const w = getWip<{ programId: number | ""; quota: string; criteria: Criteria; subjectGroup: string }>("apply");
+    if (w) {
+      setProgramId(w.programId ?? "");
+      setQuota(w.quota ?? "");
+      setCriteria({ ...EMPTY_CRITERIA, ...(w.criteria || {}) });
+      setSubjectGroup(w.subjectGroup ?? "");
+      if (w.programId || w.quota) toast.success("Your unsaved progress was restored.", { id: "wip-restored" });
+    }
+    setWipReady(true);
+  }, [draftMode]);
+  useEffect(() => {
+    if (!draftMode || !wipReady) return;
+    const t = setTimeout(() => setWip("apply", { programId, quota, criteria, subjectGroup }), 400);
+    return () => clearTimeout(t);
+  }, [draftMode, wipReady, programId, quota, criteria, subjectGroup]);
+
   const personal = session?.personal;
   const ssc = session?.ssc;
 
@@ -459,8 +480,8 @@ export default function ApplyFlow() {
       <div className="container mx-auto px-4 py-8 sm:py-12 max-w-3xl">
         <AdmissionBackBar
           onClick={() => {
-            if (step === "confirm") setStep("form");
-            else if (step === "pay") setStep("confirm");
+            if (step === "confirm") { setStep("form"); window.scrollTo({ top: 0, behavior: "auto" }); }
+            else if (step === "pay") { setStep("confirm"); window.scrollTo({ top: 0, behavior: "auto" }); }
             else navigate("/admission/portal");
           }}
         />
