@@ -2,20 +2,31 @@
  * Turnstile — reusable Cloudflare Turnstile widget.
  *
  * Renders the challenge iframe from challenges.cloudflare.com (the CSP in
- * vercel.json is updated to allow it).  The token it produces is handed to
- * the Vercel auth-gateway, which verifies it server-side before calling any
- * Supabase RPC.  The browser never calls the protected RPCs directly.
+ * vercel.json allows it).  The token it produces is handed to the Vercel
+ * auth-gateway, which verifies it server-side before calling any Supabase RPC.
  *
- * Fail-safe: if VITE_TURNSTILE_SITE_KEY is missing, the widget renders a
- * clear admin warning instead of breaking the page.  The gateway also skips
- * verification in that case (see api/auth-gateway.js).
+ * FIX (widget "appears, disappears, appears…" and never succeeds):
+ *   The widget used to be destroyed and re-created every time the parent
+ *   component re-rendered, because inline callbacks such as
+ *   `onExpire={() => …}` are a NEW function on every render and the render
+ *   effect depended on them.  Each re-render therefore threw away the
+ *   half-finished challenge, so it could never complete.  The callbacks are
+ *   now kept in refs, and the widget is created ONCE per mount (it only
+ *   re-renders when the site key changes).
  *
- * Mobile-first: the widget is responsive and uses the "compact" appearance
- * below the sm breakpoint.
+ * `appearance`:
+ *   "always"           — visible challenge box (default; unchanged behaviour).
+ *   "interaction-only" — runs silently in the background and shows a box ONLY
+ *                        if Cloudflare needs the person to tap something.
+ *                        Used on the application Submit step so the page is
+ *                        not cluttered on a phone.
+ *
+ * Fail-safe: if VITE_TURNSTILE_SITE_KEY is missing, a clear admin warning is
+ * shown and the gateway skips verification (see api/auth-gateway.js).
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, RefreshCw } from "lucide-react";
 
 declare global {
   interface Window {
@@ -29,24 +40,32 @@ declare global {
 
 const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
 
-let scriptPromise: Promise<void> | null = null;
-function loadTurnstileScript(): Promise<void> {
-  if (typeof window === "undefined") return Promise.resolve();
-  if (window.turnstile) return Promise.resolve();
+let scriptPromise: Promise<boolean> | null = null;
+
+/** Resolves true when window.turnstile is ready, false if the script failed.
+ *  A failed load is NOT cached, so a retry can succeed. */
+function loadTurnstileScript(): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  if (window.turnstile) return Promise.resolve(true);
   if (scriptPromise) return scriptPromise;
-  scriptPromise = new Promise<void>((resolve) => {
+  scriptPromise = new Promise<boolean>((resolve) => {
+    const fail = () => {
+      scriptPromise = null;
+      document.querySelector(`script[src="${SCRIPT_SRC}"]`)?.remove();
+      resolve(false);
+    };
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_SRC}"]`);
     if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => resolve());
+      existing.addEventListener("load", () => resolve(Boolean(window.turnstile)));
+      existing.addEventListener("error", fail);
       return;
     }
     const s = document.createElement("script");
     s.src = SCRIPT_SRC;
     s.async = true;
     s.defer = true;
-    s.onload = () => resolve();
-    s.onerror = () => resolve();
+    s.onload = () => resolve(Boolean(window.turnstile));
+    s.onerror = fail;
     document.head.appendChild(s);
   });
   return scriptPromise;
@@ -59,49 +78,61 @@ interface TurnstileProps {
   onExpire?: () => void;
   /** Called when the challenge fails to render. */
   onError?: () => void;
+  /** "interaction-only" = invisible unless Cloudflare needs a tap. */
+  appearance?: "always" | "interaction-only";
   className?: string;
 }
 
-export default function Turnstile({ onToken, onExpire, onError, className }: TurnstileProps) {
+export default function Turnstile({
+  onToken, onExpire, onError, appearance = "always", className,
+}: TurnstileProps) {
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
-  const render = useCallback(() => {
-    if (!siteKey || !window.turnstile || !containerRef.current) return;
-    if (widgetIdRef.current) {
+  // Always call the LATEST callbacks without ever re-creating the widget.
+  const cb = useRef({ onToken, onExpire, onError });
+  cb.current = { onToken, onExpire, onError };
+
+  const removeWidget = useCallback(() => {
+    if (widgetIdRef.current && window.turnstile) {
       try { window.turnstile.remove(widgetIdRef.current); } catch { /* ignore */ }
-      widgetIdRef.current = null;
     }
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
-    widgetIdRef.current = window.turnstile.render(containerRef.current, {
-      sitekey: siteKey,
-      theme: "auto",
-      size: isMobile ? "compact" : "normal",
-      callback: (token: string) => onToken(token),
-      "expired-callback": () => onExpire?.(),
-      "error-callback": () => onError?.(),
-    });
-  }, [siteKey, onToken, onExpire, onError]);
+    widgetIdRef.current = null;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    if (!siteKey) { setLoadFailed(true); return; }
-    loadTurnstileScript().then(() => {
+    if (!siteKey) return;
+    setLoadFailed(false);
+    loadTurnstileScript().then((ok) => {
       if (cancelled) return;
-      if (!window.turnstile) { setLoadFailed(true); return; }
-      render();
+      if (!ok || !window.turnstile || !containerRef.current) { setLoadFailed(true); return; }
+      removeWidget();
+      const isMobile = window.innerWidth < 640;
+      widgetIdRef.current = window.turnstile.render(containerRef.current, {
+        sitekey: siteKey,
+        theme: "auto",
+        size: isMobile ? "compact" : "normal",
+        appearance,
+        retry: "auto",
+        "retry-interval": 3000,
+        "refresh-expired": "auto",
+        callback: (token: string) => cb.current.onToken(token),
+        "expired-callback": () => cb.current.onExpire?.(),
+        "error-callback": () => { cb.current.onError?.(); },
+      });
     });
     return () => {
       cancelled = true;
-      if (widgetIdRef.current && window.turnstile) {
-        try { window.turnstile.remove(widgetIdRef.current); } catch { /* ignore */ }
-      }
+      removeWidget();
     };
-  }, [siteKey, render]);
+    // Created once per mount — only the site key / appearance / retry matter.
+  }, [siteKey, appearance, attempt, removeWidget]);
 
-  if (!siteKey || loadFailed) {
+  if (!siteKey) {
     return (
       <div className={`rounded-xl border border-amber-300/60 bg-amber-50 dark:bg-amber-500/10 p-3 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2 ${className || ""}`}>
         <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
@@ -111,6 +142,22 @@ export default function Turnstile({ onToken, onExpire, onError, className }: Tur
           add <code className="font-mono">VITE_TURNSTILE_SITE_KEY</code> and
           <code className="font-mono">TURNSTILE_SECRET_KEY</code> in Vercel.
         </span>
+      </div>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <div className={`rounded-xl border border-amber-300/60 bg-amber-50 dark:bg-amber-500/10 p-3 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2 ${className || ""}`}>
+        <ShieldAlert className="w-4 h-4 shrink-0" />
+        <span className="flex-1">The security check could not load. Check your internet connection and try again.</span>
+        <button
+          type="button"
+          onClick={() => setAttempt((n) => n + 1)}
+          className="inline-flex items-center gap-1 rounded-full border border-amber-400/60 px-2.5 py-1 font-semibold"
+        >
+          <RefreshCw className="w-3 h-3" /> Retry
+        </button>
       </div>
     );
   }
