@@ -5,8 +5,8 @@
 // per protected endpoint.
 //
 //   ?action=apply      admission application, ONE atomic write (Turnstile + inter_apply)
-//   ?action=track      public application tracking by Tracking ID only
-//                      (read-only status; per-IP rate limited, no captcha)
+//   (track moved OUT of the gateway: the browser calls inter_track_by_id
+//    directly - one indexed call, see migration 28.)
 //   (register / login were REMOVED: admission has no accounts any more.)
 //   ?action=reset      main-site password reset           (Turnstile + Supabase Auth admin)
 //   ?action=signin     main-site admin/user login         (Turnstile + Supabase Auth)
@@ -235,24 +235,6 @@ async function handleApply(body, ip, supabase) {
   return json(200, { ...data, turnstile_unconfigured: ts.unconfigured });
 }
 
-// ?action=track  body: { trackingId }
-// Read-only status lookup by Tracking ID.  No captcha and no second factor
-// (by design).  It returns status only - never names, CNIC or phone numbers -
-// and is still throttled per IP by the flood brake and the track bucket.
-async function handleTrack(body, ip, supabase) {
-  const limits = await readLimits(supabase);
-  const ipKey = await hashKey(ip);
-  const rl = await rateLimit(supabase, "track", ipKey, limits.rate_track_per_ip_hour ?? 20, 60);
-  if (!rl.allowed) return json(429, { ok: false, error: "Too many tracking lookups from this network. Please try again later." }, (rl.retryAfter || 60) * 60);
-
-  const id = String(body.trackingId ?? "").slice(0, 40);
-  const { data, error } = await supabase.rpc("inter_track_by_id", { p_tracking_id: id });
-  // {ok:false} (no error string) for "not found"; a real failure is a 200 too
-  // so the page shows the calm "no application found" card.
-  if (error) return json(200, { ok: false, error: "Could not check right now." });
-  return json(200, data);
-}
-
 // ?action=reset  body: { email, turnstile }   (main-site Supabase Auth)
 async function handleReset(body, ip, supabase, req) {
   const ts = await verifyTurnstile(body.turnstile, ip);
@@ -374,7 +356,6 @@ async function handle(req) {
   try {
     switch (action) {
       case "apply":    return await handleApply(body, ip, supabase);
-      case "track":    return await handleTrack(body, ip, supabase);
       case "reset":    return await handleReset(body, ip, supabase, req);
       case "signin":   return await handleSignIn(body, ip, supabase);
       default:         return json(400, { ok: false, error: "Unknown action." });
