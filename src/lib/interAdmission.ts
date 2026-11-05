@@ -4,16 +4,17 @@
  *
  * Faculties: Pre-Medical · Pre-Engineering · ICS (Computer Sciences) · Arts/Humanities.
  *
- * Auth model: applicants are NOT Supabase-Auth users. They register with
- * CNIC/Form-B + mobile + password (hashed server-side) and receive a session
- * token (uuid) managed by the inter_applicant_sessions table. All data access
- * flows through SECURITY DEFINER RPCs that resolve the token first.
+ * Auth model: NO accounts and NO login.  The applicant's data stays in a
+ * draft on their own device (lib/admissionDraft.ts) until the final
+ * captcha-verified submit, when ONE atomic server call (inter_apply) stores
+ * everything and returns a private session token (uuid, inter_applicant_sessions)
+ * used for payment / edit / view.  Applicants are NOT Supabase-Auth users.
+ * All data access flows through SECURITY DEFINER RPCs that resolve the token.
  *
  * ── SECURITY CHANGE (migration 24) ──────────────────────────────────────────
- * inter_register / inter_login / inter_track are NO LONGER callable directly
- * from the browser with the anon key (anon EXECUTE was revoked).  The browser
- * must go through the Vercel auth-gateway, which verifies a Cloudflare
- * Turnstile token first.  So interApi.register / login / track now POST to
+ * inter_apply / inter_track are NOT callable directly from the browser with
+ * the anon key.  The browser must go through the Vercel auth-gateway, which
+ * verifies a Cloudflare Turnstile token first.  So interApi.apply / track POST to
  * /api/auth-gateway instead of supabase.rpc(...).  Everything else still uses
  * supabase.rpc because those RPCs take a token and are self-gating.
  * ────────────────────────────────────────────────────────────────────────────
@@ -25,6 +26,8 @@ import { cachedOrDirect } from "@/lib/publicData";
 import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
 
 export const INTER_TOKEN_KEY = "inter_admission_token";
+/** Fired whenever the private session token is set or cleared (same tab). */
+export const TOKEN_EVENT = "inter-token-change";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -212,6 +215,7 @@ export function setToken(token: string) {
   } catch {
     /* ignore */
   }
+  try { window.dispatchEvent(new Event(TOKEN_EVENT)); } catch { /* ignore */ }
 }
 
 export function clearToken() {
@@ -220,13 +224,14 @@ export function clearToken() {
   } catch {
     /* ignore */
   }
+  try { window.dispatchEvent(new Event(TOKEN_EVENT)); } catch { /* ignore */ }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RPC wrappers
 //
-// register / login / track → go through the Vercel auth-gateway (Turnstile +
-// service role) because migration 24 revoked anon EXECUTE on them.
+// apply / track → go through the Vercel auth-gateway (Turnstile + service
+// role) because anon EXECUTE is revoked on them.
 // Everything else still calls supabase.rpc directly (those RPCs take a token
 // and are self-gating).
 //
@@ -290,13 +295,14 @@ async function rpc(fn: string, params: Record<string, unknown>): Promise<RpcResu
 }
 
 export const interApi = {
-  /** Admission registration — routed via the auth-gateway (Turnstile verified). */
-  register: (nationality: string, cnic: string, mobile: string, password: string, turnstile: string) =>
-    authGateway.register({ nationality, cnic, mobile, password, turnstile }) as Promise<RpcResult>,
-
-  /** Admission login — routed via the auth-gateway (Turnstile verified). */
-  login: (loginId: string, password: string, turnstile: string) =>
-    authGateway.login({ loginId, password, turnstile }) as Promise<RpcResult>,
+  /** Final submit — ONE atomic write (applicant + profiles + application),
+   *  routed via the auth-gateway (Turnstile verified). Returns a session token. */
+  apply: (p: {
+    nationality: string; cnic: string;
+    personal: Record<string, unknown>; ssc: Record<string, unknown>;
+    programId: number; quota: string; criteria: Record<string, unknown>;
+    subjectGroup: string | null; turnstile: string;
+  }) => authGateway.apply(p) as Promise<RpcResult>,
 
   logout: (token: string) => rpc("inter_logout", { p_token: token }),
   sessionState: (token: string) => rpc("inter_session_state", { p_token: token }),
@@ -313,6 +319,9 @@ export const interApi = {
     cachedOrDirect<RpcResult>("admission-ucs", {}, () => rpc("inter_ucs_list", {})),
   checkQuota: (token: string, quota: string, criteria: Record<string, unknown> | null) =>
     rpc("inter_check_quota", { p_token: token, p_quota: quota, p_criteria: criteria }),
+  /** Same eligibility rules, driven by the on-device draft (writes nothing). */
+  checkQuotaDraft: (personal: Record<string, unknown>, quota: string, criteria: Record<string, unknown> | null) =>
+    rpc("inter_draft_check_quota", { p_personal: personal, p_quota: quota, p_criteria: criteria }),
 
   submitApplication: (
     token: string, programId: number, quota: string,
