@@ -26,7 +26,6 @@ import {
 } from "@/lib/interAdmission";
 import { saveDraftSsc, getWip, setWip, clearWip } from "@/lib/admissionDraft";
 
-const YEARS: number[] = Array.from({ length: 28 }, (_, i) => 2026 - i);
 
 const EMPTY: SscProfileData = {
   exam_session: "Annual", exam_board: "", passing_year: "",
@@ -113,6 +112,11 @@ export default function SscProfileForm() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    const yr = Number(form.passing_year);
+    if (!/^\d{4}$/.test(form.passing_year) || yr < 1990 || yr > new Date().getFullYear()) {
+      toast.error(`Please enter a valid 4-digit Passing Year (1990 – ${new Date().getFullYear()}).`);
+      return;
+    }
     setBusy(true);
     try {
       // DRAFT (no account yet) → saved on this device only; the database is
@@ -127,7 +131,11 @@ export default function SscProfileForm() {
         clearWip("ssc");
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
         await queryClient.invalidateQueries({ queryKey: ["inter-session"] });
-        navigate("/admission/portal", { replace: true });
+        // DIRECT FLOW: Matric is the last profile step — if Personal Information
+        // is done too (and no application exists yet) go straight to the
+        // admission request; otherwise back to the dashboard.
+        const hasApp = (session?.applications ?? []).some((a) => !["cancelled", "rejected"].includes(a.status));
+        navigate(session?.personal && !hasApp ? "/admission/apply" : "/admission/portal", { replace: true });
       } else {
         toast.error(res?.error || "Could not save your matric profile.");
       }
@@ -202,10 +210,13 @@ export default function SscProfileForm() {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className={F}>
                     <Label className="font-semibold text-[13px]">Passing Year <span className="text-red-500">*</span></Label>
-                    <select className={sel} value={form.passing_year} onChange={(e) => set("passing_year", e.target.value)} required>
-                      <option value="">Select Passing Year</option>
-                      {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-                    </select>
+                    <Input
+                      className={`${inp} font-mono`} inputMode="numeric" autoComplete="off"
+                      maxLength={4} placeholder={`e.g. ${new Date().getFullYear()}`}
+                      value={form.passing_year}
+                      onChange={(e) => set("passing_year", e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      required
+                    />
                   </div>
                   <div className={F}>
                     <Label className="font-semibold text-[13px]">Study Group <span className="text-red-500">*</span></Label>
