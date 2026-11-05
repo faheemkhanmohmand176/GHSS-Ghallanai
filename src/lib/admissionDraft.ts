@@ -58,7 +58,41 @@ function writeDraft(d: AdmissionDraft) {
 
 export function clearDraft() {
   try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+  clearWip();
   notify();
+}
+
+// ── Work-in-progress autosave ───────────────────────────────────────────────
+// Half-filled steps (e.g. two fields typed, then the tab is closed) are kept
+// on this device and restored when the applicant comes back. Separate from the
+// saved draft above: it does NOT notify, does NOT count as "step completed".
+const WIP_PREFIX = "inter_admission_wip_v1:";
+const WIP_KEYS = ["personal", "ssc", "apply"] as const;
+export type WipKey = (typeof WIP_KEYS)[number];
+
+export function getWip<T = unknown>(key: WipKey): T | null {
+  try {
+    const raw = localStorage.getItem(WIP_PREFIX + key);
+    if (!raw) return null;
+    const o = JSON.parse(raw) as { at: number; data: T };
+    if (!o || Date.now() - (o.at || 0) > DRAFT_TTL_MS) {
+      localStorage.removeItem(WIP_PREFIX + key);
+      return null;
+    }
+    return o.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function setWip(key: WipKey, data: unknown) {
+  try { localStorage.setItem(WIP_PREFIX + key, JSON.stringify({ at: Date.now(), data })); } catch { /* storage full / blocked */ }
+}
+
+export function clearWip(key?: WipKey) {
+  try {
+    for (const k of key ? [key] : WIP_KEYS) localStorage.removeItem(WIP_PREFIX + k);
+  } catch { /* ignore */ }
 }
 
 export function hasDraftData(d: AdmissionDraft = getDraft()): boolean {
