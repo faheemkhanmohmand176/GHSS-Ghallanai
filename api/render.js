@@ -222,17 +222,16 @@ async function fetchAdmissionInfo() {
     classes: ["1st Year", "2nd Year"],
     fee: `${feeText} processing fee per application — payable online (Easypaisa / wallet via Safepay) or by manual transfer`,
     how_to_apply: [
-      "Create your account at " +
-        `${SITE_URL}/admission/register with CNIC/Form-B (13 digits), mobile number and a password`,
-      "Complete the Personal Information profile (name, father's name, date of birth, domicile district, tehsil, union council, parents' details)",
+      "Open " + `${SITE_URL}/admission/portal` + " — no account or login is needed",
+      "Fill in the Personal Information profile (your CNIC/Form-B, name, father's name, date of birth, domicile district, tehsil, union council, parents' details)",
       "Complete the Matric (SSC) profile — board, session, passing year, study group, roll number and marks",
       "Submit a New Admission Request — choose the program (Arts, Pre-Medical, Pre-Engineering or ICS) and category of admission (quota)",
-      `Confirm the application and pay the ${feeText.toLowerCase()} processing fee online — you receive a payment reference with a deadline`,
+      `Confirm the application, pass the security check and submit, then pay the ${feeText.toLowerCase()} processing fee online — you receive a payment reference with a deadline`,
       "Track the application any time with your Tracking ID at " + `${SITE_URL}/admission`,
       "Print the application form and visit the college with all original documents to complete the admission",
     ],
     required_documents: [
-      "Student B-Form / CNIC (NADRA) — the same 13-digit number used to create the account",
+      "Student B-Form / CNIC (NADRA) — the same 13-digit number entered in the application",
       "SSC (Matric) result card / DMC",
       "Recent passport-size photograph",
       "Father's/Guardian's CNIC copy",
