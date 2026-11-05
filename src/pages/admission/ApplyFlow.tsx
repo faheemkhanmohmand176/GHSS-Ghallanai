@@ -34,8 +34,10 @@ import AdmissionStepper from "@/components/shared/AdmissionStepper";
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
+import Turnstile from "@/components/shared/Turnstile";
+import { clearDraft } from "@/lib/admissionDraft";
 import {
-  interApi, isAdmissionNetworkError, QUOTAS, QUOTA_LABEL, LOCAL_CRITERIA, SPORT_CERTIFICATES,
+  interApi, setToken, isAdmissionNetworkError, QUOTAS, QUOTA_LABEL, LOCAL_CRITERIA, SPORT_CERTIFICATES,
   DISABILITY_TYPES, ADMISSION_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
   formatCnic, formatDateLong, formatDeadline, DISTRICTS,
 } from "@/lib/interAdmission";
@@ -78,13 +80,21 @@ function SwalDialog({ message, onClose }: { message: string; onClose: () => void
 }
 
 export default function ApplyFlow() {
-  const { session, loading, token, refresh, netError } = useInterSession();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // ?edit=<id> → edit an existing UNPAID application instead of creating a new one.
   // The tracking id and payment reference are preserved by the RPC.
   const editId = searchParams.get("edit");
   const isEditing = Boolean(editId);
+  // Editing needs the private session of an already-submitted application;
+  // a NEW application runs from the on-device draft (no account, no login).
+  const { session, loading, token, isDraft, refresh, netError } = useInterSession({ requireToken: isEditing });
+  // True while a brand-new application is still only a draft on this device:
+  // nothing is in the database until the captcha-verified Submit on the
+  // confirm step.
+  const draftMode = isDraft && !isEditing;
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileKey, setTurnstileKey] = useState(0);
 
   const [step, setStep] = useState<Step>("form");
   const { data: admSettings } = useAdmissionSettings();
@@ -187,11 +197,13 @@ export default function ApplyFlow() {
     setQuota(q);
     // reset conditional fields when quota changes ( reset_form())
     setCriteria({ ...EMPTY_CRITERIA });
-    if (!q || !token) return;
+    if (!q || (!token && !personal)) return;
     setQuotaChecking(true);
     try {
       // shows the swal immediately for local applicants picking Open Merit
-      const res = (await interApi.checkQuota(token, q, null)) as unknown as {
+      const res = (await (token
+        ? interApi.checkQuota(token, q, null)
+        : interApi.checkQuotaDraft(personal as unknown as Record<string, unknown>, q, null))) as unknown as {
         ok?: boolean; error?: string; warning?: string; needs?: string;
       };
       // `needs` = a follow-up field (criteria, certificate, etc.) is still to be filled — not a block.
@@ -221,6 +233,32 @@ export default function ApplyFlow() {
     }
     if (program?.subject_groups?.length && !subjectGroup) {
       toast.error("Please select a Subject Group."); return;
+    }
+    // NEW application on a draft: verify eligibility against the on-device
+    // draft (read-only), then show the confirm step.  NOTHING is saved yet.
+    if (draftMode) {
+      if (!personal || !ssc) return;
+      setBusy(true);
+      try {
+        const chk = (await interApi.checkQuotaDraft(
+          personal as unknown as Record<string, unknown>, quota,
+          criteria as unknown as Record<string, unknown>,
+        )) as unknown as { ok?: boolean; error?: string };
+        if (chk?.ok === false && chk.error && !isAdmissionNetworkError(chk)) {
+          setInlineError(chk.error);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+        // A network failure here is not a verdict — the server re-checks
+        // everything again at the final Submit.
+        setStep("confirm");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch {
+        toast.error("Network error. Please try again.");
+      } finally {
+        setBusy(false);
+      }
+      return;
     }
     setBusy(true);
     try {
@@ -285,6 +323,50 @@ export default function ApplyFlow() {
       });
     } catch {
       toast.error("Could not create the challan. Please try again.");
+    }
+  }
+
+  // ── FINAL SUBMIT (no account) ─────────────────────────────────────────────
+  // Turnstile-verified, ONE atomic server write: applicant + personal + matric
+  // + application together, or nothing.  Returns a private session so the
+  // applicant continues straight to payment on this device.
+  async function handleFinalSubmit() {
+    if (!personal || !ssc || !programId || !quota) return;
+    if (!turnstileToken) { toast.error("Please complete the security check."); return; }
+    setBusy(true);
+    try {
+      const res = (await interApi.apply({
+        nationality: session?.applicant?.nationality ?? personal.nationality,
+        cnic: session?.applicant?.cnic_formb ?? "",
+        personal: personal as unknown as Record<string, unknown>,
+        ssc: ssc as unknown as Record<string, unknown>,
+        programId: Number(programId),
+        quota,
+        criteria: criteria as unknown as Record<string, unknown>,
+        subjectGroup: program?.subject_groups?.length ? subjectGroup : null,
+        turnstile: turnstileToken,
+      })) as unknown as {
+        ok?: boolean; error?: string; token?: string; application_id?: string; tracking_id?: string;
+      };
+      if (res?.ok && res.token && res.application_id) {
+        setToken(res.token);          // private session on this device
+        clearDraft();                 // the draft has been committed
+        setSubmitResult({ application_id: res.application_id, tracking_id: res.tracking_id ?? "" });
+        toast.success("Application submitted. Now pay the processing fee to complete it.");
+        setStep("pay");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        setDialog(res?.error || "Could not submit your application. Please try again.");
+        // a Turnstile token is single-use — ask for a fresh one
+        setTurnstileToken("");
+        setTurnstileKey((k) => k + 1);
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+      setTurnstileToken("");
+      setTurnstileKey((k) => k + 1);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -594,14 +676,24 @@ export default function ApplyFlow() {
         )}
 
         {/* ═══ STEP 2 — CONFIRM ADMISSION REQUEST ═══ */}
-        {step === "confirm" && submitResult && personal && ssc && (
+        {step === "confirm" && (submitResult || draftMode) && personal && ssc && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
             <Card className="border-gold/40 bg-gradient-to-b from-gold/5 to-transparent">
               <CardContent className="p-5 sm:p-6">
                 <h2 className="font-heading text-xl font-bold text-foreground mb-2">Confirm Admission Request</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  Please review your application. If everything is correct, continue to pay the
-                  processing fee of <strong className="text-foreground">Rs {PROCESSING_FEE}</strong>.
+                  {draftMode ? (
+                    <>
+                      Please review your application. If everything is correct, complete the security check
+                      and submit; you will then pay the processing fee of{" "}
+                      <strong className="text-foreground">Rs {PROCESSING_FEE}</strong>.
+                    </>
+                  ) : (
+                    <>
+                      Please review your application. If everything is correct, continue to pay the
+                      processing fee of <strong className="text-foreground">Rs {PROCESSING_FEE}</strong>.
+                    </>
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -618,7 +710,7 @@ export default function ApplyFlow() {
                     ["Application Quota", `${quotaLabel}${quota === "local_quota" && criteria.criteria === "domicile_of_area" ? ` (Having Domicile of the Local Area: ${personal.union_council})` : ""}`],
                     ["Shift", "Morning"],
                     ["Username", formatCnic(session?.applicant?.cnic_formb ?? "")],
-                    ["Tracking ID", submitResult.tracking_id],
+                    ["Tracking ID", submitResult?.tracking_id ?? "Assigned when you submit"],
                     ["Date Applied", formatDateLong(new Date())],
                   ].map(([k, v]) => ({ label: String(k), value: v as React.ReactNode }))} />
                 
@@ -664,12 +756,30 @@ export default function ApplyFlow() {
                   {ADMISSION_MESSAGES.declaration}
                 </div>
 
+                {draftMode && (
+                  <div className="flex justify-center">
+                    <Turnstile
+                      key={turnstileKey}
+                      onToken={setTurnstileToken}
+                      onExpire={() => setTurnstileToken("")}
+                    />
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-2.5">
-                  <Button onClick={() => { setStep("pay"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    className="h-12 w-full font-semibold">
-                    <Wallet className="w-5 h-5" />
-                    Continue to Payment
-                  </Button>
+                  {draftMode ? (
+                    <Button onClick={handleFinalSubmit} disabled={busy || !turnstileToken}
+                      className="h-12 w-full font-semibold">
+                      {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                      Submit Application
+                    </Button>
+                  ) : (
+                    <Button onClick={() => { setStep("pay"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      className="h-12 w-full font-semibold">
+                      <Wallet className="w-5 h-5" />
+                      Continue to Payment
+                    </Button>
+                  )}
                   <Button variant="outline" onClick={() => { setStep("form"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                     className="h-11 w-full font-semibold">
                     <ChevronLeft className="w-5 h-5" /> Go Back
