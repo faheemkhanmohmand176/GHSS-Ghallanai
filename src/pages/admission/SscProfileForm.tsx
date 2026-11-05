@@ -24,7 +24,7 @@ import {
   interApi, EXAM_BOARDS, STUDY_GROUPS, EXAM_SESSIONS, SPORT_CERTIFICATES,
   PROVINCES, DISTRICTS, SscProfileData,
 } from "@/lib/interAdmission";
-import { saveDraftSsc } from "@/lib/admissionDraft";
+import { saveDraftSsc, getWip, setWip, clearWip } from "@/lib/admissionDraft";
 
 const YEARS: number[] = Array.from({ length: 28 }, (_, i) => 2026 - i);
 
@@ -54,10 +54,24 @@ export default function SscProfileForm() {
   // HYDRATE ONCE — a background session refetch must never reset the marks a
   // student is still typing (see PersonalProfileForm for the full rationale).
   const hydratedRef = useRef(false);
+  const [autosaveReady, setAutosaveReady] = useState(false);
+
+  // No saved SSC yet → restore a half-filled form from this device.
+  useEffect(() => {
+    if (!isDraft || session?.ssc || hydratedRef.current) return;
+    const w = getWip<SscProfileData>("ssc");
+    if (w) {
+      setForm({ ...EMPTY, ...w });
+      toast.success("Your unsaved progress was restored.", { id: "wip-restored" });
+    }
+    setAutosaveReady(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDraft]);
 
   useEffect(() => {
     if (hydratedRef.current || !session?.ssc) return;
     hydratedRef.current = true;
+    setAutosaveReady(true);
     const s = session.ssc;
     setForm({
       exam_session: s.exam_session ?? "Annual",
@@ -77,6 +91,13 @@ export default function SscProfileForm() {
 
   const set = <K extends keyof SscProfileData>(k: K, v: SscProfileData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  // Autosave every change (debounced) while the applicant is mid-way.
+  useEffect(() => {
+    if (!autosaveReady || !isDraft) return;
+    const t = setTimeout(() => setWip("ssc", form), 400);
+    return () => clearTimeout(t);
+  }, [autosaveReady, isDraft, form]);
 
   // Live percentage + grade preview
   const preview = useMemo(() => {
@@ -103,6 +124,8 @@ export default function SscProfileForm() {
       };
       if (res?.ok) {
         toast.success(`Matric profile saved: ${preview ? `${preview.pct}% (Grade ${preview.grade})` : ""}`);
+        clearWip("ssc");
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
         await queryClient.invalidateQueries({ queryKey: ["inter-session"] });
         navigate("/admission/portal", { replace: true });
       } else {
