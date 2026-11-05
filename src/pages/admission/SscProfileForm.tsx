@@ -24,6 +24,7 @@ import {
   interApi, EXAM_BOARDS, STUDY_GROUPS, EXAM_SESSIONS, SPORT_CERTIFICATES,
   PROVINCES, DISTRICTS, SscProfileData,
 } from "@/lib/interAdmission";
+import { saveDraftSsc } from "@/lib/admissionDraft";
 
 const YEARS: number[] = Array.from({ length: 28 }, (_, i) => 2026 - i);
 
@@ -45,7 +46,7 @@ function gradeFor(pct: number): string {
 }
 
 export default function SscProfileForm() {
-  const { session, loading, token, netError, refresh } = useInterSession();
+  const { session, loading, token, isDraft, netError, refresh } = useInterSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SscProfileData>(EMPTY);
@@ -93,7 +94,11 @@ export default function SscProfileForm() {
     e.preventDefault();
     setBusy(true);
     try {
-      const res = (await interApi.saveSsc(token!, form as unknown as Record<string, unknown>)) as unknown as {
+      // DRAFT (no account yet) → saved on this device only; the database is
+      // written once, at the final captcha-verified Submit.
+      const res = (isDraft
+        ? saveDraftSsc(form)
+        : await interApi.saveSsc(token!, form as unknown as Record<string, unknown>)) as unknown as {
         ok?: boolean; error?: string;
       };
       if (res?.ok) {
