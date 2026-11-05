@@ -3,7 +3,12 @@
  * "All Applications" table with the exact columns:
  *   # | Tracking ID | Program | Quota | Hafiz e Quran | Fee Submission Deadline | Action
  * plus the sidebar menu (New Admission Request, Personal Information,
- * Matric Profile, Logout) and profile-completion prompts.
+ * Matric Profile) and profile-completion prompts.
+ *
+ * NO ACCOUNT / LOGIN: before the final Submit this page shows the applicant's
+ * draft, which lives only on their own device.  After Submit (or after
+ * "Track Application" opens an application) it shows the submitted
+ * application(s) with Pay / Edit / View.
  */
 
 import { Link, useNavigate } from "react-router-dom";
@@ -23,7 +28,7 @@ import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import AdmissionSessionRetry from "@/components/shared/AdmissionSessionRetry";
 
 export default function AdmissionPortal() {
-  const { session, loading, logout, netError, refresh } = useInterSession();
+  const { session, loading, logout, discardDraft, isDraft, draft, netError, refresh } = useInterSession();
   const navigate = useNavigate();
 
   const personalDone = Boolean(session?.personal);
@@ -87,14 +92,35 @@ export default function AdmissionPortal() {
           <div>
             <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground">Applicant Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {session?.applicant
-                ? <>CNIC/Form-B: <span className="font-mono font-semibold text-foreground">{formatCnic(session.applicant.cnic_formb)}</span> · Mobile: <span className="font-mono">{maskMobile(session.applicant.mobile)}</span></>
-                : "Loading your session…"}
+              {isDraft
+                ? (session?.applicant?.cnic_formb
+                    ? <>CNIC/Form-B: <span className="font-mono font-semibold text-foreground">{formatCnic(session.applicant.cnic_formb)}</span> · Your draft is saved on this device and is not submitted yet.</>
+                    : "Fill in the steps below. Your draft is saved on this device until you submit.")
+                : session?.applicant
+                  ? <>CNIC/Form-B: <span className="font-mono font-semibold text-foreground">{formatCnic(session.applicant.cnic_formb)}</span> · Mobile: <span className="font-mono">{maskMobile(session.applicant.mobile)}</span></>
+                  : "Loading your application…"}
             </p>
           </div>
-          <Button variant="outline" onClick={logout} className="h-10 font-semibold">
-            <LogOut className="w-4 h-4" /> Logout
-          </Button>
+          {isDraft ? (
+            (draft.personal || draft.ssc) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (window.confirm("Discard your saved draft from this device? This cannot be undone.")) {
+                    discardDraft();
+                    toast.success("Draft discarded.");
+                  }
+                }}
+                className="h-10 font-semibold"
+              >
+                <LogOut className="w-4 h-4" /> Discard Draft
+              </Button>
+            )
+          ) : (
+            <Button variant="outline" onClick={logout} className="h-10 font-semibold">
+              <LogOut className="w-4 h-4" /> Exit
+            </Button>
+          )}
         </div>
 
         {/* Profile completion — shown first, only while something is missing */}
@@ -176,7 +202,9 @@ export default function AdmissionPortal() {
                   <div className="text-center py-10">
                     <ClipboardList className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
                     <p className="text-sm text-muted-foreground">
-                      No applications yet.
+                      {isDraft
+                        ? "Not submitted yet. Complete your Personal Information and Matric Profile, then use New Admission Request to choose your program and submit."
+                        : "No applications yet."}
                     </p>
                   </div>
                 ) : (
