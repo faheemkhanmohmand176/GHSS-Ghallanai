@@ -8,7 +8,7 @@ import {
   Star, Award, MapPin, Phone, Mail,
   Shield, Zap, Globe, Lightbulb, RefreshCw,
   Volume2, BookMarked, X as XIcon, Clock, ExternalLink,
-  UserPlus, LogIn, Search,
+  UserPlus, Search,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useSchoolSettings, safeMediaUrl, optimizedCloudinaryUrl } from "@/hooks/useSchoolSettings";
@@ -1357,15 +1357,12 @@ const Home = () => {
                 </h2>
                 <p className="text-muted-foreground text-[13.5px] sm:text-[15px] leading-relaxed mb-5 max-w-xl">
                   Apply for 1st Year and 2nd Year in Arts, Pre-Medical, Pre-Engineering and ICS through our
-                  online admission system. Create an account, complete your profiles, submit your
+                  online admission system. Fill in your personal and matric details, submit your
                   application and pay the {admissionFee ? <>Rs&nbsp;{admissionFee} </> : null}processing fee online with Easypaisa or a wallet.
                 </p>
                 <div className="flex flex-wrap gap-2 mb-5">
-                  <Link to="/admission/register" className="inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-4 text-[12.5px] font-semibold tracking-wide text-primary-foreground shadow-md shadow-primary/20 transition-all active:scale-[0.97] hover:brightness-110">
-                    <UserPlus className="w-4 h-4" strokeWidth={1.5} /> Create Account
-                  </Link>
-                  <Link to="/admission/login" className="inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-gold/40 bg-transparent px-4 text-[12.5px] font-semibold tracking-wide text-foreground transition-colors hover:bg-gold/10">
-                    <LogIn className="w-4 h-4" strokeWidth={1.5} /> Login
+                  <Link to="/admission/portal" className="inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-4 text-[12.5px] font-semibold tracking-wide text-primary-foreground shadow-md shadow-primary/20 transition-all active:scale-[0.97] hover:brightness-110">
+                    <UserPlus className="w-4 h-4" strokeWidth={1.5} /> Apply Online
                   </Link>
                   <Link to="/admission#track" className="inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-transparent px-4 text-[12.5px] font-semibold tracking-wide text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
                     <Search className="w-4 h-4" strokeWidth={1.5} /> Track Application
@@ -1380,9 +1377,8 @@ const Home = () => {
                 <p className="eyebrow mb-3">How it works</p>
                 <ol className="relative">
                   {[
-                    ["Create Account", "CNIC or Form-B, mobile, password"],
-                    ["Complete Profiles", "Personal and Matric (SSC) details"],
-                    ["Submit Application", "Program and quota"],
+                    ["Complete Profiles", "CNIC or Form-B, personal and Matric (SSC) details"],
+                    ["Submit Application", "Program, quota and security check"],
                     [admissionFee ? `Pay Rs ${admissionFee} Fee` : "Pay Processing Fee", "Online via Easypaisa or wallet"],
                     ["Track Application", "Tracking ID and status"],
                     ["Visit College", "Print form, bring original documents"],
