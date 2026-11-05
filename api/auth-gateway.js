@@ -4,9 +4,10 @@
 // with it — was 10).  Dispatched by ?action= so we do NOT need a new function
 // per protected endpoint.
 //
-//   ?action=register   admission applicant registration (Turnstile + RPC)
-//   ?action=login      admission applicant login          (Turnstile + RPC)
+//   ?action=apply      admission application, ONE atomic write (Turnstile + inter_apply)
 //   ?action=track      public application tracking        (Turnstile + RPC + 2nd factor)
+//                      and, on success, a private session to edit / pay it
+//   (register / login were REMOVED: admission has no accounts any more.)
 //   ?action=reset      main-site password reset           (Turnstile + Supabase Auth admin)
 //   ?action=signin     main-site admin/user login         (Turnstile + Supabase Auth)
 //
@@ -201,58 +202,36 @@ function serviceClient() {
 // Action handlers
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ?action=register  body: { nationality, cnic, mobile, password, turnstile }
-async function handleRegister(body, ip, supabase) {
+// ?action=apply  body: { nationality, cnic, personal, ssc, programId, quota,
+//                        criteria, subjectGroup, turnstile }
+// The ONLY place an applicant is ever written.  Everything the applicant typed
+// lives on their device until now; the Turnstile captcha is verified here and
+// inter_apply stores applicant + profiles + application in ONE transaction.
+async function handleApply(body, ip, supabase) {
   const ts = await verifyTurnstile(body.turnstile, ip);
   if (!ts.ok) return json(400, { ok: false, error: ts.error });
+
+  if (!body.personal || typeof body.personal !== "object" ||
+      !body.ssc || typeof body.ssc !== "object") {
+    return json(200, { ok: false, error: "Please complete your Personal Information and Matric Profile before applying." });
+  }
 
   const limits = await readLimits(supabase);
   const ipKey = await hashKey(ip);
-  const rl = await rateLimit(supabase, "register", ipKey, limits.rate_register_per_ip_day ?? 5, 24 * 60);
-  if (!rl.allowed) return json(429, { ok: false, error: "Too many registration attempts from this network today. Please try again tomorrow." }, (rl.retryAfter || 24 * 60) * 60);
+  const rl = await rateLimit(supabase, "register", ipKey, limits.rate_register_per_ip_day ?? 100, 24 * 60);
+  if (!rl.allowed) return json(429, { ok: false, error: "Too many applications from this network today. Please try again tomorrow." }, (rl.retryAfter || 24 * 60) * 60);
 
-  const { data, error } = await supabase.rpc("inter_register", {
+  const { data, error } = await supabase.rpc("inter_apply", {
     p_nationality: body.nationality,
     p_cnic_formb: body.cnic,
-    p_mobile: body.mobile,
-    p_password: body.password,
+    p_personal: body.personal,
+    p_ssc: body.ssc,
+    p_program_id: Number(body.programId),
+    p_quota: body.quota,
+    p_criteria: body.criteria ?? {},
+    p_subject_group: body.subjectGroup ?? null,
   });
-  if (error) return json(500, { ok: false, error: error.message });
-  return json(200, { ...data, turnstile_unconfigured: ts.unconfigured });
-}
-
-// ?action=login  body: { loginId, password, turnstile }
-async function handleLogin(body, ip, supabase) {
-  const ts = await verifyTurnstile(body.turnstile, ip);
-  if (!ts.ok) return json(400, { ok: false, error: ts.error });
-
-  const limits = await readLimits(supabase);
-  const idKey = await hashKey(body.loginId);
-  const cooldown = limits.rate_login_cooldown_minutes ?? 15;
-  const maxAttempts = limits.rate_login_max_attempts ?? 5;
-
-  // Lockout: too many failed logins for this login id in the cooldown window
-  const since = new Date(Date.now() - cooldown * 60_000).toISOString();
-  const { count } = await supabase
-    .from("security_attempts")
-    .select("id", { count: "exact", head: true })
-    .eq("bucket", "login")
-    .eq("key", idKey)
-    .eq("success", false)
-    .gt("created_at", since);
-  if ((count || 0) >= maxAttempts) {
-    return json(429, { ok: false, error: `Too many failed attempts. Try again in ${cooldown} minutes.` }, cooldown * 60);
-  }
-
-  const { data, error } = await supabase.rpc("inter_login", {
-    p_login_id: body.loginId,
-    p_password: body.password,
-  });
-  // Always record the attempt (success/fail) for the lockout window
-  await supabase.from("security_attempts").insert({
-    bucket: "login", key: idKey, success: Boolean(data && data.ok),
-  });
-  if (error) return json(500, { ok: false, error: error.message });
+  if (error) return json(500, { ok: false, error: "Could not submit your application. Please try again." });
   return json(200, { ...data, turnstile_unconfigured: ts.unconfigured });
 }
 
@@ -275,7 +254,18 @@ async function handleTrack(body, ip, supabase) {
   // factor, rate-limited per id) so the response is identical and cannot be
   // used to probe for valid tracking IDs.
   if (error) return json(200, { ok: false });
-  return json(200, { ...data, turnstile_unconfigured: ts.unconfigured });
+
+  // Verified (Tracking ID + 2nd factor + captcha) → also open a private,
+  // 7-day session so the applicant can edit / pay this application without
+  // any account or password.  Never blocks the status result itself.
+  let access = null;
+  if (data && data.ok) {
+    try {
+      const g = await supabase.rpc("inter_access_grant", { p_tracking_id: body.trackingId });
+      if (g.data && g.data.ok) access = { token: g.data.token, application_id: g.data.application_id };
+    } catch (_e) { access = null; }
+  }
+  return json(200, { ...data, access, turnstile_unconfigured: ts.unconfigured });
 }
 
 // ?action=reset  body: { email, turnstile }   (main-site Supabase Auth)
@@ -398,8 +388,7 @@ async function handle(req) {
 
   try {
     switch (action) {
-      case "register": return await handleRegister(body, ip, supabase);
-      case "login":    return await handleLogin(body, ip, supabase);
+      case "apply":    return await handleApply(body, ip, supabase);
       case "track":    return await handleTrack(body, ip, supabase);
       case "reset":    return await handleReset(body, ip, supabase, req);
       case "signin":   return await handleSignIn(body, ip, supabase);
