@@ -45,29 +45,6 @@ const AIAssistantWidget = lazy(() =>
     .catch(() => ({ default: () => null })),
 );
 
-// PERF (homepage chunk diet): BiseResultSearch is the full BISE Peshawar
-// result search card — same component /results uses, complete with live
-// BISEP polling, roll-number lookup, share/save/compare actions and the
-// celebration canvas. Pulling it into the homepage chunk would bloat first
-// paint, so it is split into its own chunk that loads at browser idle
-// (Deferred mounts it, the import fires then, and the service worker caches
-// it for offline reuse). The .catch() fallback renders nothing if the chunk
-// can't load (first-ever visit while offline) — the homepage keeps working
-// instead of crashing into the root error boundary.
-//
-// RECONNECT (Nov 2026): this lazy import + the <HomeBiseResultSection />
-// below are what re-plumb the homepage's results section back to BISE
-// Peshawar. The earlier "HomeResultsBanner returns null" change had silently
-// detached the homepage from the board result search — every visitor had to
-// navigate to /results to search a BISEP roll number. The homepage now
-// carries the live board search again, alongside the school-result countdown
-// that already lives in the Navbar's ResultsTopStrip.
-const BiseResultSearch = lazy(() =>
-  import("@/pages/Results")
-    .then((mod) => ({ default: mod.BiseResultSearch }))
-    .catch(() => ({ default: () => null })),
-);
-
 /* ─── Animation variants ─── */
 // PERF: short, small-distance reveals. Big offsets (y: 60) with long 0.7 s
 // durations made sections visibly "crawl" in on slow phones and kept the
@@ -1006,58 +983,6 @@ function HomeResultsBanner() {
   return null;
 }
 
-// ── Homepage BISE Peshawar result search section ─────────────────────────
-// Renders the SAME BiseResultSearch component /results uses (lazy-loaded
-// above), inside a homepage-styled section. This is what reconnects the
-// homepage to BISE Peshawar: a student can search their HSSC (1st Year /
-// 2nd Year) board result by roll number directly from the homepage, with
-// the live BISEP exam title + countdown, the on-device marksheet cache,
-// and the share/save/compare actions all working identically to /results.
-//
-// The section is gated by <Deferred> so the BiseResultSearch chunk only
-// begins loading at browser idle — it never competes with the hero or
-// stats bar for first paint. The <Suspense> fallback mirrors the search
-// card's shape so the layout never jumps when the chunk lands.
-function HomeBiseResultSection() {
-  return (
-    <Deferred>
-      <m.section
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.1 }}
-        variants={sectionFadeUp}
-        className="section-y bg-background cv-auto"
-      >
-        <div className="container mx-auto px-4">
-          <ScrollReveal>
-            <SectionHeader
-              eyebrow="Board Result"
-              title="BISE Peshawar Result"
-              subtitle="Check your HSSC (1st Year & 2nd Year) BISE Peshawar board result by roll number — fetched live from the official BISEP portal."
-            />
-          </ScrollReveal>
-          <ScrollStage>
-            <div className="max-w-2xl mx-auto">
-              <Suspense
-                fallback={
-                  <div className="bg-card rounded-2xl shadow-elevated p-5 border border-border animate-pulse">
-                    <div className="h-3 w-16 bg-muted rounded mb-2" />
-                    <div className="h-11 w-full bg-muted rounded-xl mb-3" />
-                    <div className="h-11 w-full bg-muted rounded-xl mb-3" />
-                    <div className="h-11 w-full bg-muted rounded-xl" />
-                  </div>
-                }
-              >
-                <BiseResultSearch />
-              </Suspense>
-            </div>
-          </ScrollStage>
-        </div>
-      </m.section>
-    </Deferred>
-  );
-}
-
 /* ══════════════════════════════════
    MAIN HOME COMPONENT
 ══════════════════════════════════ */
@@ -1313,17 +1238,6 @@ const Home = () => {
           </ScrollStage>
         </div>
       </m.section>
-
-      {/* ══ 7. BISE PESHAWAR RESULT SEARCH ══
-          Live BISE Peshawar board result search — same component /results
-          uses (BiseResultSearch), lazy-loaded via <Deferred> so it never
-          competes with the hero or stats bar for first paint. Reconnects
-          the homepage's results section to BISE Peshawar: students can
-          search their HSSC (1st Year / 2nd Year) board result by roll
-          number directly from the homepage, with the live BISEP exam
-          title, the on-device marksheet cache, and the share/save/compare
-          actions all working identically to /results. */}
-      <HomeBiseResultSection />
 
       {/* ══ 8. WORD OF THE DAY ══ */}
       <WordOfDaySection />
