@@ -23,7 +23,10 @@ const ScrollToTopOnNavigate = () => {
       firstRun.current = false;
       return;
     }
-    if (navigationType === "PUSH") {
+    // PUSH = normal link / navigate(); REPLACE = navigate(..., { replace: true }),
+    // which the admission forms use after "Save" — without this the next page
+    // opened at the old scroll offset (i.e. the footer). POP keeps native restore.
+    if (navigationType === "PUSH" || navigationType === "REPLACE") {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
   }, [pathname, navigationType]);
