@@ -35,7 +35,6 @@ import { saveDraftPersonal, getWip, setWip, clearWip } from "@/lib/admissionDraf
 
 const NATIONALITIES = ["Pakistani", "Afghani"] as const;
 
-const YEARS: number[] = Array.from({ length: 26 }, (_, i) => 2012 - i);
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July",
   "August", "September", "October", "November", "December"];
 const DAYS: number[] = Array.from({ length: 30 }, (_, i) => i + 1);
@@ -143,6 +142,11 @@ export default function PersonalProfileForm() {
       toast.error("Please select your Date of Birth (day, month and year).");
       return;
     }
+    const yr = Number(dobYear);
+    if (!/^\d{4}$/.test(dobYear) || yr < 1950 || yr > new Date().getFullYear() - 10) {
+      toast.error("Please enter a valid 4-digit birth year (e.g. 2008).");
+      return;
+    }
     const dob = `${dobYear}-${String(MONTHS.indexOf(dobMonth) + 1).padStart(2, "0")}-${dobDay.padStart(2, "0")}`;
     if (isDraft && cnic.replace(/\D/g, "").length !== 13) {
       toast.error("CNIC/Form-B Number Must Be 13 Digits And WithOut dashes(-) E.g 0000000000000");
@@ -163,7 +167,10 @@ export default function PersonalProfileForm() {
         clearWip("personal");
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
         await queryClient.invalidateQueries({ queryKey: ["inter-session"] });
-        navigate("/admission/portal", { replace: true });
+        // DIRECT FLOW: after Personal Information go straight to the next
+        // unfinished step — Matric profile, then the admission request.
+        const hasApp = (session?.applications ?? []).some((a) => !["cancelled", "rejected"].includes(a.status));
+        navigate(hasApp ? "/admission/portal" : session?.ssc ? "/admission/apply" : "/admission/ssc", { replace: true });
       } else {
         toast.error(res?.error || "Could not save your profile.");
       }
@@ -277,10 +284,14 @@ export default function PersonalProfileForm() {
                 <div className={F}>
                   <Label className="font-semibold text-[13px]">Date of Birth <span className="text-red-500">*</span></Label>
                   <div className="grid grid-cols-3 gap-2.5">
-                    <select className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`} value={dobYear} onChange={(e) => setDobYear(e.target.value)} required>
-                      <option value="">Year</option>
-                      {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-                    </select>
+<Input
+                      className={`${inp} font-mono`} inputMode="numeric" autoComplete="off"
+                      maxLength={4} placeholder="Year"
+                      value={dobYear}
+                      onChange={(e) => setDobYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      aria-label="Year of birth"
+                      required
+                    />
                     <select className={`${inp} block w-full min-w-0 max-w-full truncate rounded-xl border border-input bg-background px-3 text-sm`} value={dobMonth} onChange={(e) => setDobMonth(e.target.value)} required>
                       <option value="">Month</option>
                       {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
