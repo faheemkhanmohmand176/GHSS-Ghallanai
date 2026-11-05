@@ -168,6 +168,17 @@ export default function ApplyFlow() {
     }
   }, [loading, session, navigate]);
 
+  // ONE admission request per applicant: if an active application already
+  // exists, a NEW application cannot be started — open the existing one.
+  useEffect(() => {
+    if (isEditing || loading || !session?.ok || submitResult || step !== "form") return;
+    const active = (session.applications ?? []).find((a) => !["cancelled", "rejected"].includes(a.status));
+    if (active) {
+      toast("You already have an admission request. Opening it.", { icon: "ℹ️", id: "one-app" });
+      navigate(`/admission/application/${active.id}`, { replace: true });
+    }
+  }, [isEditing, loading, session, submitResult, step, navigate]);
+
   // ── Edit mode: load the existing application and pre-fill the form ──────
   // Slow-internet rule: a NETWORK failure while loading the application for
   // editing must NOT kick the applicant back to the portal (the old behaviour
