@@ -31,7 +31,7 @@ import {
   interApi, PROVINCES, RELIGIONS, GENDERS, MOHMAND_TEHSILS, DISTRICTS,
   PersonalProfileData, InterUc,
 } from "@/lib/interAdmission";
-import { saveDraftPersonal } from "@/lib/admissionDraft";
+import { saveDraftPersonal, getWip, setWip, clearWip } from "@/lib/admissionDraft";
 
 const NATIONALITIES = ["Pakistani", "Afghani"] as const;
 
@@ -68,6 +68,9 @@ export default function PersonalProfileForm() {
   // to the SAVED values — silently throwing away the edits the applicant was
   // still typing on a slow connection. The form is seeded exactly once.
   const hydratedRef = useRef(false);
+  // Autosave is switched on only after the form has been seeded, so the empty
+  // initial state can never overwrite a stored in-progress copy.
+  const [autosaveReady, setAutosaveReady] = useState(false);
 
   useEffect(() => {
     if (hydratedRef.current) return;
@@ -97,8 +100,27 @@ export default function PersonalProfileForm() {
         mobile_number: session.applicant!.mobile || f.mobile_number,
         nationality: session.applicant!.nationality || "Pakistani",
       }));
+      // Restore a half-filled form from this device (draft mode only).
+      if (isDraft) {
+        const w = getWip<{ form: PersonalProfileData; nationality: string; cnic: string; dobDay: string; dobMonth: string; dobYear: string }>("personal");
+        if (w?.form) {
+          setForm({ ...EMPTY, ...w.form });
+          setNationality(w.nationality || "Pakistani");
+          setCnic(w.cnic || "");
+          setDobDay(w.dobDay || ""); setDobMonth(w.dobMonth || ""); setDobYear(w.dobYear || "");
+          toast.success("Your unsaved progress was restored.", { id: "wip-restored" });
+        }
+      }
     }
-  }, [session]);
+    if (hydratedRef.current) setAutosaveReady(true);
+  }, [session, isDraft]);
+
+  // Autosave every change (debounced) while the applicant is mid-way.
+  useEffect(() => {
+    if (!autosaveReady || !isDraft) return;
+    const t = setTimeout(() => setWip("personal", { form, nationality, cnic, dobDay, dobMonth, dobYear }), 400);
+    return () => clearTimeout(t);
+  }, [autosaveReady, isDraft, form, nationality, cnic, dobDay, dobMonth, dobYear]);
 
   const set = <K extends keyof PersonalProfileData>(k: K, v: PersonalProfileData[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -138,6 +160,8 @@ export default function PersonalProfileForm() {
       };
       if (res?.ok) {
         toast.success("Personal profile saved.");
+        clearWip("personal");
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
         await queryClient.invalidateQueries({ queryKey: ["inter-session"] });
         navigate("/admission/portal", { replace: true });
       } else {
