@@ -99,7 +99,6 @@ const NotFound         = lazyWithRetry(() => import("./pages/NotFound"));
 const Admission        = lazyWithRetry(() => import("./pages/Admission"));
 import AdmissionGate from "@/components/shared/AdmissionGate";
 // Inter admission portal
-const AdmissionAuth    = lazyWithRetry(() => import("./pages/admission/AdmissionAuth"));
 const AdmissionPortal  = lazyWithRetry(() => import("./pages/admission/AdmissionPortal"));
 const PersonalProfileForm = lazyWithRetry(() => import("./pages/admission/PersonalProfileForm"));
 const SscProfileForm   = lazyWithRetry(() => import("./pages/admission/SscProfileForm"));
@@ -274,8 +273,8 @@ const App = () => (
                 />
                 <Route path="/roll-no-slip"            element={<RollNoSlip />} />
                 <Route path="/admission"               element={<Admission />} />
-                <Route path="/admission/register"        element={<AdmissionGate><AdmissionAuth /></AdmissionGate>} />
-                <Route path="/admission/login"           element={<AdmissionGate><AdmissionAuth key="login" /></AdmissionGate>} />
+                <Route path="/admission/register"        element={<Navigate to="/admission/portal" replace />} />
+                <Route path="/admission/login"           element={<Navigate to="/admission/portal" replace />} />
                 <Route path="/admission/portal"          element={<AdmissionGate><AdmissionPortal /></AdmissionGate>} />
                 <Route path="/admission/profile"         element={<AdmissionGate><PersonalProfileForm /></AdmissionGate>} />
                 <Route path="/admission/ssc"             element={<AdmissionGate><SscProfileForm /></AdmissionGate>} />
