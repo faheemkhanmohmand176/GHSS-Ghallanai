@@ -7,7 +7,7 @@
  * The applicant portal lives under /admission/portal (no account, no login).
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import { motion } from "framer-motion";
@@ -77,6 +77,16 @@ function TrackApplication() {
   const [searching, setSearching] = useState(false);
   const [result, setResult] = useState<TrackResult | null>(null);
   const [failed, setFailed] = useState(false);
+
+  // Open the connection to the database while the visitor is still typing, so
+  // the lookup itself needs no DNS / TLS set-up time.
+  useEffect(() => {
+    const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    if (!url || document.querySelector(`link[rel="preconnect"][href="${url}"]`)) return;
+    const l = document.createElement("link");
+    l.rel = "preconnect"; l.href = url; l.crossOrigin = "anonymous";
+    document.head.appendChild(l);
+  }, []);
 
   const doSearch = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
