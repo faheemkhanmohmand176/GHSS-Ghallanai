@@ -19,9 +19,6 @@ const AdminMeritList        = lazy(() => import("./tabs/AdminMeritList"));
 const AdminUsers             = lazy(() => import("./tabs/AdminUsers"));
 // ── New feature admin tabs ──
 const AdminAdmissions        = lazy(() => import("./tabs/AdminAdmissions"));
-const AdminAuditLog          = lazy(() => import("./tabs/AdminAuditLog"));
-// ── Fee Management ──
-const AdminFees = lazy(() => import("./tabs/AdminFees"));
 
 const tabMap: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   overview:           AdminOverview,
@@ -41,8 +38,6 @@ const tabMap: Record<string, React.LazyExoticComponent<React.ComponentType<any>>
   "exams":            AdminExamDateSheet,
   users:              AdminUsers,
   admissions:         AdminAdmissions,
-  audit:              AdminAuditLog,
-  "fees":             AdminFees,
 };
 
 // ── Per-tab error boundary ───────────────────────────────────────────────────
