@@ -1,36 +1,32 @@
 /**
- * useInterAdmission — shared applicant-session hook for the Inter admission
- * portal. Resolves the session token from localStorage, loads the full
- * session state (applicant + personal + ssc + applications) through the
- * inter_session_state RPC and exposes helpers used by every portal page.
+ * useInterAdmission — shared applicant hook for the Inter admission portal.
  *
- * ── SLOW-INTERNET FIXES (all verified defects) ──────────────────────────────
- *  1. NETWORK ERROR ≠ EXPIRED SESSION (the big one).
- *     supabase-js returns {error} when the REQUEST never reaches the server
- *     (2G drop, DNS stall, timeout). The old hook treated ANY ok:false the
- *     same: clearToken() + bounce to /admission/login — an applicant who was
- *     mid-application was silently LOGGED OUT by one dropped packet. Now a
- *     network-shaped failure THROWS inside the queryFn, React Query retries
- *     it (network retries only), and if it still fails the pages show a
- *     "check your connection" retry card. Only a REAL server verdict
- *     ({ok:false} that actually came back from the database) signs out.
- *  2. NO TOKEN = NO INFINITE SKELETON.
- *     Landing on /admission/portal with no stored token used to render
- *     skeletons forever (query disabled → loading true forever). It now
- *     redirects to the login page, exactly like an expired session.
- *  3. LOGOUT NO LONGER WIPES THE OFFLINE CACHE.
- *     queryClient.clear() used to delete EVERY cached query — including the
- *     IndexedDB-persisted notices/results/admission data that makes the site
- *     usable offline. Only the applicant's own inter-session entries are
- *     removed now.
+ * NO ACCOUNTS, NO LOGIN.  The hook runs in one of two modes:
+ *
+ *   • DRAFT mode (no token) — the applicant is filling the form.  Everything
+ *     lives on their device (lib/admissionDraft.ts); the database is not
+ *     touched.  `session` is built from the draft and has the same shape as a
+ *     server session, so every page renders it unchanged.  `isDraft` is true.
+ *
+ *   • SERVER mode (token present) — set after the final Submit (or after
+ *     "Track Application" opens an existing application).  The session is
+ *     loaded through inter_session_state exactly as before, so Pay / Edit /
+ *     View keep working.
+ *
+ * SLOW-INTERNET HARDENING (kept from the previous version):
+ *   • A network failure is never treated as an expired session — it throws
+ *     inside the queryFn, React Query retries it, and pages show a retry card.
+ *   • Sign-out only removes the applicant's own session queries, never the
+ *     shared offline cache.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  interApi, getToken, clearToken, isAdmissionNetworkError, SessionState,
+  interApi, getToken, clearToken, isAdmissionNetworkError, SessionState, TOKEN_EVENT,
 } from "@/lib/interAdmission";
+import { getDraft, clearDraft, draftToSession, DRAFT_EVENT, AdmissionDraft } from "@/lib/admissionDraft";
 import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
 
 /** Thrown (and retried) only when the session call failed for NETWORK
@@ -42,20 +38,27 @@ class SessionNetworkError extends Error {
   }
 }
 
-export function useInterSession(options: { require?: boolean } = {}) {
-  const { require: requireSession = true } = options;
+export function useInterSession(options: { requireToken?: boolean } = {}) {
+  const { requireToken = false } = options;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  // localStorage is synchronous — read once at first render so the very first
-  // pass already knows whether a session exists (no skeleton flash, and the
-  // no-token redirect below can fire immediately).
   const [token, setTokenState] = useState<string | null>(() => getToken());
+  const [draft, setDraftState] = useState<AdmissionDraft>(() => getDraft());
 
-  // Sign-out / sign-in from another tab is reflected on focus.
+  // Token / draft changes (this tab, other tabs, focus) are reflected at once.
   useEffect(() => {
-    const sync = () => setTokenState(getToken());
-    window.addEventListener("focus", sync);
-    return () => window.removeEventListener("focus", sync);
+    const syncToken = () => setTokenState(getToken());
+    const syncDraft = () => setDraftState(getDraft());
+    window.addEventListener("focus", syncToken);
+    window.addEventListener("storage", syncToken);
+    window.addEventListener(TOKEN_EVENT, syncToken);
+    window.addEventListener(DRAFT_EVENT, syncDraft);
+    return () => {
+      window.removeEventListener("focus", syncToken);
+      window.removeEventListener("storage", syncToken);
+      window.removeEventListener(TOKEN_EVENT, syncToken);
+      window.removeEventListener(DRAFT_EVENT, syncDraft);
+    };
   }, []);
 
   const q = useQuery<SessionState>({
@@ -63,15 +66,12 @@ export function useInterSession(options: { require?: boolean } = {}) {
     queryFn: async () => {
       if (!token) return { ok: false, error: "No session." };
       const res = (await interApi.sessionState(token)) as unknown as SessionState;
-      // Network failure → throw, so React Query retries it and the pages can
-      // offer a retry card. NEVER treated as "session expired".
       if (isAdmissionNetworkError(res)) {
         throw new SessionNetworkError(res.error || "Network error. Please check your connection.");
       }
       return res;
     },
     enabled: Boolean(token),
-    // Only network failures retry (they throw). A server verdict never does.
     retry: (failureCount, error) => {
       if (!(error instanceof SessionNetworkError)) return false;
       return failureCount < ADMISSION_CLIENT_CACHE.sessionNetworkRetries;
@@ -81,56 +81,60 @@ export function useInterSession(options: { require?: boolean } = {}) {
     staleTime: 30 * 1000,
   });
 
-  // No stored token on a page that requires a session → straight to login
-  // (was: skeletons forever, because the disabled query never finishes).
+  // Pages that only make sense for an already-submitted application
+  // (view / pay / edit) send a visitor with no session to "Track Application".
   useEffect(() => {
-    if (requireSession && token === null) {
-      navigate("/admission/login", { replace: true });
+    if (requireToken && token === null) {
+      navigate("/admission#track", { replace: true });
     }
-  }, [requireSession, token, navigate]);
+  }, [requireToken, token, navigate]);
 
-  // Session expired / invalid → clear token and bounce to login.
-  // q.data with ok:false can now ONLY be a real server verdict (network
-  // failures throw instead of resolving), but the belt-and-braces network
-  // check below keeps this safe even if a future error string slips through.
+  // A REAL server verdict that the session is invalid (expired after 7/30
+  // days): drop the token.  The applicant is simply back in draft mode — there
+  // is no login page to bounce to.
   useEffect(() => {
-    if (
-      requireSession &&
-      token &&
-      q.data &&
-      q.data.ok === false &&
-      !isAdmissionNetworkError(q.data)
-    ) {
+    if (token && q.data && q.data.ok === false && !isAdmissionNetworkError(q.data)) {
       clearToken();
-      navigate("/admission/login", { replace: true });
+      if (requireToken) navigate("/admission#track", { replace: true });
     }
-  }, [q.data, token, requireSession, navigate]);
+  }, [q.data, token, requireToken, navigate]);
 
   const refresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["inter-session", token] });
+    if (token) queryClient.invalidateQueries({ queryKey: ["inter-session", token] });
+    else setDraftState(getDraft());
   }, [queryClient, token]);
 
+  /** End the private session on this device (server mode). */
   const logout = useCallback(async () => {
     if (token) {
       try { await interApi.logout(token); } catch { /* best-effort */ }
     }
     clearToken();
-    // Scoped removal: the applicant's own session data only. The shared
-    // offline cache (notices, results, admission settings…) must survive a
-    // logout so the public site keeps working on a slow connection.
     queryClient.removeQueries({ queryKey: ["inter-session"] });
-    navigate("/admission/login", { replace: true });
+    navigate("/admission", { replace: true });
   }, [token, queryClient, navigate]);
+
+  /** Throw away the on-device draft (draft mode). */
+  const discardDraft = useCallback(() => {
+    clearDraft();
+    setDraftState(getDraft());
+  }, []);
+
+  const draftSession = useMemo(() => draftToSession(draft), [draft]);
+  const isDraft = !token;
 
   return {
     token,
-    session: q.data,
-    loading: !token || q.isLoading,
+    isDraft,
+    draft,
+    session: isDraft ? draftSession : q.data,
+    loading: isDraft ? false : q.isLoading,
     /** True when the session could not be loaded because of the NETWORK
      *  (after retries). Pages render a retry card instead of empty data. */
-    netError: q.isError,
+    netError: isDraft ? false : q.isError,
     expired: Boolean(token && q.data && q.data.ok === false),
     refresh,
     logout,
+    discardDraft,
   };
 }
