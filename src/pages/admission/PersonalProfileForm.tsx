@@ -3,7 +3,12 @@
  * every personal field (name, father name, DOB via
  * day/month/year selects, gender radio, contact numbers, religion, domicile
  * province/district/tehsil/union council, parents' CNICs, mailing address,
- * blood group, hafiz e quran). Mobile number is locked.
+ * blood group, hafiz e quran).
+ *
+ * NO ACCOUNT: the applicant's nationality + own CNIC/Form-B are entered here
+ * (they used to be typed on the removed "Create Account" page).  Before the
+ * final Submit everything is saved to a draft on the applicant's own device;
+ * after submission (private session) the identity + mobile are locked.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -26,6 +31,9 @@ import {
   interApi, PROVINCES, RELIGIONS, GENDERS, MOHMAND_TEHSILS, DISTRICTS,
   PersonalProfileData, InterUc,
 } from "@/lib/interAdmission";
+import { saveDraftPersonal } from "@/lib/admissionDraft";
+
+const NATIONALITIES = ["Pakistani", "Afghani"] as const;
 
 const YEARS: number[] = Array.from({ length: 26 }, (_, i) => 2012 - i);
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July",
@@ -44,8 +52,11 @@ const EMPTY: PersonalProfileData = {
 };
 
 export default function PersonalProfileForm() {
-  const { session, loading, token, netError, refresh } = useInterSession();
+  const { session, loading, token, isDraft, netError, refresh } = useInterSession();
   const [form, setForm] = useState<PersonalProfileData>(EMPTY);
+  // Applicant identity (no account): nationality + own CNIC / Form-B.
+  const [nationality, setNationality] = useState<string>("Pakistani");
+  const [cnic, setCnic] = useState("");
   const [dobDay, setDobDay] = useState("");
   const [dobMonth, setDobMonth] = useState("");
   const [dobYear, setDobYear] = useState("");
@@ -64,6 +75,10 @@ export default function PersonalProfileForm() {
       hydratedRef.current = true;
       const p = session.personal;
       setForm({ ...EMPTY, ...p });
+      if (session.applicant) {
+        setNationality(session.applicant.nationality || p.nationality || "Pakistani");
+        setCnic(session.applicant.cnic_formb || "");
+      }
       if (p.date_of_birth) {
         const d = new Date(p.date_of_birth);
         if (!isNaN(d.getTime())) {
@@ -74,11 +89,13 @@ export default function PersonalProfileForm() {
       }
     } else if (session?.applicant) {
       hydratedRef.current = true;
-      // New profile: prefill mobile + nationality from the account (locked fields)
+      // New profile: prefill identity from the draft / session
+      setNationality(session.applicant.nationality || "Pakistani");
+      setCnic(session.applicant.cnic_formb || "");
       setForm((f) => ({
         ...f,
-        mobile_number: session.applicant!.mobile,
-        nationality: session.applicant!.nationality,
+        mobile_number: session.applicant!.mobile || f.mobile_number,
+        nationality: session.applicant!.nationality || "Pakistani",
       }));
     }
   }, [session]);
@@ -105,10 +122,18 @@ export default function PersonalProfileForm() {
       return;
     }
     const dob = `${dobYear}-${String(MONTHS.indexOf(dobMonth) + 1).padStart(2, "0")}-${dobDay.padStart(2, "0")}`;
+    if (isDraft && cnic.replace(/\D/g, "").length !== 13) {
+      toast.error("CNIC/Form-B Number Must Be 13 Digits And WithOut dashes(-) E.g 0000000000000");
+      return;
+    }
     setBusy(true);
     try {
-      const payload = { ...form, date_of_birth: dob };
-      const res = (await interApi.savePersonal(token!, payload as unknown as Record<string, unknown>)) as unknown as {
+      const payload = { ...form, date_of_birth: dob, nationality };
+      // DRAFT (no account yet) → saved on this device only; nothing is sent to
+      // the database until the final captcha-verified Submit.
+      const res = (isDraft
+        ? saveDraftPersonal(payload, { nationality, cnic })
+        : await interApi.savePersonal(token!, payload as unknown as Record<string, unknown>)) as unknown as {
         ok?: boolean; error?: string;
       };
       if (res?.ok) {
@@ -156,7 +181,9 @@ export default function PersonalProfileForm() {
             </div>
             <div>
               <h1 className="font-heading text-2xl font-bold text-foreground">Personal Information</h1>
-              <p className="text-sm text-muted-foreground mt-0.5">Required before you can apply.</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {isDraft ? "Required before you can apply. Saved on this device until you submit." : "Required before you can apply."}
+              </p>
             </div>
             {session?.personal && (
               <BadgeCheck className="w-5 h-5 text-green-600 ml-auto shrink-0" />
@@ -170,6 +197,47 @@ export default function PersonalProfileForm() {
               <div className="space-y-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-11 rounded-xl" />)}</div>
             ) : (
               <form onSubmit={handleSave} className="space-y-5">
+                {/* Applicant identity — no account: nationality + own CNIC / Form-B */}
+                <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4">
+                  <div>
+                    <Label className="font-semibold text-[13px]">Nationality <span className="text-red-500">*</span></Label>
+                    <div className="grid grid-cols-2 gap-2.5 mt-1.5">
+                      {NATIONALITIES.map((n) => (
+                        <button
+                          key={n} type="button" disabled={!isDraft}
+                          onClick={() => { setNationality(n); set("nationality", n); }}
+                          className={`h-11 rounded-xl border-2 text-sm font-semibold transition-all disabled:cursor-not-allowed ${
+                            nationality === n
+                              ? "border-primary bg-primary/5 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/40"
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className={F}>
+                    <Label className="font-semibold text-[13px]">
+                      {nationality === "Pakistani" ? "Your CNIC/Form-B" : "Your Afghan Card / Passport Number"} <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      inputMode="numeric" maxLength={13}
+                      className={`${inp} font-mono tracking-wide`}
+                      value={cnic}
+                      onChange={(e) => setCnic(e.target.value.replace(/\D/g, "").slice(0, 13))}
+                      placeholder={nationality === "Pakistani" ? "Enter CNIC Number WithOut Dashes(-)" : "Afghan Card | Passport Number WithOut dashes(-)"}
+                      readOnly={!isDraft}
+                      required
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      {nationality === "Pakistani"
+                        ? "CNIC Number Must Be 13 Digits And WithOut dashes(-) E.g 0000000000000"
+                        : "Number WithOut dashes(-)"}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className={F}>
                     <Label className="font-semibold text-[13px]">Name <span className="text-red-500">*</span></Label>
@@ -221,7 +289,7 @@ export default function PersonalProfileForm() {
                     <Input className={`${inp} font-mono`} maxLength={11} placeholder="03451234567"
                       value={form.mobile_number}
                       onChange={(e) => set("mobile_number", e.target.value.replace(/\D/g, "").slice(0, 11))}
-                      readOnly={Boolean(session?.applicant)}
+                      readOnly={!isDraft}
                       required />
                   </div>
                   <div className={F}>
