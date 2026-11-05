@@ -1,5 +1,7 @@
 {
   "regions": ["bom1"],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "trailingSlash": false,
   "redirects": [
     { "source": "/result-card", "destination": "/results", "permanent": true },
