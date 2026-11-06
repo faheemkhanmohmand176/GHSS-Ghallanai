@@ -433,17 +433,6 @@ export default function PersonalProfileForm() {
                       {BLOOD_GROUPS.map((b) => <option key={b} value={b}>{b}</option>)}
                     </select>
                   </div>
-                  <div className={F}>
-                    <Label className="font-semibold text-[13px]">Hafiz e Quran</Label>
-                    <div className="grid grid-cols-2 gap-2.5">
-                      {[{ v: false, l: "No" }, { v: true, l: "Yes" }].map((o) => (
-                        <button key={o.l} type="button" onClick={() => set("hafiz_e_quran", o.v)}
-                          className={`h-11 rounded-xl border-2 text-sm font-semibold transition-all ${
-                            form.hafiz_e_quran === o.v ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"
-                          }`}>{o.l}</button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
