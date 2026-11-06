@@ -841,19 +841,6 @@ export default function ApplyFlow() {
               <CardContent className="p-5 sm:p-7 space-y-6">
                 <h2 className="font-heading text-xl font-bold text-foreground text-center">Pay Processing Fee</h2>
 
-                {/* Applicant Details */}
-                <div>
-                  <h3 className="font-heading font-bold text-foreground mb-2.5 text-center">Applicant Details</h3>
-                  <AdmissionInfoGrid items={[
-                      ["Name", personal.full_name],
-                      ["Father Name", personal.father_name],
-                      ["Address", personal.mailing_address],
-                      ["District", personal.domicile_district],
-                      ["Tehsil", personal.tehsil],
-                      ["Mobile Number", personal.mobile_number],
-                    ].map(([k, v]) => ({ label: String(k), value: v as React.ReactNode }))} />
-                </div>
-
                 {/* Payment Details */}
                 <div>
                   <h3 className="font-heading font-bold text-foreground mb-2.5 text-center">Payment Details</h3>
