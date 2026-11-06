@@ -69,15 +69,33 @@ const json = (code, body, retryAfterSec) => {
     "X-Content-Type-Options": "nosniff",
   };
   if (retryAfterSec) headers["Retry-After"] = String(retryAfterSec);
-  return new Response(JSON.stringify(body), { status: code, headers });
+  return { status: code, headers, body: JSON.stringify(body) };
+};
+
+// Vercel runs this file with the Node (req, res) signature, like every other
+// file in /api. Write a json()/empty descriptor onto the Node response.
+function send(res, out) {
+  res.statusCode = out.status;
+  for (const [k, v] of Object.entries(out.headers || {})) res.setHeader(k, v);
+  res.end(out.body ?? "");
+}
+
+// Node headers are a plain lower-cased object (not a Headers instance).
+const hdr = (req, name) => {
+  const v = req.headers?.[name];
+  return Array.isArray(v) ? v[0] : v;
+};
+const originOf = (req) => {
+  const proto = (hdr(req, "x-forwarded-proto") || "https").split(",")[0].trim();
+  const host = (hdr(req, "x-forwarded-host") || hdr(req, "host") || "").split(",")[0].trim();
+  return `${proto}://${host}`;
 };
 
 // ── IP extraction (Vercel puts the client IP in x-forwarded-for or x-real-ip)
 function clientIp(req) {
-  const h = req.headers;
-  const xff = h.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  return h.get("x-real-ip") || h.get("cf-connecting-ip") || "0.0.0.0";
+  const xff = hdr(req, "x-forwarded-for");
+  if (xff) return String(xff).split(",")[0].trim();
+  return hdr(req, "x-real-ip") || hdr(req, "cf-connecting-ip") || "0.0.0.0";
 }
 
 // Lightweight hash so we don't store raw IPs / login ids in security_attempts
@@ -247,7 +265,7 @@ async function handleReset(body, ip, supabase, req) {
 
   // Use the service-role admin API so the reset email is sent server-side.
   // redirectTo must be an allowed URL in Supabase Auth settings.
-  const origin = req.headers.get("origin") || new URL(req.url).origin;
+  const origin = hdr(req, "origin") || originOf(req);
   const redirectTo = `${origin}/auth/reset-password`;
   const { error } = await supabase.auth.admin.generateLink({
     type: "recovery",
@@ -291,30 +309,44 @@ async function handleSignIn(body, ip, supabase) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Entry point
+// Entry point  (Node runtime: handler(req, res))
+//
+// ROOT-CAUSE FIX for "Network Error" on every Sign In:
+//   This file used the Web-standard signature handler(Request) -> Response
+//   (req.headers.get(), await req.json(), return new Response()).  Vercel runs
+//   it with the Node signature (req, res) — the same as every other file in
+//   /api — so req.headers.get threw, the returned Response was ignored, and
+//   res was never ended.  The browser waited until its 20 s timeout and showed
+//   "Network error".  The handler now reads req/res the Node way and always
+//   ends the response.
 // ─────────────────────────────────────────────────────────────────────────────
-export default async function handler(req) {
-  // ── CRASH-PROOF WRAPPER ───────────────────────────────────────────────
-  // A previously-deployed build of this function crashed at invocation time
-  // (Vercel FUNCTION_INVOCATION_FAILED — a body-less 500) which made
-  // register / login / track permanently unusable from the browser: the
-  // applicant only ever saw "Network error. Please try again." Every step
-  // of the request — including CORS, IP extraction and the flood brake — now
-  // lives inside this one try/catch, so whatever happens the browser gets a
-  // JSON answer it can render.
+export default async function handler(req, res) {
   try {
-    return await handle(req);
+    const out = await handle(req);
+    send(res, out);
   } catch (e) {
-    return json(500, { ok: false, error: "Gateway error." });
+    console.error("auth-gateway fatal:", e);
+    send(res, json(500, { ok: false, error: "Gateway error." }));
   }
 }
 
+async function readBody(req) {
+  const b = req.body;
+  if (b && typeof b === "object" && !Buffer.isBuffer(b)) return b;
+  if (typeof b === "string" && b.length) return JSON.parse(b);
+  if (Buffer.isBuffer(b) && b.length) return JSON.parse(b.toString("utf8"));
+  // Body not pre-parsed: read the raw stream.
+  const chunks = [];
+  for await (const c of req) chunks.push(typeof c === "string" ? Buffer.from(c) : c);
+  const raw = Buffer.concat(chunks).toString("utf8");
+  return raw ? JSON.parse(raw) : {};
+}
+
 async function handle(req) {
-  // CORS: only the same origin may call this gateway
-  const origin = req.headers.get("origin");
-  const allow = origin && (origin === new URL(req.url).origin);
   if (req.method === "OPTIONS") {
-    return new Response(null, {
+    const origin = hdr(req, "origin");
+    const allow = origin && origin === originOf(req);
+    return {
       status: 204,
       headers: {
         "Access-Control-Allow-Origin": allow ? origin : "",
@@ -322,12 +354,12 @@ async function handle(req) {
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400",
       },
-    });
+      body: "",
+    };
   }
   if (req.method !== "POST") return json(405, { ok: false, error: "Method not allowed." });
 
-  const url = new URL(req.url);
-  const action = url.searchParams.get("action");
+  const action = new URL(req.url, originOf(req)).searchParams.get("action");
 
   const ip = clientIp(req);
   const supabase = serviceClient();
@@ -335,10 +367,7 @@ async function handle(req) {
     return json(500, { ok: false, error: "Server not configured (SUPABASE_SERVICE_ROLE_KEY missing)." });
   }
 
-  // Per-IP flood brake — the FIRST gate, before body parsing, Turnstile or
-  // any DB query, so even garbage-JSON floods are stopped for free.
-  // (Never let the brake itself kill the request: a database hiccup inside
-  // readLimits is swallowed and treated as "no limits known".)
+  // Per-IP flood brake — first gate, before Turnstile or any DB query.
   let flood;
   try {
     flood = await floodBrake(ip, supabase);
@@ -350,7 +379,7 @@ async function handle(req) {
   }
 
   let body;
-  try { body = await req.json(); }
+  try { body = await readBody(req); }
   catch { return json(400, { ok: false, error: "Invalid JSON body." }); }
 
   try {
@@ -361,6 +390,7 @@ async function handle(req) {
       default:         return json(400, { ok: false, error: "Unknown action." });
     }
   } catch (e) {
+    console.error("auth-gateway action error:", e);
     return json(500, { ok: false, error: "Gateway error." });
   }
 }
