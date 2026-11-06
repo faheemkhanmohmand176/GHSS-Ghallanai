@@ -244,7 +244,6 @@ export default function ApplicationView() {
             ["College", COLLEGE_NAME], ["Study Level", STUDY_LEVEL],
             ["Program", String(ap.program_name)], ["Subject Group", String(ap.subject_group ?? "")],
             ["Category", quotaName], ["Shift", String(ap.shift ?? "")],
-            ["Date Applied", formatDateLong(String(ap.submitted_at))], ["Fee Deadline", deadlineShort],
           ] },
           { title: "Personal Information", rows: [
             ["Name", String(p.full_name)], ["Father Name", String(p.father_name)],
