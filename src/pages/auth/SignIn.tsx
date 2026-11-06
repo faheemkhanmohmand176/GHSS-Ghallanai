@@ -23,6 +23,9 @@ const SignIn = () => {
   const [password, setPassword]       = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
   const [loading, setLoading]         = useState(false);
+  // Bumped after every failed attempt: a Turnstile token is single-use, so the
+  // widget is re-mounted to get a fresh one (otherwise Sign In stays locked).
+  const [captchaNonce, setCaptchaNonce] = useState(0);
   const [logoFailed, setLogoFailed]   = useState(false);
   const [pendingStatus, setPendingStatus] = useState<"pending" | "rejected" | null>(null);
   const navigate = useNavigate();
@@ -43,7 +46,7 @@ const SignIn = () => {
       const gw = await authGateway.signIn({ email, password, turnstile: turnstileToken });
       if (!gw.ok || !gw.access_token) {
         toast.error(gw.error || "Login failed.");
-        setTurnstileToken("");
+        setTurnstileToken(""); setCaptchaNonce((n) => n + 1);
         setLoading(false);
         return;
       }
@@ -54,7 +57,7 @@ const SignIn = () => {
       });
       if (setErr) {
         toast.error(setErr.message || "Could not establish session.");
-        setTurnstileToken("");
+        setTurnstileToken(""); setCaptchaNonce((n) => n + 1);
         setLoading(false);
         return;
       }
@@ -87,14 +90,14 @@ const SignIn = () => {
         }
       } catch {
         await signOutSafely();
-        toast.error("Server is slow. Please try again in a moment.");
+        toast.error("Server is slow. Please try again in a moment."); setTurnstileToken(""); setCaptchaNonce((n) => n + 1);
         setLoading(false);
         return;
       }
 
       if (!profile) {
         await signOutSafely();
-        toast.error("No account found for this email. Please sign up first.");
+        toast.error("No account found for this email. Please sign up first."); setTurnstileToken(""); setCaptchaNonce((n) => n + 1);
         setLoading(false);
         return;
       }
@@ -104,14 +107,14 @@ const SignIn = () => {
 
       if (status === "pending") {
         await signOutSafely();
-        setPendingStatus("pending");
+        setPendingStatus("pending"); setTurnstileToken(""); setCaptchaNonce((n) => n + 1);
         setLoading(false);
         return;
       }
 
       if (status === "rejected") {
         await signOutSafely();
-        setPendingStatus("rejected");
+        setPendingStatus("rejected"); setTurnstileToken(""); setCaptchaNonce((n) => n + 1);
         setLoading(false);
         return;
       }
@@ -136,7 +139,7 @@ const SignIn = () => {
           ? "Sign in is taking too long. Check your connection and try again."
           : "An unexpected error occurred. Please try again."
       );
-      setTurnstileToken("");
+      setTurnstileToken(""); setCaptchaNonce((n) => n + 1);
       setLoading(false);
     }
   };
@@ -240,7 +243,7 @@ const SignIn = () => {
             </button>
 
             <div className="flex justify-center pt-1">
-              <Turnstile onToken={setTurnstileToken} onExpire={() => setTurnstileToken("")} />
+              <Turnstile key={captchaNonce} onToken={setTurnstileToken} onExpire={() => setTurnstileToken("")} />
             </div>
           </form>
 
