@@ -15,11 +15,13 @@ export async function fetchOnlinePaymentEnabled(): Promise<boolean> {
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(ADMISSION_CLIENT_CACHE.paymentTimeoutMs),
     });
-    if (!res.ok) return false;
+    if (!res.ok) throw new Error(`config ${res.status}`);
     const j = (await res.json()) as { enabled?: boolean };
     return j.enabled === true;
-  } catch {
-    return false;
+  } catch (e) {
+    // Throw (not "false") so react-query retries instead of caching "online
+    // payment is off" for a minute because of one dropped request.
+    throw e instanceof Error ? e : new Error("config failed");
   }
 }
 
@@ -29,7 +31,8 @@ export function useOnlinePaymentEnabled() {
     queryKey: ["online-payment-enabled"],
     queryFn: fetchOnlinePaymentEnabled,
     staleTime: 60 * 1000,
-    retry: false,
+    retry: 2,
+    retryDelay: 1200,
   });
 }
 
