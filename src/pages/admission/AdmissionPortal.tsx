@@ -13,7 +13,7 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   ClipboardList, ArrowRight, UserRound, BookOpen,
-  LogOut, Plus, Search, AlertCircle, BadgeCheck, Wallet, PencilLine,
+  LogOut, Search, AlertCircle, BadgeCheck, Wallet, PencilLine,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -153,14 +153,10 @@ export default function AdmissionPortal() {
               <CardContent className="p-4">
                 <h3 className="font-heading font-bold text-sm text-foreground mb-3 px-1">Admission Menu</h3>
                 <nav className="space-y-1">
-                  {hasActiveApp ? (
+                  {hasActiveApp && (
                     <Link to={editableApp ? `/admission/apply?edit=${editableApp.id}` : `/admission/application/${activeApp?.id ?? ""}`} className={itemCls}>
                       <PencilLine className="w-4 h-4" /> Edit Application
                     </Link>
-                  ) : (
-                    <button type="button" onClick={goNewApplication} className={itemCls}>
-                      <Plus className="w-4 h-4" /> New Admission Request
-                    </button>
                   )}
                   <Link to="/admission/profile" className={itemCls}>
                     <UserRound className="w-4 h-4" /> Personal Information
