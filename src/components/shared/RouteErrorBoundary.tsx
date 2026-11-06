@@ -20,7 +20,7 @@ import { AlertTriangle, Home, RefreshCw, WifiOff } from "lucide-react";
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface Props { children: ReactNode; }
-interface State { hasError: boolean; wasOffline: boolean; }
+interface State { hasError: boolean; wasOffline: boolean; detail?: string; }
 
 class RouteErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, wasOffline: false };
@@ -29,6 +29,8 @@ class RouteErrorBoundary extends Component<Props, State> {
     return {
       hasError: true,
       wasOffline: typeof navigator !== "undefined" && navigator.onLine === false,
+      // Real cause, shown in small print so a screenshot is enough to diagnose.
+      detail: `${error?.name || "Error"}: ${String(error?.message || error).slice(0, 220)}`,
     };
   }
 
@@ -134,6 +136,11 @@ class RouteErrorBoundary extends Component<Props, State> {
               ? "There's no internet connection right now. This page will load automatically once you're back online — nothing is lost."
               : "This page had trouble loading — most likely a slow or interrupted connection, or a recent app update. Your data is safe. Try again, or head back to the homepage."}
           </p>
+          {!offline && this.state.detail && (
+            <p className="mb-5 break-words rounded-lg bg-muted px-3 py-2 text-left font-mono text-[11px] leading-snug text-muted-foreground">
+              {this.state.detail}
+            </p>
+          )}
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <button
               onClick={() => this.handleSelfHealThenNavigate("__reload__")}
