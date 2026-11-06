@@ -273,19 +273,17 @@ const Contact = () => {
     <PageLayout>
 
       {/* ══════════ PREMIUM HERO ══════════ */}
-      <section className="relative overflow-hidden gradient-hero">
+      <section className="lux-hero relative overflow-hidden">
         {/* Decorative layers — static, GPU-safe */}
-        <div className="orb orb-gold w-[420px] h-[420px] -top-44 -left-24 opacity-70" />
-        <div className="orb orb-light w-[320px] h-[320px] -bottom-32 -right-20" />
-        <div className="absolute inset-0 dot-grid opacity-[0.12]" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent" />
+        <div className="absolute inset-0 lux-grid" aria-hidden="true" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[hsl(38_80%_40%/.6)] to-transparent" />
 
-        <div className="container mx-auto px-4 relative z-10 py-16 md:py-24 text-center">
+        <div className="container mx-auto px-5 relative z-10 py-14 md:py-24 text-center">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-white/10 px-4 py-1.5 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] text-gold"
+            className="lux-chip lux-gold inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs sm:text-sm font-semibold uppercase tracking-[0.18em]"
           >
             <Sparkles className="w-3.5 h-3.5" />
             Get in touch
@@ -295,17 +293,17 @@ const Contact = () => {
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.55 }}
-            className="mt-6 text-4xl md:text-6xl font-display font-semibold leading-[1.08] text-on-hero"
+            className="mt-6 text-[2.5rem] md:text-6xl font-display font-semibold leading-[1.08] lux-ink"
           >
             Let's start a<br className="hidden sm:block" />
-            <span className="italic text-gold"> conversation.</span>
+            <span className="italic lux-gold-text"> conversation.</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.55 }}
-            className="mt-5 text-on-hero-soft text-sm md:text-lg max-w-2xl mx-auto leading-relaxed"
+            className="mt-5 lux-soft text-[15px] md:text-lg max-w-2xl mx-auto leading-relaxed"
           >
             Questions about admission, results or anything else? Reach out any
             time — we usually reply within one working day.
@@ -318,22 +316,22 @@ const Contact = () => {
             transition={{ delay: 0.32, duration: 0.55 }}
             className="mt-8 flex flex-wrap items-center justify-center gap-2.5"
           >
-            <a
+            {displayEmail && <a
               href={`mailto:${displayEmail}`}
-              className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-4 py-2 text-xs sm:text-sm font-medium text-on-hero hover:bg-white/15 transition-colors"
+              className="lux-chip inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-medium transition-colors"
             >
-              <Mail className="w-3.5 h-3.5 text-gold" /> {displayEmail}
-            </a>
+              <Mail className="w-3.5 h-3.5 lux-gold" /> {displayEmail}
+            </a>}
             {displayPhone && (
               <a
                 href={`tel:${displayPhone.replace(/\s/g, "")}`}
-                className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-4 py-2 text-xs sm:text-sm font-medium text-on-hero hover:bg-white/15 transition-colors"
+                className="lux-chip inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-medium transition-colors"
               >
-                <Phone className="w-3.5 h-3.5 text-gold" /> {displayPhone}
+                <Phone className="w-3.5 h-3.5 lux-gold" /> {displayPhone}
               </a>
             )}
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-4 py-2 text-xs sm:text-sm font-medium text-on-hero">
-              <Clock className="w-3.5 h-3.5 text-gold" /> Mon – Sat, 8 AM – 2 PM
+            <span className="lux-chip inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-medium">
+              <Clock className="w-3.5 h-3.5 lux-gold" /> Mon – Sat, 8 AM – 2 PM
             </span>
           </motion.div>
         </div>
@@ -356,7 +354,7 @@ const Contact = () => {
               >
                 {/* gold corner accent */}
                 <div className="absolute top-0 right-0 w-14 h-14 bg-gradient-to-bl from-gold/15 to-transparent rounded-bl-[2rem]" />
-                <div className="icon-tile w-10 h-10">
+                <div className="lux-tile w-10 h-10">
                   <Icon className="w-5 h-5" />
                 </div>
                 <div className="relative">
@@ -394,7 +392,7 @@ const Contact = () => {
               <div className="absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
 
               <div className="flex items-center gap-2.5 mb-1">
-                <div className="icon-tile w-9 h-9">
+                <div className="lux-tile w-9 h-9">
                   <Send className="w-4 h-4" />
                 </div>
                 <h2 className="text-xl font-heading font-bold text-foreground">Send a Message</h2>
@@ -408,10 +406,10 @@ const Contact = () => {
               </p>
 
               {/* Security notice — restyled, same trust message */}
-              <div className="mb-6 p-3 rounded-xl bg-green-500/10 border border-green-500/25">
+              <div className="mb-6 p-3 rounded-xl bg-[hsl(42_80%_50%/.08)] border border-[hsl(38_70%_45%/.25)]">
                 <div className="flex items-start gap-2">
-                  <Shield className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
-                  <p className="text-xs text-green-800 dark:text-green-400 leading-relaxed">
+                  <Shield className="w-4 h-4 lux-gold mt-0.5 shrink-0" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     Protected with input validation, XSS protection and rate
                     limiting — your message travels safely.
                   </p>
@@ -637,7 +635,7 @@ const Contact = () => {
                       href={`tel:${displayPhone.replace(/\s/g, "")}`}
                       className="group flex items-center gap-3 w-full rounded-2xl border border-primary/20 bg-primary/10 hover:bg-primary/20 hover:border-primary/50 px-4 py-3 transition-all card-lift"
                     >
-                      <span className="icon-tile w-10 h-10 shadow-md">
+                      <span className="lux-tile w-10 h-10 shadow-md">
                         <Phone className="w-5 h-5" />
                       </span>
                       <div className="min-w-0">
@@ -672,7 +670,7 @@ const Contact = () => {
                 <div className="mt-4 flex gap-2.5">
                   <Link
                     to="/admission"
-                    className="sheen inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold px-4 py-2"
+                    className="inline-flex items-center gap-1.5 rounded-full lux-btn-ink text-xs font-semibold px-4 py-2.5"
                   >
                     Admission <ArrowRight className="w-3 h-3" />
                   </Link>
