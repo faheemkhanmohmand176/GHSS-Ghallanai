@@ -119,19 +119,43 @@ export default function ApplicationView() {
     return () => { stopped = true; };
   }, [returned, token, id, setParams]);
 
-  async function ensureReference(): Promise<boolean> {
-    if (paymentRef) return true;
-    if (!id) return false;
+  // Creates the payment reference when missing; returns it (or "" on failure).
+  async function createReference(): Promise<{ token: string; deadline: string } | null> {
+    if (!id) return null;
     try {
-      const res = (await interApi.proceedPayment(token!, id)) as unknown as { ok?: boolean; error?: string };
-      if (!res?.ok) { toast.error(res?.error || "Payment initialization failed."); return false; }
+      const res = (await interApi.proceedPayment(token!, id)) as unknown as { ok?: boolean; error?: string; token?: string; deadline?: string };
+      if (!res?.ok || !res.token) { toast.error(res?.error || "Payment initialization failed."); return null; }
       await load(true);
-      return true;
+      return { token: res.token, deadline: res.deadline ?? "" };
     } catch {
       toast.error("Network error. Please try again.");
-      return false;
+      return null;
     }
   }
+
+  async function ensureReference(): Promise<boolean> {
+    if (paymentRef) return true;
+    return (await createReference()) !== null;
+  }
+
+  // "Pay Fee" from the dashboard (?pay=1): make sure the reference exists, then
+  // bring the payment options into view instead of leaving the person at the
+  // top of the page with only the PDF buttons.
+  const wantsPay = params.get("pay") === "1";
+  useEffect(() => {
+    if (!wantsPay || loading || sessionLoading || !detail?.ok || !token || !id) return;
+    const isUnpaid = detail.application?.payment_status !== "paid";
+    const hasRef = Boolean(detail.application?.jazzcash_token);
+    let cancelled = false;
+    (async () => {
+      if (isUnpaid && !hasRef) await createReference();
+      if (cancelled) return;
+      setParams({}, { replace: true });
+      window.setTimeout(() => document.getElementById("pay-fee")?.scrollIntoView({ behavior: "smooth", block: "start" }), 250);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantsPay, loading, sessionLoading, detail?.ok, token, id]);
 
   const app = detail?.application;
   const personal = detail?.personal;
@@ -187,12 +211,20 @@ export default function ApplicationView() {
 
   async function downloadChallan() {
     try {
+      let reference = paymentRef;
+      let deadline = deadlineShort;
+      if (!reference) {
+        const made = await createReference();
+        if (!made) return;
+        reference = made.token;
+        if (made.deadline) deadline = formatDeadline(made.deadline).split(" ").slice(0, 3).join(" ");
+      }
       await downloadFeeChallan({
-        cycle: ADMISSION_CYCLE, fee: FEE, reference: paymentRef,
+        cycle: ADMISSION_CYCLE, fee: FEE, reference,
         trackingId: String(app!.tracking_id), name: String(personal!.full_name), fatherName: String(personal!.father_name),
         cnic: cnicShown, mobile: String(personal!.mobile_number),
         program: String(app!.program_name), subjectGroup: app!.subject_group ? String(app!.subject_group) : "N/A",
-        quota: quotaName, deadline: deadlineShort, appliedOn: formatDateLong(String(app!.submitted_at)),
+        quota: quotaName, deadline, appliedOn: formatDateLong(String(app!.submitted_at)),
         methods: admSettings?.payment_methods ?? [],
       });
     } catch { toast.error("Could not create the challan. Please try again."); }
@@ -297,12 +329,10 @@ export default function ApplicationView() {
           <p className="text-sm text-muted-foreground mt-0.5">{String(personal.full_name)}</p>
           <p className="text-[12.5px] text-muted-foreground">{COLLEGE_NAME}</p>
           <div className="mt-4 mx-auto grid max-w-md grid-cols-2 gap-2.5">
-            {paymentRef ? (
-              <Button variant="outline" onClick={downloadChallan} className="h-10 font-semibold">
-                <FileText className="w-4 h-4" /> Fee Challan
-              </Button>
-            ) : <span className="hidden" />}
-            <Button variant="outline" onClick={downloadForm} className={`h-10 font-semibold ${paymentRef ? "" : "col-span-2"}`}>
+            <Button variant="outline" onClick={downloadChallan} className="h-10 font-semibold">
+              <FileText className="w-4 h-4" /> Fee Challan
+            </Button>
+            <Button variant="outline" onClick={downloadForm} className="h-10 font-semibold">
               <Printer className="w-4 h-4" /> Application PDF
             </Button>
             {editable && (
@@ -344,9 +374,9 @@ export default function ApplicationView() {
                     </p>
                   )}
                 </>
-              ) : (
-                <p className="max-w-sm text-[12.5px] text-muted-foreground">Generate your fee challan to see the payment details.</p>
-              )}
+              ) : unpaid ? (
+                <p className="max-w-sm text-[12.5px] text-muted-foreground">Tap “Fee Challan” above to generate your payment reference.</p>
+              ) : null}
             </div>
 
             {unpaid && !confirming && token && id && (
@@ -365,7 +395,6 @@ export default function ApplicationView() {
 
             <div className="mt-5 pt-4 border-t border-border/60">
               <AdmissionInfoGrid items={[
-                { label: "Username", value: <span className="font-mono">{cnicShown}</span> },
                 { label: "Tracking ID", value: <span className="font-mono text-primary">{String(app.tracking_id)}</span> },
                 { label: "Date Applied", value: formatDateLong(String(app.submitted_at)) },
                 { label: "Amount", value: `Rs ${FEE}` },
