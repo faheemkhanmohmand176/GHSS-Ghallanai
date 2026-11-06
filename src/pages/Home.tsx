@@ -951,7 +951,7 @@ function HeroTypewriterHeading({ className, textColor }: { className: string; te
       <span className="block invisible" aria-hidden="true">
         {HERO_SEGMENTS.map((seg, i) => (
           <span key={i}>
-            <span className={seg.gold ? "text-[hsl(42_78%_62%)]" : undefined}>{seg.text}</span>
+            <span className={seg.gold ? "lux-gold-text" : undefined}>{seg.text}</span>
             {seg.breakAfter && <br />}
           </span>
         ))}
@@ -959,12 +959,12 @@ function HeroTypewriterHeading({ className, textColor }: { className: string; te
       <span className="block absolute inset-0" aria-hidden="true">
         {segments.map((seg, i) => (
           <span key={i}>
-            <span className={seg.gold ? "text-[hsl(42_78%_62%)]" : undefined}>{seg.text}</span>
+            <span className={seg.gold ? "lux-gold-text" : undefined}>{seg.text}</span>
             {seg.breakAfter && <br />}
           </span>
         ))}
         {!reduced && (
-          <span className="inline-block w-[2px] h-[0.85em] -mb-[0.1em] ml-0.5 bg-[hsl(42_78%_62%)] align-middle" aria-hidden="true" />
+          <span className="inline-block w-[2px] h-[0.85em] -mb-[0.1em] ml-0.5 bg-[hsl(38_80%_40%)] dark:bg-[hsl(42_78%_62%)] align-middle" aria-hidden="true" />
         )}
       </span>
     </m.h1>
@@ -1026,9 +1026,9 @@ const Home = () => {
   // (light gradient background) styling regardless of whether a banner exists.
   const heroOverlay = "bg-transparent";
   const heroBadgeBg   = "bg-card/70 border border-azure/30 text-foreground/90";
-  const heroTextColor = "text-white";
+  const heroTextColor = "lux-ink";
   const heroSubColor  = "text-foreground/80";
-  const heroDescColor = "text-white/75";
+  const heroDescColor = "lux-soft";
   const heroCursorColor = "bg-primary/80";
   const heroStatCard = "bg-card border border-border";
 
@@ -1041,53 +1041,73 @@ const Home = () => {
           The visible countdown banner now lives only on /results. */}
       <HomeResultsBanner />
 
-      {/* ══ 2. HERO ══ */}
-      <section id="hero-section" className="relative md:min-h-[88vh] flex items-start md:items-center overflow-hidden">
+      {/* ══ 2. HERO — ivory · ink · gold (premium, light) ══ */}
+      <section id="hero-section" className="lux-hero relative md:min-h-[88vh] flex items-start md:items-center overflow-hidden">
+        <div className="absolute inset-0 lux-grid" aria-hidden="true" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(40_80%_45%)] to-transparent opacity-70" aria-hidden="true" />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent" aria-hidden="true" />
 
-        {/* ── Background: soft green-paper gradient with a whisper of gold
-             (light) / deep green-black gradient (dark) — the Green & Gold
-             hero. Dark: variant keeps hero text tokens readable ── */}
-        <div className="absolute inset-0 premium-hero-bg" />
-        <div className="absolute inset-0 premium-pattern opacity-60" style={{ maskImage: "radial-gradient(ellipse at 75% 20%, black 5%, transparent 65%)", WebkitMaskImage: "radial-gradient(ellipse at 75% 20%, black 5%, transparent 65%)" }} />
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(42_78%_55%)] to-transparent opacity-70" />
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent" />
-
-        {/* ── Dark gradient overlay so text stays readable ── */}
-        <div className={`absolute inset-0 ${heroOverlay}`} />
-
-        {/* ── Foreground content ── */}
-        <div className="container mx-auto px-4 sm:px-6 relative z-10 pt-10 pb-16 md:pt-6 md:pb-24">
-          <div className="grid grid-cols-1 gap-10 items-center">
+        <div className="container mx-auto px-5 sm:px-6 relative z-10 pt-9 pb-20 md:pt-6 md:pb-28">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr] gap-10 items-center">
             <m.div initial={false} animate="visible" variants={stagger.parent} className="max-w-2xl relative min-w-0">
 
-              {/* Est. badge — thin premium pill: gold left hairline + soft gold wash */}
               <m.div variants={stagger.child}>
-                <span className="inline-flex max-w-full items-center gap-2.5 rounded-full border border-[hsl(42_78%_55%/0.45)] bg-black/20 pl-2.5 pr-4 py-1.5 text-[10.5px] sm:text-xs font-semibold tracking-[0.14em] uppercase text-[hsl(42_70%_80%)]">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-gold to-gold-strong text-white shrink-0"><Award className="w-3 h-3" /></span>
+                <span className="lux-chip inline-flex max-w-full items-center gap-2.5 rounded-full pl-2 pr-4 py-1.5 text-[10.5px] sm:text-xs font-semibold tracking-[0.14em] uppercase">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(42_80%_58%)] to-[hsl(36_82%_40%)] text-white shrink-0"><Award className="w-3.5 h-3.5" /></span>
                   <span className="min-w-0 leading-snug">{settings?.established_year ? `Est. ${settings.established_year} · ` : ""}HSSC (1st Year & 2nd Year)</span>
                 </span>
               </m.div>
+
               <HeroTypewriterHeading
-                className="mt-5 sm:mt-6 text-[2.9rem] leading-[1.02] sm:text-[3.6rem] md:text-[4.4rem] lg:text-[5.2rem] premium-display"
+                className="mt-5 sm:mt-6 text-[2.75rem] leading-[1.04] sm:text-[3.6rem] md:text-[4.4rem] lg:text-[5rem] premium-display"
                 textColor={heroTextColor}
               />
-              <m.p variants={stagger.child} className={`mt-4 sm:mt-5 text-[16.5px] md:text-xl ${heroDescColor} max-w-xl leading-relaxed`}>
+
+              <m.p variants={stagger.child} className={`mt-4 sm:mt-5 text-[16px] md:text-lg ${heroDescColor} max-w-xl leading-relaxed`}>
                 {settings?.description || "Government Higher Secondary School Ghallanai is committed to providing quality education and nurturing the future leaders of Pakistan."}
               </m.p>
 
-              {/* CTAs — thin pills: gold primary + hairline outline */}
-              <m.div variants={stagger.child} className="mt-6 sm:mt-7 flex flex-wrap items-center justify-start gap-2.5">
-                <Link to="/results" className="btn-thin btn-thin-gold px-6">
-                  View Results <ArrowRight className="w-3.5 h-3.5" />
+              <m.div variants={stagger.child} className="mt-7 flex flex-wrap items-center gap-3">
+                <Link to="/results" className="lux-btn lux-btn-ink">
+                  View Results <ArrowRight className="w-4 h-4" />
                 </Link>
-                <Link to="/about" aria-label="Learn more about our school" className="btn-thin btn-thin-silver px-6">
+                <Link to="/about" aria-label="Learn more about our school" className="lux-btn lux-btn-line">
                   Learn more
                 </Link>
               </m.div>
 
-
+              {/* quick links — real destinations, thumb-friendly */}
+              <m.div variants={stagger.child} className="mt-6 flex flex-wrap gap-2">
+                <Link to="/admission" className="lux-chip inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-medium">
+                  <GraduationCap className="w-3.5 h-3.5 lux-gold" /> Online Admission
+                </Link>
+                <Link to="/notices" className="lux-chip inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-medium">
+                  <Bell className="w-3.5 h-3.5 lux-gold" /> Latest Notices
+                </Link>
+                <Link to="/contact" className="lux-chip inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-medium">
+                  <MapPin className="w-3.5 h-3.5 lux-gold" /> Contact
+                </Link>
+              </m.div>
             </m.div>
 
+            {/* Crest card — desktop only */}
+            <m.div initial={false} animate="visible" variants={stagger.child} className="hidden lg:flex justify-center">
+              <div className="relative">
+                <div className="absolute -inset-6 rounded-full border border-[hsl(38_70%_45%/.25)]" aria-hidden="true" />
+                <div className="absolute -inset-12 rounded-full border border-[hsl(38_70%_45%/.12)]" aria-hidden="true" />
+                <div className="relative h-60 w-60 rounded-full bg-white/80 dark:bg-white/[0.06] border border-[hsl(38_70%_45%/.35)] shadow-[0_30px_60px_-30px_hsl(38_60%_30%/.5)] flex items-center justify-center overflow-hidden">
+                  {settings?.logo_url ? (
+                    <img
+                      src={optimizedCloudinaryUrl(settings.logo_url, { width: 360 }) || safeMediaUrl(settings.logo_url) || ""}
+                      alt={`${settings?.school_name || "GHSS Ghallanai"} crest`}
+                      className="h-44 w-44 object-contain" decoding="async"
+                    />
+                  ) : (
+                    <GraduationCap className="h-20 w-20 lux-gold" />
+                  )}
+                </div>
+              </div>
+            </m.div>
           </div>
         </div>
       </section>
