@@ -34,7 +34,7 @@ import AdmissionStepper from "@/components/shared/AdmissionStepper";
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useInterSession } from "@/hooks/useInterAdmission";
-import SecurityStrip from "@/components/shared/SecurityStrip";
+import Turnstile from "@/components/shared/Turnstile";
 import { clearDraft, getWip, setWip } from "@/lib/admissionDraft";
 import {
   interApi, setToken, isAdmissionNetworkError, QUOTAS, QUOTA_LABEL, LOCAL_CRITERIA, SPORT_CERTIFICATES,
@@ -369,7 +369,7 @@ export default function ApplyFlow() {
   // applicant continues straight to payment on this device.
   async function handleFinalSubmit() {
     if (!personal || !ssc || !programId || !quota) return;
-    if (turnstileRequired && !turnstileToken) { toast.error("Security check is still verifying. Please wait a moment."); return; }
+    if (turnstileRequired && !turnstileToken) { toast.error("Please complete the security check above first."); return; }
     setBusy(true);
     try {
       const res = (await interApi.apply({
@@ -794,21 +794,28 @@ export default function ApplyFlow() {
                 </div>
 
                 {draftMode && (
-                  <SecurityStrip
-                    key={turnstileKey}
-                    onToken={handleTurnstileToken}
-                    onExpire={handleTurnstileExpire}
-                  />
+                  <div className="w-full flex justify-center overflow-hidden">
+                    <div className="w-full max-w-[400px]">
+                      <Turnstile
+                        key={turnstileKey}
+                        size="flexible"
+                        appearance="always"
+                        onToken={handleTurnstileToken}
+                        onExpire={handleTurnstileExpire}
+                        onError={handleTurnstileExpire}
+                      />
+                    </div>
+                  </div>
                 )}
 
                 <div className="flex flex-col gap-2.5">
                   {draftMode ? (
                     <Button onClick={handleFinalSubmit} disabled={busy || (turnstileRequired && !turnstileToken)}
                       className="h-12 w-full font-semibold">
-                      {busy || (turnstileRequired && !turnstileToken)
+                      {busy
                         ? <Loader2 className="w-5 h-5 animate-spin" />
                         : <Send className="w-5 h-5" />}
-                      {busy ? "Submitting…" : turnstileRequired && !turnstileToken ? "Verifying…" : "Submit Application"}
+                      {busy ? "Submitting…" : "Submit Application"}
                     </Button>
                   ) : (
                     <Button onClick={() => { setStep("pay"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
