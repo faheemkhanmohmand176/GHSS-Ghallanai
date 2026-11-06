@@ -33,11 +33,12 @@ export interface GatewayResult {
 
 async function postAction(action: string, payload: Record<string, unknown>): Promise<GatewayResult> {
   const started = Date.now();
+  const bodyText = JSON.stringify(payload);
   try {
     const res = await fetch(`/api/auth-gateway?action=${action}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: bodyText,
       signal: AbortSignal.timeout(ADMISSION_CLIENT_CACHE.gatewayTimeoutMs),
     });
     const text = await res.text();
@@ -57,7 +58,20 @@ async function postAction(action: string, payload: Record<string, unknown>): Pro
     if (name === "TimeoutError" || name === "AbortError") {
       return { ok: false, error: `Server did not answer within ${secs}s (timeout). Check Vercel function logs for /api/auth-gateway.` };
     }
-    return { ok: false, error: `Request could not reach the server after ${secs}s (${name}: ${msg}).` };
+    // Probe: is the endpoint reachable at all? (a GET answers 405 JSON when alive)
+    let reachable = false;
+    try {
+      const p = await fetch(`/api/auth-gateway?action=${action}`, { method: "GET", signal: AbortSignal.timeout(6000) });
+      reachable = p.status > 0;
+    } catch { /* unreachable */ }
+    const kb = Math.round(bodyText.length / 1024);
+    return {
+      ok: false,
+      error: `Request failed after ${secs}s (${name}: ${msg}). Request size ${kb} KB. ` +
+        (reachable
+          ? "The server IS reachable, so this request was dropped before the server answered (firewall/proxy or size limit)."
+          : "The server is NOT reachable from this device right now."),
+    };
   }
 }
 
