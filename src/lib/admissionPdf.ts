@@ -175,88 +175,108 @@ export interface ApplicationFormData {
 }
 
 const DEFAULT_CHECKLIST = [
-  "This online application form (printed) and the Fee Challan receipt.",
+  "This application form (2 pages, printed) and the Fee Challan receipt.",
   "All original documents for verification.",
-  "Four recent passport size photographs (white background).",
-  "Undertaking and Affidavit on this form, signed by the applicant and the father/guardian.",
+  "Three recent passport size photographs (white background), pasted in the box above.",
+  "Undertaking and Affidavit (page 2), signed by the applicant and the father/guardian.",
   "Attested copies of SSC DMC/certificate, Character Certificate, Domicile, applicant CNIC/Form-B and father CNIC.",
   "Certificate for any quota claimed (Sports / Hafiz-e-Quran / College Employee / Disabled / Parent-Spouse Service).",
   "Original Migration Certificate, if SSC or Intermediate was passed from another Board.",
 ];
 
-export async function downloadApplicationForm(d: ApplicationFormData) {
-  const { jsPDF, autoTable } = await lib();
+/**
+ * Exactly TWO A4 pages.
+ *   Page 1: header, a passport photo box, key strip, record tables, checklist.
+ *   Page 2: declaration, affidavit, undertaking, endorsement, witnesses, office use.
+ * Every table cell is centred horizontally and vertically.
+ */
+async function buildApplicationForm(d: ApplicationFormData, k: number, L: Awaited<ReturnType<typeof lib>>) {
+  const { jsPDF, autoTable } = L;
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const w = 210, m = 12, inner = w - m * 2;
   const inst = d.institution || SCHOOL;
+  const PT = 0.3528; // 1 pt in mm
+  const dash = (a: number[]) => (doc as unknown as { setLineDashPattern: (a: number[], b: number) => void }).setLineDashPattern(a, 0);
   const lastY = (fallback: number) =>
     (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? fallback;
-  const ensure = (y: number, need: number, top = 16) => {
-    if (y + need > 282) { doc.addPage(); return top; }
-    return y;
-  };
   const sigLine = (x1: number, x2: number, y: number, label: string) => {
     draw(doc, C.sub); doc.setLineWidth(0.25); doc.line(x1, y, x2, y);
-    ink(doc, C.muted); doc.setFont("times", "italic"); doc.setFontSize(8);
-    doc.text(label, (x1 + x2) / 2, y + 4, { align: "center" });
+    ink(doc, C.muted); doc.setFont("times", "italic"); doc.setFontSize(7.5);
+    doc.text(label, (x1 + x2) / 2, y + 3.6, { align: "center" });
   };
   const sectionBar = (y: number, title: string) => {
-    fill(doc, C.green); doc.roundedRect(m, y, inner, 6.5, 1.2, 1.2, "F");
-    ink(doc, C.white); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-    doc.text(title.toUpperCase(), w / 2, y + 4.4, { align: "center" });
-    return y + 9.5;
+    fill(doc, C.green); doc.roundedRect(m, y, inner, 5.8, 1.2, 1.2, "F");
+    ink(doc, C.white); doc.setFont("helvetica", "bold"); doc.setFontSize(7.8);
+    doc.text(title.toUpperCase(), w / 2, y + 4, { align: "center" });
+    return y + 8.6;
   };
-  const para = (text: string, y: number, size = 8.2, width = inner - 4) => {
+  const para = (text: string, y: number, size = 8.3 * k) => {
     ink(doc, C.ink); doc.setFont("helvetica", "normal"); doc.setFontSize(size);
-    const lines = doc.splitTextToSize(text, width);
-    doc.text(lines, m + 2, y, { lineHeightFactor: 1.4 });
-    return y + lines.length * (size * 0.4 * 1.4) + 2;
+    const factor = 1.38;
+    const lines = doc.splitTextToSize(text, inner - 4) as string[];
+    doc.text(lines, m + 2, y, { lineHeightFactor: factor });
+    return y + lines.length * size * factor * PT + 1.6;
+  };
+  const tableStyles = (fs: number, pad: number, minH = 0) => ({
+    font: "helvetica", fontSize: fs, halign: "center", valign: "middle",
+    cellPadding: pad, lineColor: C.grid, lineWidth: 0.15, textColor: C.ink, minCellHeight: minH,
+  });
+  const labelCol = (cw: number) => ({ cellWidth: cw, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7, halign: "center", valign: "middle" });
+  const footer = (pg: number) => {
+    doc.setPage(pg);
+    ink(doc, C.muted); doc.setFont("helvetica", "normal"); doc.setFontSize(6.8);
+    doc.text(`${inst}   |   Application ${d.trackingId}   |   Page ${pg} of 2`, w / 2, 291, { align: "center" });
   };
 
-  // ── Page 1: header, photo box, key details ──
+  // ═════════════════════════ PAGE 1 ═════════════════════════
   header(doc, 8, m, inner, w, "DISTRICT MOHMAND  |  KHYBER PAKHTUNKHWA");
-  ink(doc, C.ink); doc.setFont("times", "bold"); doc.setFontSize(16);
-  doc.text("APPLICATION FORM", m + (inner - 34) / 2, 32, { align: "center" });
-  ink(doc, C.muted); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-  doc.text(d.cycle, m + (inner - 34) / 2, 37, { align: "center" });
 
-  // Photo box (right)
-  const px = w - m - 30, py = 26;
+  // ONE photo box (right) for the three passport photos
+  const bw = 54, bh = 33, boxesW = bw;
+  const bx = w - m - bw, by = 27;
   draw(doc, C.gold); doc.setLineWidth(0.4); fill(doc, C.white);
-  (doc as unknown as { setLineDashPattern: (a: number[], b: number) => void }).setLineDashPattern([1.5, 1.2], 0);
-  doc.rect(px, py, 30, 36, "FD");
-  (doc as unknown as { setLineDashPattern: (a: number[], b: number) => void }).setLineDashPattern([], 0);
-  ink(doc, C.muted); doc.setFont("helvetica", "bold"); doc.setFontSize(6.5);
-  doc.text(["ATTACH", "PASSPORT SIZE", "PHOTO", "(white background)"], px + 15, py + 13, { align: "center", lineHeightFactor: 1.5 });
+  dash([1.4, 1.1]);
+  doc.rect(bx, by, bw, bh, "FD");
+  dash([]);
+  ink(doc, C.muted); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+  doc.text(["ATTACH 3", "PASSPORT SIZE", "PICS"], bx + bw / 2, by + 11.5, { align: "center", lineHeightFactor: 1.5 });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(6.5);
+  doc.text("(white background)", bx + bw / 2, by + 27, { align: "center" });
 
-  // Key strip (2 x 3 grid, left of the photo box)
+  // Title + key strip (left of the photos)
+  const leftW = inner - boxesW - 4;
+  ink(doc, C.ink); doc.setFont("times", "bold"); doc.setFontSize(15);
+  doc.text("APPLICATION FORM", m + leftW / 2, 31, { align: "center" });
+  ink(doc, C.muted); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+  doc.text(d.cycle, m + leftW / 2, 35.5, { align: "center" });
+
   const strip: [string, string][] = [
     ["TRACKING ID", d.trackingId],
-    ["USERNAME", na(d.username)],
+    ["DATE APPLIED", na(d.appliedOn)],
     ["PAYMENT STATUS", d.paymentStatus],
     ["PAYMENT REFERENCE", na(d.reference)],
     ["PROCESSING FEE", `Rs. ${d.fee}`],
     ["PAY BEFORE", na(d.deadline)],
   ];
-  const gw = inner - 34, cw = gw / 2, ch = 7.6, gy = 41;
+  const cw = leftW / 2, ch = 7.6, gy = 38.5;
   strip.forEach(([label, value], i) => {
     const cx = m + (i % 2) * cw, cy = gy + Math.floor(i / 2) * ch;
     fill(doc, Math.floor(i / 2) % 2 === 0 ? C.goldTint : C.white); draw(doc, C.gold); doc.setLineWidth(0.25);
     doc.rect(cx, cy, cw, ch, "FD");
-    ink(doc, C.muted); doc.setFont("helvetica", "bold"); doc.setFontSize(5.8);
-    doc.text(label, cx + 2, cy + 3);
-    ink(doc, C.green); doc.setFont("times", "bold"); doc.setFontSize(9.5);
-    doc.text(value, cx + 2, cy + 6.4, { maxWidth: cw - 4 });
+    ink(doc, C.muted); doc.setFont("helvetica", "bold"); doc.setFontSize(5.4);
+    doc.text(label, cx + cw / 2, cy + 2.8, { align: "center" });
+    ink(doc, C.green); doc.setFont("times", "bold"); doc.setFontSize(9);
+    doc.text(value, cx + cw / 2, cy + 6.2, { align: "center", maxWidth: cw - 3 });
   });
 
-  ink(doc, C.sub); doc.setFont("helvetica", "italic"); doc.setFontSize(7);
-  const tokenNote = doc.splitTextToSize(
-    `The processing fee must be paid online (Easypaisa / wallet) or by manual transfer quoting your payment reference on or before ${na(d.deadline)}. Applications are considered in Open Merit unless a quota is claimed.`,
+  ink(doc, C.sub); doc.setFont("helvetica", "italic"); doc.setFontSize(6.8);
+  const note = doc.splitTextToSize(
+    `Pay the processing fee online (Easypaisa / wallet) or by manual transfer, quoting your payment reference, on or before ${na(d.deadline)}. Applications are considered in Open Merit unless a quota is claimed.`,
     inner,
-  );
-  doc.text(tokenNote, m, 66, { lineHeightFactor: 1.3 });
+  ) as string[];
+  doc.text(note, w / 2, 66.5, { align: "center", lineHeightFactor: 1.3 });
 
-  let y = 66 + tokenNote.length * 3.2 + 2;
+  let y = 66.5 + note.length * 6.8 * 1.3 * PT + 2.2;
   d.sections.forEach((sec) => {
     const body: string[][] = [];
     for (let i = 0; i < sec.rows.length; i += 2) {
@@ -264,147 +284,137 @@ export async function downloadApplicationForm(d: ApplicationFormData) {
       body.push([a[0], na(a[1]), b ? b[0] : "", b && b[0] ? na(b[1]) : ""]);
     }
     autoTable(doc, {
-      startY: y,
-      margin: { left: m, right: m },
-      tableWidth: inner,
-      theme: "grid",
+      startY: y, margin: { left: m, right: m }, tableWidth: inner, theme: "grid",
       head: [[{ content: sec.title.toUpperCase(), colSpan: 4, styles: { halign: "center" } }]],
       body,
-      styles: { font: "helvetica", fontSize: 8.2, halign: "center", valign: "middle", cellPadding: 1.7, lineColor: C.grid, lineWidth: 0.15, textColor: C.ink },
-      headStyles: { fillColor: C.green, textColor: C.white, fontStyle: "bold", fontSize: 8, lineColor: C.green },
-      columnStyles: {
-        0: { cellWidth: 34, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.3 },
-        1: { cellWidth: "auto" },
-        2: { cellWidth: 34, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.3 },
-        3: { cellWidth: "auto" },
-      },
+      styles: tableStyles(8.2 * k, 1.7 * k),
+      headStyles: { fillColor: C.green, textColor: C.white, fontStyle: "bold", fontSize: 7.8, lineColor: C.green, halign: "center", valign: "middle" },
+      columnStyles: { 0: labelCol(33), 1: { cellWidth: "auto" }, 2: labelCol(33), 3: { cellWidth: "auto" } },
     } as never);
     y = lastY(y + 20) + 4;
   });
 
-  // ── Documents checklist ──
+  // Documents checklist
   const list = d.checklist && d.checklist.length ? d.checklist : DEFAULT_CHECKLIST;
-  const listLines = list.map((t) => doc.splitTextToSize(t, inner - 14) as string[]);
-  const listH = listLines.reduce((n, l) => n + l.length * 3.7 + 1.2, 0) + 18;
-  y = ensure(y, listH);
   y = sectionBar(y, "Documents Checklist (bring with this form)");
-  doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-  list.forEach((_, i) => {
-    const lines = listLines[i];
-    draw(doc, C.green); doc.setLineWidth(0.3); doc.rect(m + 2, y - 2.7, 3, 3);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(7.6);
+  list.forEach((t) => {
+    const lines = doc.splitTextToSize(t, inner - 12) as string[];
+    draw(doc, C.green); doc.setLineWidth(0.3); doc.rect(m + 2, y - 2.5, 2.8, 2.8);
     ink(doc, C.ink); doc.text(lines, m + 8, y, { lineHeightFactor: 1.3 });
-    y += lines.length * 3.7 + 1.2;
+    y += lines.length * 7.6 * 1.3 * PT + 1.3;
   });
-  ink(doc, C.sub); doc.setFont("helvetica", "italic"); doc.setFontSize(7.2);
-  doc.text("Note: Hafiz-e-Quran marks are awarded only after passing the Hifz test.", m + 2, y + 1);
-  y += 7;
+  ink(doc, C.sub); doc.setFont("helvetica", "italic"); doc.setFontSize(6.8);
+  doc.text("Note: Hafiz-e-Quran marks are awarded only after passing the Hifz test.", m + 2, y + 0.8);
+  const page1End = y + 3;
 
-  // ── Declaration + signatures ──
-  y = ensure(y, 40);
-  y = sectionBar(y, "Declaration");
-  y = para(d.declaration, y, 8.2);
-  y += 9;
-  sigLine(m + 2, m + 58, y, "Applicant Signature");
-  sigLine(m + 74, m + 130, y, "Parent / Guardian Signature");
-  ink(doc, C.muted); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-  doc.text("Date: ____ / ____ / ________", w - m - 2, y - 1, { align: "right" });
-  y += 11;
+  // ═════════════════════════ PAGE 2 ═════════════════════════
+  doc.addPage();
+  fill(doc, C.green); doc.roundedRect(m, 8, inner, 8, 1.5, 1.5, "F");
+  fill(doc, C.gold); doc.rect(m, 16, inner, 0.7, "F");
+  ink(doc, C.white); doc.setFont("times", "bold"); doc.setFontSize(10.5);
+  doc.text("AFFIDAVIT  ·  UNDERTAKING  ·  ENDORSEMENT", w / 2, 13.4, { align: "center" });
 
-  // ── Office use box ──
-  y = ensure(y, 32);
-  fill(doc, C.alt); draw(doc, C.gold); doc.setLineWidth(0.3);
-  doc.roundedRect(m, y, inner, 30, 1.5, 1.5, "FD");
-  ink(doc, C.sub); doc.setFont("helvetica", "bold"); doc.setFontSize(7.5);
-  doc.text("FOR OFFICE USE ONLY", m + 3, y + 5);
-  ink(doc, C.ink); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
-  doc.text("Roll No.: ____________________", w - m - 3, y + 5, { align: "right" });
-  sigLine(m + 6, m + 52, y + 22, "Member 1");
-  sigLine(m + 62, m + 108, y + 22, "Member 2");
-  sigLine(m + 118, m + 164, y + 22, "Chairman");
-
-  // ── Page 2: Affidavit, Undertaking, Endorsement, Witnesses ──
   const ap = d.applicant;
   const nm = ap?.name || "____________________";
   const fn = ap?.fatherName || "____________________";
-  y += 38;
-  y = ensure(y, 22, 16);
+  y = 23;
+
+  y = sectionBar(y, "Declaration");
+  y = para(d.declaration, y + 0.5, 8.3 * k);
+  y += 6.5;
+  sigLine(m + 2, m + 62, y, "Applicant Signature");
+  sigLine(m + 72, m + 132, y, "Parent / Guardian Signature");
+  ink(doc, C.muted); doc.setFont("helvetica", "normal"); doc.setFontSize(7.6);
+  doc.text("Date: ____ / ____ / ________", w - m - 2, y - 1, { align: "right" });
+  y += 8.5;
+
   y = sectionBar(y, "Affidavit");
   y = para(
     `Certified that I ${nm} had not taken admission in the same level of studies in any other institution during the previous year(s). It is further certified that till date I am not registered with any Education Board for the same class or level of studies. In this respect, if my statement is found incorrect at any stage, my right of admission or even admission shall stand cancelled without any further notice.`,
-    y,
+    y + 0.5,
   );
-  y += 0;
+  y += 1.5;
 
-  y = ensure(y, 36, 16);
   y = sectionBar(y, "Undertaking");
   y = para(
     `In compliance with the order of the Supreme Court of Pakistan, I, Mr./Mrs. ${nm} Son/Ward of ${fn}, candidate for admission to ${ap?.program || "Intermediate"} at ${inst}, do hereby undertake that, after my admission and during the course of my studies, I shall not indulge in politics. In case I violate this undertaking, I shall be expelled without any further notice from the Principal. Furthermore, the finding with regard to my "indulgence in politics" given by the Principal under his seal and signature shall be final and shall not be questioned except only before the Supreme Court of Pakistan.`,
-    y,
+    y + 0.5,
   );
-  y += 1;
+  y += 0.5;
 
-  const idRows = (who: string, name: string, father: string, cnic: string, addr: string) => {
-    y = ensure(y, 30, 16);
+  const idTable = (who: string, rows: string[][]) => {
     autoTable(doc, {
       startY: y, margin: { left: m, right: m }, tableWidth: inner, theme: "grid",
       head: [[{ content: who, colSpan: 4, styles: { halign: "center" } }]],
-      body: [[ "Student Name", name || " ", "National Identity Card / Reg. No.", cnic || " " ],
-             [ "Father's/Guardian's Name", father || " ", "Permanent Address", addr || " " ],
-             [ "Dated", " ", "Signature", " " ]],
-      styles: { font: "helvetica", fontSize: 8, halign: "center", valign: "middle", cellPadding: 1.6, lineColor: C.grid, lineWidth: 0.15, textColor: C.ink, minCellHeight: 6.5 },
-      headStyles: { fillColor: C.green, textColor: C.white, fontStyle: "bold", fontSize: 7.5, lineColor: C.green },
-      columnStyles: {
-        0: { cellWidth: 36, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.2 },
-        1: { cellWidth: "auto" },
-        2: { cellWidth: 40, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.2 },
-        3: { cellWidth: "auto" },
+      body: rows,
+      styles: tableStyles(8 * k, 1.5 * k, 6.2 * k),
+      headStyles: { fillColor: C.green, textColor: C.white, fontStyle: "bold", fontSize: 7.4, lineColor: C.green, halign: "center", valign: "middle" },
+      columnStyles: { 0: labelCol(40), 1: { cellWidth: 58 }, 2: labelCol(32), 3: { cellWidth: 56 } },
+      didParseCell: (h: { row: { index: number }; cell: { styles: { minCellHeight: number } }; section: string }) => {
+        if (h.section === "body" && h.row.index === 2) h.cell.styles.minCellHeight = 10 * k;
       },
     } as never);
-    y = lastY(y + 25) + 3;
+    y = lastY(y + 25) + 4;
   };
-  idRows("DEPONENT — SIGNATURE OF STUDENT", nm, fn, ap?.cnic || "", ap?.address || "");
+  idTable("DEPONENT — STUDENT", [
+    ["Student Name", nm, "CNIC / Form-B No.", ap?.cnic || " "],
+    ["Father's / Guardian's Name", fn, "Permanent Address", ap?.address || " "],
+    ["Dated", " ", "Signature", " "],
+  ]);
 
-  y = ensure(y, 34, 16);
   y = sectionBar(y, "Endorsement by Father / Guardian");
   y = para(
     `I, Mr./Mrs. ${fn} Son/Wife of ____________________ Father/Guardian of ${nm} hereby fully endorse the undertaking by my son/ward and assure that he shall abide by this undertaking during his stay at the institution. In case my son/ward indulges in politics, the finding with regard to which given by the Principal under his seal and signature shall be final and shall not be questioned except only before the Supreme Court of Pakistan, he shall be expelled without any further notice.`,
-    y,
+    y + 0.5,
   );
-  y += 1;
-  idRows("DEPONENT — SIGNATURE OF FATHER / GUARDIAN", nm, fn, "", "");
+  y += 0.5;
+  idTable("DEPONENT — FATHER / GUARDIAN", [
+    ["Father's / Guardian's Name", fn, "CNIC No.", " "],
+    ["Student Name", nm, "Permanent Address", ap?.address || " "],
+    ["Dated", " ", "Signature", " "],
+  ]);
 
   // Witnesses
-  y = ensure(y, 46, 20);
-  y = sectionBar(y, "Witnesses");
-  const wit = (n: number) => [`Witness No. ${n} Name`, " ", "Father Name", " ", "National Identity No.", " ", "Permanent Address", " ", "Signature", " "];
-  const wb: string[][] = [];
-  const labels = ["Name", "Father Name", "National Identity No.", "Permanent Address", "Signature"];
-  labels.forEach((l) => wb.push([l, " ", l, " "]));
-  void wit;
+  const wl = ["Name", "Father Name", "CNIC No.", "Permanent Address", "Signature"];
   autoTable(doc, {
     startY: y, margin: { left: m, right: m }, tableWidth: inner, theme: "grid",
     head: [[{ content: "WITNESS NO. 1", colSpan: 2, styles: { halign: "center" } }, { content: "WITNESS NO. 2", colSpan: 2, styles: { halign: "center" } }]],
-    body: wb,
-    styles: { font: "helvetica", fontSize: 8, halign: "center", valign: "middle", cellPadding: 1.4, lineColor: C.grid, lineWidth: 0.15, textColor: C.ink, minCellHeight: 6.3 },
-    headStyles: { fillColor: C.green, textColor: C.white, fontStyle: "bold", fontSize: 7.5, lineColor: C.green },
-    columnStyles: {
-      0: { cellWidth: 34, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.2 },
-      1: { cellWidth: "auto" },
-      2: { cellWidth: 34, fillColor: C.alt, fontStyle: "bold", textColor: C.sub, fontSize: 7.2 },
-      3: { cellWidth: "auto" },
-    },
+    body: wl.map((l) => [l, " ", l, " "]),
+    styles: tableStyles(8 * k, 1.4 * k, 6.2 * k),
+    headStyles: { fillColor: C.green, textColor: C.white, fontStyle: "bold", fontSize: 7.2, lineColor: C.green, halign: "center", valign: "middle" },
+    columnStyles: { 0: labelCol(34), 1: { cellWidth: 59 }, 2: labelCol(34), 3: { cellWidth: 59 } },
   } as never);
-  y = lastY(y + 50) + 10;
+  y = lastY(y + 40) + 7;
 
-  y = ensure(y, 10, 24);
-  sigLine(w - m - 90, w - m - 6, y, "Attested (Signature & Seal of the Competent Authority)");
+  // Attestation + office use, one compact band
+  sigLine(w - m - 84, w - m - 2, y + 2, "Attested (Signature & Seal of the Competent Authority)");
+  y += 9;
+  fill(doc, C.alt); draw(doc, C.gold); doc.setLineWidth(0.3);
+  doc.roundedRect(m, y, inner, 21, 1.5, 1.5, "FD");
+  ink(doc, C.sub); doc.setFont("helvetica", "bold"); doc.setFontSize(7.2);
+  doc.text("FOR OFFICE USE ONLY", m + 3, y + 4.6);
+  ink(doc, C.ink); doc.setFont("helvetica", "normal"); doc.setFontSize(7.6);
+  doc.text("Roll No.: ____________________", w - m - 3, y + 4.6, { align: "right" });
+  sigLine(m + 6, m + 52, y + 16, "Member 1");
+  sigLine(m + 62, m + 108, y + 16, "Member 2");
+  sigLine(m + 118, m + 164, y + 16, "Chairman");
+  const page2End = y + 21;
 
-  // Footer on every page
-  const pages = doc.getNumberOfPages();
-  for (let pg = 1; pg <= pages; pg++) {
-    doc.setPage(pg);
-    ink(doc, C.muted); doc.setFont("helvetica", "normal"); doc.setFontSize(7);
-    doc.text(`${inst}   |   Application ${d.trackingId}   |   Page ${pg} of ${pages}`, w / 2, 291, { align: "center" });
+  // Page 1 must end above the footer line, and nothing may spill to a 3rd page.
+  const fits = doc.getNumberOfPages() === 2 && page1End <= 286 && page2End <= 286;
+  if (fits) { footer(1); footer(2); }
+  return { doc, fits };
+}
+
+export async function downloadApplicationForm(d: ApplicationFormData) {
+  const L = await lib();
+  // Normal data fits at full size; unusually long text tightens spacing step by
+  // step so the form is ALWAYS exactly two A4 pages with nothing cut off.
+  let built = await buildApplicationForm(d, 1, L);
+  for (const k of [0.94, 0.88, 0.82, 0.76]) {
+    if (built.fits) break;
+    built = await buildApplicationForm(d, k, L);
   }
-  doc.save(`Application-${d.trackingId}.pdf`);
+  built.doc.save(`Application-${d.trackingId}.pdf`);
 }
