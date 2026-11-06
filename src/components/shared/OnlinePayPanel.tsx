@@ -50,8 +50,16 @@ export default function OnlinePayPanel({ token, applicationId, trackingId, fee, 
     (trackingId ? ` for Tracking ID ${trackingId}` : "") +
     `. Payment screenshot / receipt is attached. Please verify my payment.`;
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-5 text-[12.5px] text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading payment options…
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-3">
+    <div id="pay-fee" className="space-y-3 scroll-mt-24">
       {online && (
         <div className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-4">
           <Button onClick={payOnline} disabled={busy} className="h-12 w-full gap-2 text-[15px] font-semibold">
@@ -100,17 +108,12 @@ export default function OnlinePayPanel({ token, applicationId, trackingId, fee, 
               href={whatsappLink(waText)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-[3rem] w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-[14px] font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+              className="mx-auto flex h-9 w-full max-w-xs items-center justify-center gap-1.5 rounded-lg border border-[#25D366]/50 bg-[#25D366]/[0.07] px-3 text-[12.5px] font-medium text-[#128C4A] transition-colors hover:bg-[#25D366]/15 dark:text-[#4ADE80]"
             >
-              <MessageCircle className="h-5 w-5 shrink-0" aria-hidden />
-              <span className="text-left leading-tight">
-                Send Screenshot on WhatsApp
-                <span className="block text-[11.5px] font-normal opacity-90">{SCHOOL_WHATSAPP_DISPLAY}</span>
-              </span>
+              <MessageCircle className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">Send screenshot on WhatsApp</span>
+              <span className="shrink-0 text-[11px] font-normal opacity-70">· {SCHOOL_WHATSAPP_DISPLAY}</span>
             </a>
-            <p className="text-center text-[11.5px] leading-relaxed text-muted-foreground">
-              Pay the money, then send the screenshot or receipt with your document on WhatsApp so we can verify your payment.
-            </p>
             {!hasReference && (
               <Button variant="outline" disabled={busy} className="h-11 w-full font-semibold"
                 onClick={async () => { setBusy(true); try { await ensureReference(); } finally { setBusy(false); } }}>
