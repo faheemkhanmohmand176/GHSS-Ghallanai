@@ -35,7 +35,7 @@ const BandStat = ({ value, label, suffix = "" }: { value: number; label: string;
   return (
     <div
       ref={ref}
-      className="rounded-2xl bg-white/10 border border-white/15 px-4 py-6 text-center shadow-sm"
+      className="rounded-2xl bg-white/[0.06] border border-[hsl(42_70%_60%/.22)] px-4 py-6 text-center"
     >
       <div className="text-3xl md:text-4xl font-heading font-bold text-gradient-gold">
         {count}{suffix}
@@ -82,18 +82,16 @@ const About = () => {
           so search engines and screen readers still get the plain text. */}
       <ParticleManifesto />
 
-      <section className="relative overflow-hidden gradient-hero">
-        <div className="orb orb-gold w-[420px] h-[420px] -top-40 -right-24 opacity-70" />
-        <div className="orb orb-light w-[300px] h-[300px] -bottom-28 -left-16" />
-        <div className="absolute inset-0 dot-grid opacity-[0.12]" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent" />
+      <section className="lux-hero relative overflow-hidden">
+        <div className="absolute inset-0 lux-grid" aria-hidden="true" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[hsl(38_80%_40%/.6)] to-transparent" />
 
         <div className="container mx-auto px-4 relative z-10 py-14 md:py-20 text-center">
           <motion.p
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
-            className="text-on-hero-soft text-sm md:text-lg max-w-2xl mx-auto leading-relaxed"
+            className="lux-soft text-[15px] md:text-lg max-w-2xl mx-auto leading-relaxed"
           >
             {settings?.school_name || "GHSS Ghallanai"} — a government higher secondary school in
             District Mohmand, KPK, serving students in 1st Year and 2nd Year (HSSC) with
@@ -114,9 +112,9 @@ const About = () => {
             ].map(({ icon: Icon, label }) => (
               <span
                 key={label}
-                className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-4 py-2 text-xs sm:text-sm font-medium text-on-hero"
+                className="lux-chip inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-medium"
               >
-                <Icon className="w-3.5 h-3.5 text-gold" />
+                <Icon className="w-3.5 h-3.5 lux-gold" />
                 {label}
               </span>
             ))}
@@ -209,7 +207,7 @@ const About = () => {
                   {/* gold corner accent */}
                   <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-gold/15 to-transparent rounded-bl-[2.5rem]" />
                   <div className="flex items-center gap-3 mb-2.5">
-                    <div className="icon-tile w-10 h-10">
+                    <div className="lux-tile w-10 h-10">
                       <item.icon className="w-5 h-5" />
                     </div>
                     <h3 className="font-heading font-semibold text-foreground text-lg">
@@ -227,9 +225,7 @@ const About = () => {
       </section>
 
       {/* ══════════ GRADIENT STATS BAND ══════════ */}
-      <section className="relative gradient-hero overflow-hidden">
-        <div className="orb orb-gold w-72 h-72 -top-24 left-[12%] opacity-50" />
-        <div className="orb orb-light w-64 h-64 -bottom-24 right-[8%]" />
+      <section className="relative lux-band overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/60 to-transparent" />
 
@@ -244,7 +240,7 @@ const About = () => {
             <span className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-gold">
               By the numbers
             </span>
-            <h2 className="mt-2 text-2xl md:text-3xl font-heading font-bold text-on-hero">
+            <h2 className="mt-2 text-2xl md:text-3xl font-heading font-bold text-white">
               Our school in figures
             </h2>
           </motion.div>
@@ -368,7 +364,7 @@ const About = () => {
                 viewport={{ once: true, amount: 0.3 }}
                 className="group bg-card rounded-2xl p-6 shadow-card border border-border/70 card-lift text-center"
               >
-                <div className="icon-tile w-12 h-12 mx-auto mb-4">
+                <div className="lux-tile w-12 h-12 mx-auto mb-4">
                   <p.icon className="w-6 h-6" />
                 </div>
                 <h3 className="font-heading font-semibold text-foreground">{p.title}</h3>
@@ -465,10 +461,8 @@ const About = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
-            className="relative gradient-hero rounded-3xl overflow-hidden px-6 py-12 md:px-14 md:py-16 text-center shadow-elevated"
+            className="relative lux-band rounded-3xl overflow-hidden px-6 py-12 md:px-14 md:py-16 text-center shadow-elevated border border-[hsl(42_70%_60%/.2)]"
           >
-            <div className="orb orb-gold w-80 h-80 -top-32 right-10 opacity-60" />
-            <div className="orb orb-light w-56 h-56 -bottom-20 left-6" />
             <div className="relative z-10">
               <h2 className="text-2xl md:text-4xl font-display font-semibold text-on-hero leading-tight">
                 Ready to become part of<br className="hidden sm:block" />
@@ -483,7 +477,7 @@ const About = () => {
                   <motion.span
                     whileHover={{ y: -2 }}
                     whileTap={{ y: 0 }}
-                    className="sheen inline-flex items-center gap-2 rounded-xl bg-accent text-accent-foreground font-semibold px-7 py-3.5 shadow-elevated cursor-pointer"
+                    className="sheen inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[hsl(42_80%_66%)] to-[hsl(38_82%_50%)] text-[hsl(224_30%_10%)] font-semibold px-7 py-3.5 shadow-elevated cursor-pointer"
                   >
                     Apply for Admission <ArrowRight className="w-4 h-4" />
                   </motion.span>
@@ -492,7 +486,7 @@ const About = () => {
                   <motion.span
                     whileHover={{ y: -2 }}
                     whileTap={{ y: 0 }}
-                    className="inline-flex items-center gap-2 rounded-xl border border-gold/50 bg-white/10 text-on-hero font-semibold px-7 py-3.5 hover:bg-white/15 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-2 rounded-full border border-gold/50 bg-white/10 text-on-hero font-semibold px-7 py-3.5 hover:bg-white/15 transition-colors cursor-pointer"
                   >
                     Contact Us
                   </motion.span>
