@@ -13,7 +13,7 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   ClipboardList, ArrowRight, UserRound, BookOpen,
-  LogOut, Search, AlertCircle, BadgeCheck, Wallet, PencilLine,
+  LogOut, Search, AlertCircle, BadgeCheck, PencilLine,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -222,19 +222,14 @@ export default function AdmissionPortal() {
                       <div className="sm:col-span-2"><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Fee Submission Deadline</dt>
                         <dd>{formatDeadline(a.fee_deadline_iso)}</dd></div>
                     </dl>
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {unpaid && !closed && (
-                        <Link to={`/admission/application/${a.id}?pay=1`}>
-                          <Button className="h-10 font-semibold"><Wallet className="w-4 h-4" /> Pay Fee</Button>
-                        </Link>
-                      )}
+                    <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
                       {unpaid && !closed && (
                         <Link to={`/admission/apply?edit=${a.id}`}>
-                          <Button variant="outline" className="h-10 font-semibold"><PencilLine className="w-4 h-4" /> Edit</Button>
+                          <Button variant="outline" className="h-10 min-w-[7.5rem] font-semibold"><PencilLine className="w-4 h-4" /> Edit</Button>
                         </Link>
                       )}
                       <Link to={`/admission/application/${a.id}`}>
-                        <Button variant="outline" className="h-10 font-semibold"><Search className="w-4 h-4" /> View</Button>
+                        <Button className="h-10 min-w-[7.5rem] font-semibold"><Search className="w-4 h-4" /> View</Button>
                       </Link>
                     </div>
                   </CardContent>
