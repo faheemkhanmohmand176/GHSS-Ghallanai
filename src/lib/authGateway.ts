@@ -32,6 +32,7 @@ export interface GatewayResult {
 }
 
 async function postAction(action: string, payload: Record<string, unknown>): Promise<GatewayResult> {
+  const started = Date.now();
   try {
     const res = await fetch(`/api/auth-gateway?action=${action}`, {
       method: "POST",
@@ -39,10 +40,24 @@ async function postAction(action: string, payload: Record<string, unknown>): Pro
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(ADMISSION_CLIENT_CACHE.gatewayTimeoutMs),
     });
-    const data = await res.json().catch(() => ({ ok: false, error: "Gateway returned invalid JSON." }));
-    return data as GatewayResult;
-  } catch {
-    return { ok: false, error: "Network error. Please check your connection and try again." };
+    const text = await res.text();
+    try {
+      return JSON.parse(text) as GatewayResult;
+    } catch {
+      // Server answered but not with JSON (e.g. Vercel crash page). Show the real status.
+      return {
+        ok: false,
+        error: `Server error (HTTP ${res.status}). ${text.replace(/<[^>]+>/g, " ").trim().slice(0, 120)}`,
+      };
+    }
+  } catch (e) {
+    const secs = Math.round((Date.now() - started) / 1000);
+    const name = e instanceof Error ? e.name : "Error";
+    const msg = e instanceof Error ? e.message : String(e);
+    if (name === "TimeoutError" || name === "AbortError") {
+      return { ok: false, error: `Server did not answer within ${secs}s (timeout). Check Vercel function logs for /api/auth-gateway.` };
+    }
+    return { ok: false, error: `Request could not reach the server after ${secs}s (${name}: ${msg}).` };
   }
 }
 
