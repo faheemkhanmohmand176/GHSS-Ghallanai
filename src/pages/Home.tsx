@@ -1048,7 +1048,7 @@ const Home = () => {
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent" aria-hidden="true" />
 
         <div className="container mx-auto px-5 sm:px-6 relative z-10 pt-9 pb-20 md:pt-6 md:pb-28">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_0.75fr] gap-10 items-center">
+          <div className="grid grid-cols-1 gap-10 items-center">
             <m.div initial={false} animate="visible" variants={stagger.parent} className="max-w-2xl relative min-w-0">
 
               <m.div variants={stagger.child}>
@@ -1075,38 +1075,6 @@ const Home = () => {
                   Learn more
                 </Link>
               </m.div>
-
-              {/* quick links — real destinations, thumb-friendly */}
-              <m.div variants={stagger.child} className="mt-6 flex flex-wrap gap-2">
-                <Link to="/admission" className="lux-chip inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-medium">
-                  <GraduationCap className="w-3.5 h-3.5 lux-gold" /> Online Admission
-                </Link>
-                <Link to="/notices" className="lux-chip inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-medium">
-                  <Bell className="w-3.5 h-3.5 lux-gold" /> Latest Notices
-                </Link>
-                <Link to="/contact" className="lux-chip inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-medium">
-                  <MapPin className="w-3.5 h-3.5 lux-gold" /> Contact
-                </Link>
-              </m.div>
-            </m.div>
-
-            {/* Crest card — desktop only */}
-            <m.div initial={false} animate="visible" variants={stagger.child} className="hidden lg:flex justify-center">
-              <div className="relative">
-                <div className="absolute -inset-6 rounded-full border border-[hsl(38_70%_45%/.25)]" aria-hidden="true" />
-                <div className="absolute -inset-12 rounded-full border border-[hsl(38_70%_45%/.12)]" aria-hidden="true" />
-                <div className="relative h-60 w-60 rounded-full bg-white/80 dark:bg-white/[0.06] border border-[hsl(38_70%_45%/.35)] shadow-[0_30px_60px_-30px_hsl(38_60%_30%/.5)] flex items-center justify-center overflow-hidden">
-                  {settings?.logo_url ? (
-                    <img
-                      src={optimizedCloudinaryUrl(settings.logo_url, { width: 360 }) || safeMediaUrl(settings.logo_url) || ""}
-                      alt={`${settings?.school_name || "GHSS Ghallanai"} crest`}
-                      className="h-44 w-44 object-contain" decoding="async"
-                    />
-                  ) : (
-                    <GraduationCap className="h-20 w-20 lux-gold" />
-                  )}
-                </div>
-              </div>
             </m.div>
           </div>
         </div>
