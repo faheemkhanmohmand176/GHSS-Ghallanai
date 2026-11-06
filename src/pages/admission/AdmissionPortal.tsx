@@ -37,9 +37,6 @@ export default function AdmissionPortal() {
   // A cancelled / rejected application does NOT count as active.
   const activeApp = apps.find(a => !['cancelled','rejected'].includes(a.status));
   const hasActiveApp = Boolean(activeApp);
-  // The application the applicant can edit (unpaid + not yet locked)
-  const editableApp = apps.find(a => a.payment_status === 'pending'
-    && !['fee_paid','under_review','merit_listed','admitted','rejected','cancelled'].includes(a.status));
 
   const itemCls = "w-full flex items-center gap-2.5 rounded-lg px-3 h-10 text-[13px] font-semibold text-muted-foreground hover:bg-primary/5 hover:text-primary transition-colors text-left";
 
@@ -153,11 +150,6 @@ export default function AdmissionPortal() {
               <CardContent className="p-4">
                 <h3 className="font-heading font-bold text-sm text-foreground mb-3 px-1">Admission Menu</h3>
                 <nav className="space-y-1">
-                  {hasActiveApp && (
-                    <Link to={editableApp ? `/admission/apply?edit=${editableApp.id}` : `/admission/application/${activeApp?.id ?? ""}`} className={itemCls}>
-                      <PencilLine className="w-4 h-4" /> Edit Application
-                    </Link>
-                  )}
                   <Link to="/admission/profile" className={itemCls}>
                     <UserRound className="w-4 h-4" /> Personal Information
                     {personalDone && <BadgeCheck className="w-4 h-4 text-green-600 ml-auto" />}
@@ -227,8 +219,6 @@ export default function AdmissionPortal() {
                         <dd className="font-semibold text-foreground">{a.program_name}</dd></div>
                       <div><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Quota</dt>
                         <dd>{QUOTA_LABEL[a.quota] ?? a.quota}</dd></div>
-                      <div><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Hafiz e Quran</dt>
-                        <dd>{a.hafiz_e_quran ? "Yes" : "No"}</dd></div>
                       <div className="sm:col-span-2"><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Fee Submission Deadline</dt>
                         <dd>{formatDeadline(a.fee_deadline_iso)}</dd></div>
                     </dl>
