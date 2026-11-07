@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import AdmissionStepper from "@/components/shared/AdmissionStepper";
-import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
+import AdmissionReviewTable from "@/components/shared/AdmissionReviewTable";
 import { AdmissionClosedCard } from "@/components/shared/AdmissionGate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdmissionSettings, getAdmissionState, formatAdmissionDate } from "@/hooks/useAdmission";
@@ -62,6 +62,7 @@ function TrackApplication() {
   const [result, setResult] = useState<TrackResult | null>(null);
   const [failed, setFailed] = useState(false);
   const [failDetail, setFailDetail] = useState("");
+  const [showAllTimeline, setShowAllTimeline] = useState(false);
 
   // Open the connection to the database while the visitor is still typing, so
   // the lookup itself needs no DNS / TLS set-up time.
@@ -77,7 +78,7 @@ function TrackApplication() {
     e?.preventDefault();
     const q = trackingId.replace(/\s+/g, "").trim();
     if (!q) { toast.error("Please enter your Tracking ID."); return; }
-    setSearching(true); setSearched(q); setResult(null); setFailed(false); setFailDetail("");
+    setSearching(true); setSearched(q); setResult(null); setFailed(false); setFailDetail(""); setShowAllTimeline(false);
     try {
       const res = (await interApi.track(q)) as unknown as TrackResult & { error?: string; detail?: string };
       if (res?.ok) setResult(res);
@@ -134,85 +135,82 @@ function TrackApplication() {
         {searched && !searching && (
           <div className="mt-6">
             {result ? (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-                {/* Header */}
-                <div className="flex flex-col items-center rounded-2xl border border-border bg-muted/30 px-4 py-4 text-center">
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl space-y-3.5">
+                {/* Header — ID + ONE status badge */}
+                <div className="flex flex-col items-center rounded-2xl border border-border bg-muted/30 px-4 py-3 text-center">
                   <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Tracking ID</span>
-                  <span className="mt-0.5 font-mono text-xl font-bold tracking-wider text-foreground">{result.tracking_id}</span>
-                  <Badge variant="secondary" className={`mt-2 ${st.tone}`}>{st.label}</Badge>
-                  <p className="mt-2 max-w-sm text-[12.5px] leading-relaxed text-muted-foreground">{st.note}</p>
+                  <span className="font-mono text-lg font-bold tracking-wider text-foreground">{result.tracking_id}</span>
+                  <Badge variant="secondary" className={`mt-1.5 ${st.tone}`}>{st.label}</Badge>
+                  {closedOut && <p className="mt-2 max-w-sm text-[12.5px] leading-snug text-muted-foreground">{st.note}</p>}
                 </div>
 
-                {/* Progress */}
+                {/* Progress — finished steps are ticked, the NEXT step is highlighted */}
                 {closedOut ? (
-                  <div className="flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-3 text-sm font-semibold text-red-600">
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-2.5 text-sm font-semibold text-red-600">
                     <XCircle className="h-4 w-4" /> {st.label}
                   </div>
                 ) : (
-                  <AdmissionStepper steps={TRACK_STEPS} current={st.step} allComplete={st.complete} />
+                  <AdmissionStepper steps={TRACK_STEPS} current={st.complete ? TRACK_STEPS.length : st.step + 1} allComplete={st.complete} />
                 )}
 
-                {/* A contradiction between the two stored facts (an old row
-                    created before the fee and the workflow were separated). */}
                 {st.warning && (
-                  <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-[12px] leading-snug text-amber-700 dark:text-amber-400">
+                  <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[12px] leading-snug text-amber-700 dark:text-amber-400">
                     <AlertCircle className="mt-px h-4 w-4 shrink-0" />
                     <span>{st.warning}</span>
                   </div>
                 )}
 
-                {/* What happens next — the applicant should never have to guess. */}
+                {/* What happens next — one short line */}
                 {!closedOut && (
-                  <div className="flex items-start gap-2.5 rounded-xl border border-border/70 bg-card px-3.5 py-3">
+                  <div className="flex items-start gap-2.5 rounded-xl border border-border/70 bg-card px-3 py-2.5">
                     <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <div className="min-w-0">
-                      <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">What happens next</p>
-                      <p className="mt-1 text-[12.5px] leading-relaxed text-foreground/85">{st.next}</p>
-                    </div>
+                    <p className="text-[12.5px] leading-snug text-foreground/85">
+                      <span className="font-semibold text-foreground">Next: </span>{st.next}
+                    </p>
                   </div>
                 )}
 
-                {/* Summary */}
-                <AdmissionInfoGrid
-                  items={[
+                {/* Summary — thin table */}
+                <AdmissionReviewTable
+                  title="Application"
+                  icon={<ClipboardList className="h-3.5 w-3.5" />}
+                  rows={[
                     { label: "Program", value: result.program },
-                    ...(result.subject_group ? [{ label: "Subject Group", value: result.subject_group }] : []),
                     { label: "Category", value: QUOTA_LABEL[result.quota ?? ""] ?? result.quota },
-                    { label: "Processing Fee", value: (
-                      <span className="inline-flex items-center gap-1.5">
-                        Rs {result.processing_fee}
-                        <Badge variant="secondary" className={paid ? "bg-green-500/15 text-green-700 dark:text-green-400" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"}>
-                          {result.payment_status}
-                        </Badge>
-                      </span>
-                    ) },
+                    ...(result.subject_group ? [{ label: "Subject Group", value: result.subject_group.split(",").map((x) => x.trim()).filter(Boolean).join(", "), wide: true }] : []),
+                    { label: "Fee", value: `Rs ${result.processing_fee} · ${paid ? "Paid" : result.payment_status === "rejected" ? "Rejected" : "Pending"}` },
+                    { label: "Applied On", value: result.application_date },
                     ...(methodLabel ? [{ label: "Paid Via", value: methodLabel }] : []),
                     ...(result.payment_receipt ? [{ label: "Receipt No.", value: result.payment_receipt }] : []),
-                    { label: "Applied On", value: result.application_date },
-                    { label: paid ? "Payment Reference" : "Fee Deadline", value: paid ? result.payment_reference : result.fee_deadline },
-                    { label: "College", value: result.college, wide: true },
+                    { label: paid ? "Payment Ref." : "Fee Deadline", value: paid ? result.payment_reference : result.fee_deadline },
                   ]}
                 />
 
-                {/* Timeline */}
+                {/* Timeline — latest first, collapsed */}
                 {timeline.length > 0 && (
                   <div>
-                    <h3 className="mb-3 text-center font-heading text-[15px] font-semibold text-foreground">Application Timeline</h3>
-                    <ol className="mx-auto max-w-xl space-y-0">
-                      {[...timeline].reverse().map((t, i, arr) => (
-                        <li key={i} className="relative flex gap-3 pb-4 last:pb-0">
-                          {i < arr.length - 1 && <span className="absolute left-[9px] top-5 h-[calc(100%-12px)] w-px bg-border" aria-hidden />}
-                          <span className={`relative z-10 mt-1 h-[19px] w-[19px] shrink-0 rounded-full border-2 ${i === 0 ? "border-gold bg-gold/20" : "border-border bg-card"}`} />
-                          <div className="min-w-0 flex-1 rounded-xl border border-border/70 bg-card px-3 py-2.5">
-                            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
-                              <p className="text-[13.5px] font-semibold text-foreground">{t.title}</p>
-                              <p className="text-[11px] text-muted-foreground">{t.date}</p>
+                    <h3 className="mb-2 text-center font-heading text-[13px] font-semibold uppercase tracking-[0.12em] text-foreground">Timeline</h3>
+                    <ol className="space-y-0">
+                      {[...timeline].reverse().slice(0, showAllTimeline ? undefined : 3).map((t, i, arr) => (
+                        <li key={i} className="relative flex gap-2.5 pb-2.5 last:pb-0">
+                          {i < arr.length - 1 && <span className="absolute left-[7px] top-4 h-[calc(100%-8px)] w-px bg-border" aria-hidden />}
+                          <span className={`relative z-10 mt-1.5 h-[15px] w-[15px] shrink-0 rounded-full border-2 ${i === 0 ? "border-gold bg-gold/20" : "border-border bg-card"}`} />
+                          <div className="min-w-0 flex-1 rounded-lg border border-border/70 bg-card px-3 py-2">
+                            <div className="flex flex-wrap items-center justify-between gap-x-3">
+                              <p className="text-[12.5px] font-semibold text-foreground">{t.title}</p>
+                              <p className="text-[10.5px] text-muted-foreground">{t.date}</p>
                             </div>
-                            {t.details && <p className="mt-1 text-[12.5px] leading-snug text-muted-foreground">{t.details}</p>}
+                            {t.details && <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{t.details}</p>}
                           </div>
                         </li>
                       ))}
                     </ol>
+                    {timeline.length > 3 && (
+                      <button type="button" onClick={() => setShowAllTimeline((v) => !v)}
+                        className="mx-auto mt-2 block text-[12px] font-semibold text-primary hover:underline">
+                        {showAllTimeline ? "Show less" : `Show all ${timeline.length} updates`}
+                      </button>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -357,7 +355,20 @@ function MeritLists() {
                   </p>
                 </div>
               )}
-              <div className="overflow-x-auto rounded-xl border border-border">
+              <div className="space-y-2 md:hidden">
+                {(view.entries ?? []).map((e) => (
+                  <div key={e.tracking_id} className="rounded-xl border border-border bg-card px-3 py-2.5 text-center">
+                    <p className="text-[13px] font-semibold text-foreground">#{e.position} · {e.name}</p>
+                    <p className="text-[11.5px] text-muted-foreground">S/O {e.father_name}</p>
+                    <p className="mt-0.5 font-mono text-[11.5px] font-semibold text-primary">{e.tracking_id}</p>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">
+                      {e.obtained_marks}/{e.total_marks} · Net <strong className="text-foreground">{e.net_marks}</strong> · <strong className="text-primary">{e.percentage}%</strong>
+                    </p>
+                    {e.remarks && <p className="mt-0.5 text-[11.5px] text-muted-foreground">{e.remarks}</p>}
+                  </div>
+                ))}
+              </div>
+              <div className="hidden md:block overflow-x-auto rounded-xl border border-border">
                 <table className="w-full text-[12.5px]">
                   <thead className="bg-primary text-primary-foreground">
                     <tr>
