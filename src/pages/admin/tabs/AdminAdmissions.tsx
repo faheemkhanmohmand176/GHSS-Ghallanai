@@ -33,10 +33,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ClipboardList, Search, Loader2, Wallet, CheckCircle2,
-  XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark, Plus, Trash2, Download, FileSpreadsheet, AlertTriangle,
+  XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark, Trash2, UserPlus, FileSpreadsheet, AlertTriangle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { exportApplicationsExcel, type ExportRow } from "@/lib/admissionExcel";
+import AdminWalkinDialog from "./AdminWalkinDialog";
 import AdminMeritLists from "./AdminMeritLists";
 import AdminAdmissionPrograms from "./AdminAdmissionPrograms";
 
@@ -121,6 +122,7 @@ export default function AdminAdmissions() {
   const [statusValue, setStatusValue] = useState<WorkflowStage["value"]>("under_review");
   const [statusNote, setStatusNote] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [walkinOpen, setWalkinOpen] = useState(false);
   const [delApp, setDelApp] = useState<AdminApp | null>(null);
   const [exporting, setExporting] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -388,6 +390,9 @@ export default function AdminAdmissions() {
             className="pl-9 h-9 text-[12.5px] rounded-full"
           />
         </div>
+        <Button size="sm" className="h-8 px-4 text-[11.5px] rounded-full whitespace-nowrap gap-1" onClick={() => setWalkinOpen(true)}>
+          <UserPlus className="w-3 h-3" /> Add Walk-in / Import
+        </Button>
         <div className="flex flex-nowrap items-center justify-center gap-1.5 w-full">
           <Button variant="outline" size="sm" className="h-8 px-2.5 text-[11.5px] rounded-full whitespace-nowrap gap-1" onClick={() => setSettingsOpen(true)}>
             <Settings2 className="w-3 h-3" /> Settings
@@ -498,6 +503,8 @@ export default function AdminAdmissions() {
           )}
         </CardContent>
       </Card>
+
+      <AdminWalkinDialog open={walkinOpen} onOpenChange={setWalkinOpen} />
 
       {/* Delete confirm */}
       <Dialog open={Boolean(delApp)} onOpenChange={(o) => !o && setDelApp(null)}>
@@ -748,12 +755,6 @@ export default function AdminAdmissions() {
   );
 }
 
-const PM_TYPES: { value: PaymentMethod["type"]; label: string }[] = [
-  { value: "bank", label: "Bank" }, { value: "easypaisa", label: "EasyPaisa" },
-  { value: "jazzcash", label: "JazzCash" }, { value: "cash", label: "Cash at School" },
-  { value: "other", label: "Other" },
-];
-
 function SettingsBody({
   settings, onSave, saving,
 }: {
@@ -766,9 +767,8 @@ function SettingsBody({
   const [openDate, setOpenDate] = useState(settings?.open_date ?? "");
   const [lastDate, setLastDate] = useState(settings?.last_date ?? "");
   const [fee, setFee] = useState(String(settings?.processing_fee ?? 100));
-  const [methods, setMethods] = useState<PaymentMethod[]>(settings?.payment_methods ?? []);
+  const [methods] = useState<PaymentMethod[]>(settings?.payment_methods ?? []);
   const [onlinePay, setOnlinePay] = useState(settings?.online_payment_enabled !== false);
-  const [importing, setImporting] = useState(false);
   // Rate-limit settings (migration 24) — editable, not hardcoded.
   const [regPerDay, setRegPerDay] = useState(String(settings?.rate_register_per_ip_day ?? 5));
   const [loginMax, setLoginMax] = useState(String(settings?.rate_login_max_attempts ?? 5));
@@ -777,28 +777,6 @@ function SettingsBody({
   const [trackPerId, setTrackPerId] = useState(String(settings?.rate_track_per_id_hour ?? 5));
   const [resetPerDay, setResetPerDay] = useState(String(settings?.rate_reset_per_ip_day ?? 5));
   const [turnstileReq, setTurnstileReq] = useState(settings?.turnstile_required !== false);
-
-  const setPm = (i: number, k: keyof PaymentMethod, v: string) =>
-    setMethods((m) => m.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
-
-  async function importFromFees() {
-    setImporting(true);
-    try {
-      const { data, error } = await supabase.from("fee_structures").select("payment_methods");
-      if (error) throw error;
-      const seen = new Set(methods.map((m) => JSON.stringify(m)));
-      const found: PaymentMethod[] = [];
-      (data ?? []).forEach((r: { payment_methods: PaymentMethod[] | null }) =>
-        (r.payment_methods ?? []).forEach((m) => {
-          const k = JSON.stringify(m);
-          if (!seen.has(k)) { seen.add(k); found.push(m); }
-        }));
-      if (found.length === 0) toast("No payment accounts found in Fee Management.");
-      else { setMethods((m) => [...m, ...found]); toast.success(`${found.length} account(s) imported.`); }
-    } catch (e) {
-      toast.error((e as Error).message || "Could not import.");
-    } finally { setImporting(false); }
-  }
 
   function submit() {
     const f = Math.round(Number(fee));
@@ -898,61 +876,6 @@ function SettingsBody({
         <p className="text-[11px] text-muted-foreground">
           These limits are enforced server-side by the Vercel auth-gateway and the database — a browser cannot bypass them.
         </p>
-      </div>
-
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <Label className="text-[13px] font-semibold">School Payment Accounts</Label>
-          <div className="flex gap-1.5">
-            <Button type="button" variant="outline" size="sm" className="h-8 text-xs" disabled={importing} onClick={importFromFees}>
-              {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} From Fee Management
-            </Button>
-            <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={() => setMethods((m) => [...m, { type: "bank" }])}>
-              <Plus className="w-3.5 h-3.5" /> Add
-            </Button>
-          </div>
-        </div>
-        {methods.length === 0 && (
-          <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-[12.5px] text-muted-foreground">
-            No account added. Applicants will be told to pay at the school office.
-          </p>
-        )}
-        {methods.map((m, i) => (
-          <div key={i} className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
-            <div className="flex items-center gap-2">
-              <select
-                value={m.type}
-                onChange={(e) => setPm(i, "type", e.target.value)}
-                className="h-9 flex-1 rounded-lg border border-input bg-background px-2 text-sm"
-              >
-                {PM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={() => setMethods((x) => x.filter((_, j) => j !== i))}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-            {m.type === "bank" && (
-              <div className="grid grid-cols-2 gap-2">
-                <Input className="h-9 text-sm" placeholder="Bank name" value={m.bank_name ?? ""} onChange={(e) => setPm(i, "bank_name", e.target.value)} />
-                <Input className="h-9 text-sm" placeholder="Account title" value={m.account_title ?? ""} onChange={(e) => setPm(i, "account_title", e.target.value)} />
-                <Input className="h-9 text-sm" placeholder="Account number" value={m.account_number ?? ""} onChange={(e) => setPm(i, "account_number", e.target.value)} />
-                <Input className="h-9 text-sm" placeholder="IBAN" value={m.iban ?? ""} onChange={(e) => setPm(i, "iban", e.target.value)} />
-              </div>
-            )}
-            {(m.type === "easypaisa" || m.type === "jazzcash") && (
-              <div className="grid grid-cols-2 gap-2">
-                <Input className="h-9 text-sm" placeholder="Account name" value={m.account_name ?? ""} onChange={(e) => setPm(i, "account_name", e.target.value)} />
-                <Input className="h-9 text-sm" placeholder="Mobile number" value={m.phone ?? ""} onChange={(e) => setPm(i, "phone", e.target.value)} />
-              </div>
-            )}
-            {(m.type === "cash" || m.type === "other") && (
-              <div className="space-y-2">
-                {m.type === "other" && <Input className="h-9 text-sm" placeholder="Method name" value={m.label ?? ""} onChange={(e) => setPm(i, "label", e.target.value)} />}
-                <Input className="h-9 text-sm" placeholder="Instructions" value={m.instructions ?? ""} onChange={(e) => setPm(i, "instructions", e.target.value)} />
-              </div>
-            )}
-          </div>
-        ))}
       </div>
 
       <Button className="w-full h-11 font-semibold" disabled={saving} onClick={submit}>
