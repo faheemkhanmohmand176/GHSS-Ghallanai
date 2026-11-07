@@ -7,10 +7,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
-  Printer, Loader2, AlertCircle, CheckCircle2, FileText, Eye, EyeOff, PencilLine,
+  Printer, Loader2, AlertCircle, CheckCircle2, FileText, Eye, EyeOff, ClipboardList, UserRound, BookOpen, Receipt,
 } from "lucide-react";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
-import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
+import AdmissionReviewTable from "@/components/shared/AdmissionReviewTable";
 import AdmissionSessionRetry from "@/components/shared/AdmissionSessionRetry";
 import OnlinePayPanel from "@/components/shared/OnlinePayPanel";
 import { useAdmissionSettings, cycleLabel } from "@/hooks/useAdmission";
@@ -205,9 +205,7 @@ export default function ApplicationView() {
   const quotaName = QUOTA_LABEL[String(app.quota)] ?? String(app.quota);
   const deadlineShort = formatDeadline(String(app.fee_deadline)).split(" ").slice(0, 3).join(" ");
   const cnicShown = formatCnic(detail.applicant_cnic ?? "");
-  // Whether this application is still editable (fee unpaid + not locked).
-  const editable = String(app.payment_status) === "pending"
-    && !["fee_paid","under_review","merit_listed","admitted","rejected","cancelled"].includes(String(app.status));
+  // NOTE: a submitted application is FINAL — there is no edit action anywhere.
 
   async function downloadChallan() {
     try {
@@ -327,20 +325,13 @@ export default function ApplicationView() {
           <h1 className="font-heading text-2xl font-bold text-foreground">Application Form</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{String(personal.full_name)}</p>
           <p className="text-[12.5px] text-muted-foreground">{COLLEGE_NAME}</p>
-          <div className="mt-4 mx-auto grid max-w-md grid-cols-2 gap-2.5">
-            <Button variant="outline" onClick={downloadChallan} className="h-10 font-semibold">
+          <div className="mt-4 mx-auto grid max-w-md grid-cols-2 gap-2">
+            <Button variant="outline" onClick={downloadChallan} className="h-9 text-[13px] font-semibold">
               <FileText className="w-4 h-4" /> Fee Challan
             </Button>
-            <Button variant="outline" onClick={downloadForm} className="h-10 font-semibold">
+            <Button variant="outline" onClick={downloadForm} className="h-9 text-[13px] font-semibold">
               <Printer className="w-4 h-4" /> Application PDF
             </Button>
-            {editable && (
-              <Link to={`/admission/apply?edit=${id}`} className="col-span-2">
-                <Button className="h-10 w-full font-semibold">
-                  <PencilLine className="w-4 h-4" /> Edit Application
-                </Button>
-              </Link>
-            )}
           </div>
         </div>
 
@@ -393,38 +384,38 @@ export default function ApplicationView() {
             )}
 
             <div className="mt-5 pt-4 border-t border-border/60">
-              <AdmissionInfoGrid items={[
-                { label: "Tracking ID", value: <span className="font-mono text-primary">{String(app.tracking_id)}</span> },
-                { label: "Date Applied", value: formatDateLong(String(app.submitted_at)) },
-                { label: "Amount", value: `Rs ${FEE}` },
-              ]} />
+              <AdmissionReviewTable
+                title="Submission Details"
+                icon={<Receipt className="h-3.5 w-3.5" />}
+                rows={[
+                  { label: "Tracking ID", value: <span className="font-mono font-bold text-primary">{String(app.tracking_id)}</span> },
+                  { label: "Date Applied", value: formatDateLong(String(app.submitted_at)) },
+                  { label: "Amount", value: `Rs ${FEE}` },
+                  { label: "Fee Status", value: unpaid ? "Pending" : "Paid" },
+                ]}
+              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Application details */}
-        <Card className="border-border/80 shadow-card">
-          <CardContent className="p-5 sm:p-6 space-y-6">
-            <div><h3 className={H3}>Application Details</h3><AdmissionInfoGrid items={items.app} /></div>
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <h3 className={H3}>Personal Information</h3>
-                <button
-                  type="button"
-                  onClick={() => setRevealPii(v => !v)}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
-                >
-                  {revealPii ? <><EyeOff className="w-3.5 h-3.5" /> Hide details</> : <><Eye className="w-3.5 h-3.5" /> Show details</>}
-                </button>
-              </div>
-              <AdmissionInfoGrid items={items.personal} />
-            </div>
-            <div><h3 className={H3}>Academic Information</h3><AdmissionInfoGrid items={items.academic} /></div>
-            <div className="rounded-xl bg-muted/60 border border-border p-3.5 text-center text-[12.5px] leading-relaxed text-muted-foreground">
-              <span className="font-semibold text-foreground">Declaration: </span>{ADMISSION_MESSAGES.declaration}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Application details — same premium tables as the Confirm step */}
+        <AdmissionReviewTable title="Application" icon={<ClipboardList className="h-3.5 w-3.5" />} rows={items.app} />
+        <div className="space-y-2">
+          <AdmissionReviewTable title="Personal Information" icon={<UserRound className="h-3.5 w-3.5" />} rows={items.personal} />
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setRevealPii(v => !v)}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+            >
+              {revealPii ? <><EyeOff className="w-3.5 h-3.5" /> Hide CNIC &amp; mobile</> : <><Eye className="w-3.5 h-3.5" /> Show CNIC &amp; mobile</>}
+            </button>
+          </div>
+        </div>
+        <AdmissionReviewTable title="Academic Information" icon={<BookOpen className="h-3.5 w-3.5" />} rows={items.academic} />
+        <div className="rounded-xl bg-muted/60 border border-border p-3 text-center text-[12.5px] leading-relaxed text-muted-foreground">
+          <span className="font-semibold text-foreground">Declaration: </span>{ADMISSION_MESSAGES.declaration}
+        </div>
 
         {/* Timeline */}
         {detail.timeline && detail.timeline.length > 0 && (
