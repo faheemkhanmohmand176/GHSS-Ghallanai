@@ -37,21 +37,22 @@ export default function AdmissionReviewTable({ title, icon, rows, editTo, onEdit
 
   const show = (v: ReactNode) => (v === "" || v === null || v === undefined ? "N/A" : v);
 
+  const hasEdit = Boolean(editTo || onEdit);
   const editCls =
-    "inline-flex h-6 items-center gap-1 rounded-full border border-white/30 bg-white/10 px-2.5 text-[10.5px] font-semibold text-white transition-colors hover:bg-white/20";
+    "inline-flex h-6 shrink-0 items-center gap-1 rounded-full border border-white/30 bg-white/10 px-2.5 text-[10.5px] font-semibold text-white transition-colors hover:bg-white/20";
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-card">
-      <header className="relative flex items-center justify-center bg-gradient-to-r from-primary to-primary/90 px-3 py-2.5 text-primary-foreground">
-        <h3 className="flex items-center gap-2 font-heading text-[13px] font-semibold uppercase tracking-[0.14em]">
+      <header className={`relative flex items-center gap-2 bg-gradient-to-r from-primary to-primary/90 px-3 py-2 text-primary-foreground ${hasEdit ? "justify-between" : "justify-center"}`}>
+        <h3 className="flex min-w-0 items-center gap-1.5 truncate font-heading text-[12px] font-semibold uppercase tracking-[0.08em]">
           {icon}
-          {title}
+          <span className="truncate">{title}</span>
         </h3>
-        {(editTo || onEdit) && (
+        {hasEdit && (
           editTo ? (
-            <Link to={editTo} className={`${editCls} absolute right-2.5`}><PencilLine className="h-3 w-3" /> Edit</Link>
+            <Link to={editTo} className={editCls}><PencilLine className="h-3 w-3" /> Edit</Link>
           ) : (
-            <button type="button" onClick={onEdit} className={`${editCls} absolute right-2.5`}><PencilLine className="h-3 w-3" /> Edit</button>
+            <button type="button" onClick={onEdit} className={editCls}><PencilLine className="h-3 w-3" /> Edit</button>
           )
         )}
         <span aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent" />
