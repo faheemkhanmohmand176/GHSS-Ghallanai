@@ -150,9 +150,15 @@ export default function ApplyFlow() {
       setQuota(w.quota ?? "");
       setCriteria({ ...EMPTY_CRITERIA, ...(w.criteria || {}) });
       setSubjectGroup(w.subjectGroup ?? "");
-      if (w.programId || w.quota) toast.success("Your unsaved progress was restored.", { id: "wip-restored" });
+      // Coming back from "Edit" on the Confirm step → straight back to Confirm.
+      if (searchParams.get("step") === "confirm" && w.programId && w.quota && w.criteria?.declaration) {
+        setStep("confirm");
+      } else if (w.programId || w.quota) {
+        toast.success("Your unsaved progress was restored.", { id: "wip-restored" });
+      }
     }
     setWipReady(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftMode]);
   useEffect(() => {
     if (!draftMode || !wipReady) return;
@@ -499,14 +505,12 @@ export default function ApplyFlow() {
         {/* ═══ STEP 1 — APPLICATION FORM ═══ */}
         {step === "form" && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="mb-5 rounded-xl border border-border bg-card p-4 text-[12.5px] text-muted-foreground leading-relaxed">
-              <p className="font-bold text-foreground text-[13px] mb-1.5">INSTRUCTIONS:</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>This admission is only for <strong className="text-foreground">{COLLEGE_NAME}</strong> — {STUDY_LEVEL}.</li>
-                <li>Only <strong className="text-foreground">one admission request</strong> can be submitted per applicant. Choose your program and category of admission carefully.</li>
-                <li>Your category (quota) is checked against your domicile and the details you entered in your profile.</li>
-                <li>You can review and edit everything on the next step. <strong className="text-foreground">Once you press Submit Application, the request is final and cannot be edited.</strong></li>
-                <li>After submitting, pay the processing fee before the deadline to confirm your application. Admission is offered on merit.</li>
+            <div className="mb-4 rounded-xl border border-border bg-card px-3.5 py-3 text-[12px] text-muted-foreground leading-snug">
+              <p className="font-bold text-foreground text-[12px] mb-1">INSTRUCTIONS:</p>
+              <ul className="list-disc pl-5 space-y-0.5">
+                <li>One admission request per applicant — choose program and category carefully.</li>
+                <li>Review and edit on the next step. After Submit, it is final.</li>
+                <li>Pay the processing fee before the deadline.</li>
               </ul>
             </div>
 
@@ -730,7 +734,7 @@ export default function ApplyFlow() {
             <AdmissionReviewTable
               title="Personal Information"
               icon={<UserRound className="h-3.5 w-3.5" />}
-              editTo="/admission/profile"
+              editTo="/admission/profile?return=confirm"
               rows={[
                 { label: "Name", value: personal.full_name },
                 { label: "Father Name", value: personal.father_name },
@@ -753,7 +757,7 @@ export default function ApplyFlow() {
             <AdmissionReviewTable
               title="Academic Information"
               icon={<BookOpen className="h-3.5 w-3.5" />}
-              editTo="/admission/ssc"
+              editTo="/admission/ssc?return=confirm"
               rows={[
                 { label: "Highest Exam", value: "SSC" },
                 { label: "Exam Session", value: ssc.exam_session },
@@ -800,10 +804,6 @@ export default function ApplyFlow() {
                 className="h-10 w-full text-[13.5px] font-semibold">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 {busy ? "Submitting…" : "Submit Application"}
-              </Button>
-              <Button variant="outline" onClick={() => { setStep("form"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                className="h-10 w-full text-[13.5px] font-semibold">
-                <PencilLine className="h-4 w-4" /> Edit Application
               </Button>
             </div>
           </motion.div>
