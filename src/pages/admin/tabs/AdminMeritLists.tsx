@@ -29,9 +29,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Trophy, Loader2, Plus, RefreshCw, Eye, Trash2, Globe, GlobeLock,
+  Trophy, Loader2, Plus, Eye, Trash2, Globe, GlobeLock,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { MeritTitleBlock, MeritDates, MeritInstructions } from "@/components/shared/MeritListSheet";
 
 interface AdminMeritList {
   id: string; program: string; quota: string; list_no: number; title: string;
@@ -235,20 +236,11 @@ export default function AdminMeritLists() {
   return (
     <div className="space-y-5">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2.5">
-        <div className="flex-1 min-w-[200px]" />
-        <Button variant="outline" size="sm" className="h-9 text-[12.5px]" onClick={() => listsQ.refetch()} disabled={listsQ.isFetching}>
-          <RefreshCw className={`w-4 h-4 ${listsQ.isFetching ? "animate-spin" : ""}`} /> Refresh
-        </Button>
-        <Button size="sm" className="h-9 text-[12.5px] font-semibold" onClick={() => setGenOpen(true)}>
+      <div className="flex items-center justify-center">
+        <Button size="sm" className="h-9 rounded-full text-[12.5px] font-semibold" onClick={() => setGenOpen(true)}>
           <Plus className="w-4 h-4" /> Generate Merit List
         </Button>
       </div>
-
-      <p className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-center text-[12px] leading-snug text-muted-foreground">
-        Generate a <strong className="text-foreground">Draft</strong> from fee-paid applicants, check it with View, then <strong className="text-foreground">Publish</strong>.
-        Publishing shows it publicly and marks those applicants “Merit Listed”; unpublishing reverts them.
-      </p>
 
       {/* Lists */}
       <Card className="border-border/80">
@@ -376,15 +368,20 @@ export default function AdminMeritLists() {
 
       {/* ── View published list ──────────────────────────────────────── */}
       <Dialog open={Boolean(viewId)} onOpenChange={(o) => !o && setViewId(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-3xl max-h-[88vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-left pr-8">{viewQ.data?.list?.title ?? "Merit List"}</DialogTitle>
+            <DialogTitle className="sr-only">{viewQ.data?.list?.title ?? "Merit List"}</DialogTitle>
           </DialogHeader>
           {viewQ.isLoading ? (
             <div className="space-y-2.5 py-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 rounded-lg" />)}</div>
           ) : viewQ.data?.ok ? (
-            <div className="space-y-2">
-            <p className="text-[11px] text-muted-foreground">
+            <div className="space-y-3">
+            <MeritTitleBlock title={viewQ.data.list?.title ?? "Merit List"} />
+            <MeritDates
+              start={lists.find((l) => l.id === viewId)?.admission_start_date}
+              last={lists.find((l) => l.id === viewId)?.admission_last_date}
+            />
+            <p className="text-center text-[11px] text-muted-foreground">
               Remarks are editable (e.g. “2 Session(s) Missed”), they appear on the public merit list.
             </p>
             {/* Mobile cards */}
@@ -476,6 +473,7 @@ export default function AdminMeritLists() {
                 </tbody>
               </table>
             </div>
+            <MeritInstructions text={viewQ.data.list?.instructions} />
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4 text-center">Merit list not available.</p>
