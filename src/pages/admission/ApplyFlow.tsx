@@ -3,19 +3,23 @@
  *   1. Application form   (program → quota → conditional quota criteria →
  *                          declaration → Submit Application)
  *   2. Confirm Admission Request (full review + fee + Go Back / Submit)
- *   3. Pay Application Processing Fee (online via Safepay, or manual transfer)
- *   4. Result — payment reference + deadline + tracking ID + print.
+ *   3. After Submit — ONE screen: tracking ID + payment reference, Fee Challan /
+ *      Application PDF downloads on top, then Pay Online / Manual, then
+ *      "Pay Later · Go to Dashboard". Nothing here navigates by accident.
+ *
+ * EDITING: only possible BEFORE the final Submit (Edit Application on the Confirm
+ * step, or the per-section Edit links). After Submit the application is locked.
  *
  * Validation messages: Open Merit blocked for local-UC applicants,
  * duplicate-application block, overage notices and similar eligibility rules.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Loader2, Send, ChevronLeft, Wallet, AlertCircle, CheckCircle2,
-  Printer, BadgeCheck, Landmark, Info,
+  Printer, Landmark, Info, PencilLine, FileText, UserRound, BookOpen, ClipboardList, ShieldCheck, LayoutDashboard,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -24,12 +28,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
-import AdmissionInfoGrid from "@/components/shared/AdmissionInfoGrid";
+import AdmissionReviewTable from "@/components/shared/AdmissionReviewTable";
 import AdmissionSessionRetry from "@/components/shared/AdmissionSessionRetry";
 import OnlinePayPanel from "@/components/shared/OnlinePayPanel";
 import { useAdmissionSettings, cycleLabel } from "@/hooks/useAdmission";
 import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
-import { downloadFeeChallan } from "@/lib/admissionPdf";
+import { downloadFeeChallan, downloadApplicationForm } from "@/lib/admissionPdf";
 import AdmissionStepper from "@/components/shared/AdmissionStepper";
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -39,10 +43,10 @@ import { clearDraft, getWip, setWip } from "@/lib/admissionDraft";
 import {
   interApi, setToken, isAdmissionNetworkError, QUOTAS, QUOTA_LABEL, LOCAL_CRITERIA, SPORT_CERTIFICATES,
   DISABILITY_TYPES, ADMISSION_MESSAGES, COLLEGE_NAME, STUDY_LEVEL,
-  formatCnic, formatDateLong, formatDeadline, DISTRICTS,
+  formatCnic, formatDateLong, DISTRICTS,
 } from "@/lib/interAdmission";
 
-type Step = "form" | "confirm" | "pay" | "done";
+type Step = "form" | "confirm" | "done";
 
 interface Criteria {
   criteria: string;            // local_quota: domicile_of_area | father_serve_area
@@ -113,7 +117,6 @@ export default function ApplyFlow() {
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [quotaChecking, setQuotaChecking] = useState(false);
-  const [editLoadFailed, setEditLoadFailed] = useState<null | "network" | "missing">(null);
   const [submitResult, setSubmitResult] = useState<{ application_id: string; tracking_id: string } | null>(null);
   const [payResult, setPayResult] = useState<{ token: string; deadline: string; tracking_id: string } | null>(null);
 
@@ -159,14 +162,26 @@ export default function ApplyFlow() {
 
   const personal = session?.personal;
   const ssc = session?.ssc;
+  // Snapshot taken at the moment of the final Submit, so the finished screen
+  // never depends on the session reloading underneath it.
+  const [snap, setSnap] = useState<{ personal: NonNullable<typeof personal>; ssc: NonNullable<typeof ssc>; cnic: string } | null>(null);
+  const [authToken, setAuthToken] = useState("");
 
   // Profiles must be complete before applying
   useEffect(() => {
-    if (!loading && session?.ok && (!session?.personal || !session?.ssc)) {
+    if (!loading && !submitResult && session?.ok && (!session?.personal || !session?.ssc)) {
       toast.error("Please complete your Personal Information and Matric Profile before applying.");
       navigate("/admission/portal");
     }
-  }, [loading, session, navigate]);
+  }, [loading, session, submitResult, navigate]);
+
+  // Editing a SUBMITTED application is no longer possible — it is final once
+  // submitted. Old ?edit= links just open the application.
+  useEffect(() => {
+    if (!isEditing || !editId) return;
+    toast("Your application has been submitted and can no longer be edited.", { icon: "🔒", id: "locked" });
+    navigate(`/admission/application/${editId}`, { replace: true });
+  }, [isEditing, editId, navigate]);
 
   // ONE admission request per applicant: if an active application already
   // exists, a NEW application cannot be started — open the existing one.
@@ -178,53 +193,6 @@ export default function ApplyFlow() {
       navigate(`/admission/application/${active.id}`, { replace: true });
     }
   }, [isEditing, loading, session, submitResult, step, navigate]);
-
-  // ── Edit mode: load the existing application and pre-fill the form ──────
-  // Slow-internet rule: a NETWORK failure while loading the application for
-  // editing must NOT kick the applicant back to the portal (the old behaviour
-  // — they lost the screen and had to find their way back). It shows an
-  // inline retry instead; only a definitive "not found / locked" navigates.
-  const loadEditApplication = useCallback(async () => {
-    if (!editId || !token) return;
-    setEditLoadFailed(null);
-    const res = (await interApi.applicationDetail(token, editId)) as unknown as {
-      ok?: boolean; error?: string;
-      application?: Record<string, string | number | boolean | null>;
-    };
-    const app = res?.application;
-    if (isAdmissionNetworkError(res) || (!res?.ok && !res?.error)) {
-      setEditLoadFailed("network");
-      return;
-    }
-    if (!res?.ok || !app) {
-      setEditLoadFailed("missing");
-      return;
-    }
-    // Lock check — if already paid, the RPC will also refuse, but show a
-    // friendly message up front.
-    if (String(app.payment_status ?? "") === "paid") {
-      toast.error("This application is locked because the fee has been paid.");
-      navigate(`/admission/application/${editId}`);
-      return;
-    }
-    // Find the program id from the programs list by name
-    const prog = programs.find((p) => p.name === String(app.program_name ?? ""));
-    if (prog) setProgramId(prog.id);
-    setQuota(String(app.quota ?? ""));
-    setSubjectGroup(String(app.subject_group ?? ""));
-    setCriteria({
-      ...EMPTY_CRITERIA,
-      criteria: String(app.quota_criteria ?? "") || EMPTY_CRITERIA.criteria,
-    });
-  }, [editId, token, programs, navigate]);
-
-  useEffect(() => {
-    if (!isEditing || !token || !editId || loading) return;
-    let cancelled = false;
-    loadEditApplication().catch(() => { if (!cancelled) setEditLoadFailed("network"); });
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditing, token, editId, loading, programs]);
 
   // ── Quota change → cascade behaviour ─────────────────────────────
   // Slow-internet rule: the eligibility RPC can be slow, so the select shows
@@ -299,41 +267,18 @@ export default function ApplyFlow() {
     }
     setBusy(true);
     try {
-      // EDIT mode → call inter_edit_application (tracking id + payment ref preserved)
-      // NEW mode   → call inter_submit_application (random tracking id generated server-side)
-      const res = isEditing && editId
-        ? (await interApi.editApplication(
-            // BUG FIX (admission): the application id was missing here, so the
-            // RPC received the program number as p_application_id and could
-            // never find the application — Edit Application always failed.
-            token!, editId, Number(programId), quota, criteria as unknown as Record<string, unknown>,
-            program?.subject_groups?.length ? subjectGroup : null,
-          )) as unknown as {
-            ok?: boolean; error?: string; needs?: string;
-            application_id?: string; tracking_id?: string;
-          }
-        : (await interApi.submitApplication(
-            token!, Number(programId), quota, criteria as unknown as Record<string, unknown>,
-            program?.subject_groups?.length ? subjectGroup : null,
-          )) as unknown as {
-            ok?: boolean; error?: string; needs?: string;
-            application_id?: string; tracking_id?: string;
-          };
-      if (res?.ok && (res.application_id || editId)) {
-        if (isEditing) {
-          // Editing only changes the form — no payment step. Go straight to
-          // the application view so the applicant sees their (unchanged)
-          // tracking id + payment reference.
-          toast.success("Application updated. Your Tracking ID and payment reference are unchanged.");
-          refresh();
-          navigate(`/admission/application/${editId}`);
-          return;
-        }
-        setSubmitResult({ application_id: res.application_id!, tracking_id: res.tracking_id! });
-        setStep("confirm");
-        window.scrollTo({ top: 0, behavior: "smooth" });
+      const res = (await interApi.submitApplication(
+        token!, Number(programId), quota, criteria as unknown as Record<string, unknown>,
+        program?.subject_groups?.length ? subjectGroup : null,
+      )) as unknown as {
+        ok?: boolean; error?: string; needs?: string;
+        application_id?: string; tracking_id?: string;
+      };
+      if (res?.ok && res.application_id) {
+        if (personal && ssc) setSnap({ personal, ssc, cnic: session?.applicant?.cnic_formb ?? "" });
+        setAuthToken(token ?? "");
+        await finishSubmission(res.application_id, res.tracking_id ?? "", token ?? "");
       } else if (res?.error) {
-        // shows submit errors inline (alert-danger above the form, form not submitted)
         setInlineError(res.error);
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
@@ -346,20 +291,104 @@ export default function ApplyFlow() {
     }
   }
 
-  // ── Proceed with payment → payment reference ─────────────────────────────
+  // ── After a successful submit: create the payment reference straight away so
+  // the Fee Challan, the Application PDF and the payment panel all work at once.
+  async function finishSubmission(applicationId: string, trackingId: string, tok: string) {
+    setSubmitResult({ application_id: applicationId, tracking_id: trackingId });
+    setStep("done");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    try {
+      const res = (await interApi.proceedPayment(tok, applicationId)) as unknown as {
+        ok?: boolean; token?: string; deadline?: string; tracking_id?: string;
+      };
+      if (res?.ok && res.token) {
+        setPayResult({ token: res.token, deadline: res.deadline ?? "", tracking_id: res.tracking_id ?? trackingId });
+        refresh();
+      }
+    } catch { /* the buttons below retry on demand */ }
+  }
+
+  // Returns the payment reference, creating it on demand if it does not exist yet.
+  async function ensureReference(): Promise<{ token: string; deadline: string; tracking_id: string } | null> {
+    if (payResult) return payResult;
+    if (!submitResult) return null;
+    const tok = authToken || token || "";
+    try {
+      const res = (await interApi.proceedPayment(tok, submitResult.application_id)) as unknown as {
+        ok?: boolean; error?: string; token?: string; deadline?: string; tracking_id?: string;
+      };
+      if (res?.ok && res.token) {
+        const r = { token: res.token, deadline: res.deadline ?? "", tracking_id: res.tracking_id ?? submitResult.tracking_id };
+        setPayResult(r);
+        return r;
+      }
+      toast.error(res?.error || "Payment initialization failed.");
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
+    return null;
+  }
+
   async function handleChallan() {
-    if (!payResult || !personal) return;
+    const p = snap?.personal ?? personal;
+    if (!p) return;
+    const ref = await ensureReference();
+    if (!ref) return;
     try {
       await downloadFeeChallan({
-        cycle: ADMISSION_CYCLE, fee: PROCESSING_FEE, reference: payResult.token,
-        trackingId: payResult.tracking_id, name: personal.full_name, fatherName: personal.father_name,
-        cnic: formatCnic(session?.applicant?.cnic_formb ?? ""), mobile: personal.mobile_number,
+        cycle: ADMISSION_CYCLE, fee: PROCESSING_FEE, reference: ref.token,
+        trackingId: ref.tracking_id, name: p.full_name, fatherName: p.father_name,
+        cnic: formatCnic(snap?.cnic ?? session?.applicant?.cnic_formb ?? ""), mobile: p.mobile_number,
         program: program?.name ?? "", subjectGroup: subjectGroup || "N/A", quota: quotaLabel,
-        deadline: payResult.deadline, appliedOn: formatDateLong(new Date()),
+        deadline: ref.deadline, appliedOn: formatDateLong(new Date()),
         methods: admSettings?.payment_methods ?? [],
       });
     } catch {
       toast.error("Could not create the challan. Please try again.");
+    }
+  }
+
+  async function handleApplicationPdf() {
+    const p = snap?.personal ?? personal;
+    const sc = snap?.ssc ?? ssc;
+    if (!p || !sc || !submitResult) return;
+    const ref = await ensureReference();
+    const cnic = formatCnic(snap?.cnic ?? session?.applicant?.cnic_formb ?? "");
+    try {
+      await downloadApplicationForm({
+        cycle: ADMISSION_CYCLE, trackingId: submitResult.tracking_id, paymentStatus: "Pending",
+        reference: ref?.token ?? "", fee: PROCESSING_FEE, declaration: ADMISSION_MESSAGES.declaration,
+        institution: COLLEGE_NAME, username: cnic, deadline: ref?.deadline ?? "", appliedOn: formatDateLong(new Date()),
+        applicant: { name: String(p.full_name), fatherName: String(p.father_name), cnic,
+          address: String(p.mailing_address ?? ""), program: program?.name ?? "" },
+        sections: [
+          { title: "Application Details", rows: [
+            ["College", COLLEGE_NAME], ["Study Level", STUDY_LEVEL],
+            ["Program", program?.name ?? ""], ["Subject Group", subjectGroup || ""],
+            ["Category", quotaLabel], ["Shift", "Morning"],
+          ] },
+          { title: "Personal Information", rows: [
+            ["Name", String(p.full_name)], ["Father Name", String(p.father_name)],
+            ["Applicant CNIC", cnic], ["Father CNIC", formatCnic(String(p.father_cnic ?? ""))],
+            ["Date of Birth", formatDateLong(String(p.date_of_birth))], ["Gender", String(p.gender)],
+            ["Mobile", String(p.mobile_number)], ["Father Mobile", String(p.father_mobile ?? "")],
+            ["Nationality", String(p.nationality)], ["Religion", String(p.religion)],
+            ["Province", String(p.domicile_province)], ["District", String(p.domicile_district)],
+            ["Tehsil", String(p.tehsil)], ["Union Council", String(p.union_council)],
+            ["Mailing Address", String(p.mailing_address)], ["", ""],
+          ] },
+          { title: "Academic Information", rows: [
+            ["Exam", "SSC"], ["Exam Session", String(sc.exam_session)],
+            ["Board", String(sc.exam_board)], ["Passing Year", String(sc.passing_year)],
+            ["Study Group", String(sc.study_group)], ["Roll No", String(sc.roll_number)],
+            ["Marks", `${sc.marks_obtained} / ${sc.marks_total} (${sc.marks_percentage}%)`], ["Grade", String(sc.grade)],
+            ["Hafiz e Quran", sc.hafiz_e_quran ? "Yes" : "No"], ["Institute District", String(sc.institute_district)],
+            ["Institute", String(sc.institute_name)], ["", ""],
+          ] },
+        ],
+      });
+    } catch {
+      toast.error("Could not create the form. Please try again.");
     }
   }
 
@@ -386,12 +415,12 @@ export default function ApplyFlow() {
         ok?: boolean; error?: string; token?: string; application_id?: string; tracking_id?: string;
       };
       if (res?.ok && res.token && res.application_id) {
+        setSnap({ personal, ssc, cnic: session?.applicant?.cnic_formb ?? "" });
+        setAuthToken(res.token);
         setToken(res.token);          // private session on this device
         clearDraft();                 // the draft has been committed
-        setSubmitResult({ application_id: res.application_id, tracking_id: res.tracking_id ?? "" });
-        toast.success("Application submitted. Now pay the processing fee to complete it.");
-        setStep("pay");
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        toast.success("Application submitted successfully.");
+        await finishSubmission(res.application_id, res.tracking_id ?? "", res.token);
       } else {
         setDialog(res?.error || "Could not submit your application. Please try again.");
         // a Turnstile token is single-use — ask for a fresh one
@@ -407,27 +436,7 @@ export default function ApplyFlow() {
     }
   }
 
-  async function handleProceedPayment() {
-    if (!submitResult) return;
-    setBusy(true);
-    try {
-      const res = (await interApi.proceedPayment(token!, submitResult.application_id)) as unknown as {
-        ok?: boolean; error?: string; token?: string; deadline?: string; tracking_id?: string;
-      };
-      if (res?.ok && res.token) {
-        setPayResult({ token: res.token, deadline: res.deadline ?? "", tracking_id: res.tracking_id ?? submitResult.tracking_id });
-        setStep("done");
-        refresh();
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } else {
-        toast.error(res?.error || "Payment initialization failed.");
-      }
-    } catch {
-      toast.error("Network error. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  if (isEditing) return null;
 
   if (loading) {
     return (
@@ -457,30 +466,6 @@ export default function ApplyFlow() {
     );
   }
 
-  // Edit mode: the application itself could not be loaded.
-  if (editLoadFailed) {
-    return (
-      <PageLayout>
-        <div className="container mx-auto max-w-xl px-4 py-12">
-          <AdmissionBackBar to="/admission/portal" />
-          {editLoadFailed === "network" ? (
-            <AdmissionSessionRetry
-              what="this application for editing"
-              onRetry={() => { void loadEditApplication(); }}
-              backTo={{ to: "/admission/portal", label: "Back to Dashboard" }}
-            />
-          ) : (
-            <AdmissionSessionRetry
-              what="this application for editing"
-              onRetry={() => navigate("/admission/portal")}
-              backTo={{ to: "/admission/portal", label: "Back to Dashboard" }}
-            />
-          )}
-        </div>
-      </PageLayout>
-    );
-  }
-
   const quotaLabel = QUOTA_LABEL[quota] ?? quota;
 
   const sel = "block w-full min-w-0 max-w-full truncate h-11 rounded-xl border border-input bg-background px-3 text-sm";
@@ -492,23 +477,22 @@ export default function ApplyFlow() {
         <AdmissionBackBar
           onClick={() => {
             if (step === "confirm") { setStep("form"); window.scrollTo({ top: 0, behavior: "auto" }); }
-            else if (step === "pay") { setStep("confirm"); window.scrollTo({ top: 0, behavior: "auto" }); }
             else navigate("/admission/portal");
           }}
         />
         <div className="mb-6">
           <h1 className="font-heading text-2xl sm:text-3xl font-semibold text-foreground">
-            {isEditing ? "Edit Application" : "New Admission Request"}
+            {step === "done" ? "Application Submitted" : "Admission Request"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {isEditing
-              ? "Change your program, group or quota. Your Tracking ID and payment reference stay the same."
-              : <>{STUDY_LEVEL}. Fields with <span className="text-red-500 font-bold">*</span> are mandatory.</>}
+            {step === "done"
+              ? "Your request has been received. Complete the processing fee to confirm it."
+              : <>{STUDY_LEVEL} · {COLLEGE_NAME}. Fields with <span className="text-red-500 font-bold">*</span> are mandatory.</>}
           </p>
         </div>
 
         <AdmissionStepper
-          current={({ form: 1, confirm: 2, pay: 3, done: 4 } as Record<string, number>)[step]}
+          current={({ form: 1, confirm: 2, done: 3 } as Record<string, number>)[step]}
           steps={["Application", "Confirm", "Payment", "Done"]}
         />
 
@@ -518,9 +502,11 @@ export default function ApplyFlow() {
             <div className="mb-5 rounded-xl border border-border bg-card p-4 text-[12.5px] text-muted-foreground leading-relaxed">
               <p className="font-bold text-foreground text-[13px] mb-1.5">INSTRUCTIONS:</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>For each different category (quota) or program, a separate application must be submitted.</li>
-                <li>Only one application can be submitted against the same category of admission of the same program within this college.</li>
-                <li>For colleges having morning and evening shifts, candidates with highest merit are offered admission in the Morning Shift.</li>
+                <li>This admission is only for <strong className="text-foreground">{COLLEGE_NAME}</strong> — {STUDY_LEVEL}.</li>
+                <li>Only <strong className="text-foreground">one admission request</strong> can be submitted per applicant. Choose your program and category of admission carefully.</li>
+                <li>Your category (quota) is checked against your domicile and the details you entered in your profile.</li>
+                <li>You can review and edit everything on the next step. <strong className="text-foreground">Once you press Submit Application, the request is final and cannot be edited.</strong></li>
+                <li>After submitting, pay the processing fee before the deadline to confirm your application. Admission is offered on merit.</li>
               </ul>
             </div>
 
@@ -704,7 +690,7 @@ export default function ApplyFlow() {
 
                   <Button type="submit" disabled={busy} className="w-full h-10 font-semibold text-[13px]">
                     {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                    {isEditing ? "Save Changes" : "Submit Application"}
+                    Continue to Review
                   </Button>
                 </form>
               </CardContent>
@@ -712,223 +698,171 @@ export default function ApplyFlow() {
           </motion.div>
         )}
 
-        {/* ═══ STEP 2 — CONFIRM ADMISSION REQUEST ═══ */}
-        {step === "confirm" && (submitResult || draftMode) && personal && ssc && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-            <Card className="border-gold/40 bg-gradient-to-b from-gold/5 to-transparent">
-              <CardContent className="p-5 sm:p-6">
-                <h2 className="font-heading text-xl font-bold text-foreground mb-2">Confirm Admission Request</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {draftMode ? (
-                    <>
-                      Please review your application. If everything is correct, complete the security check
-                      and submit; you will then pay the processing fee of{" "}
-                      <strong className="text-foreground">Rs {PROCESSING_FEE}</strong>.
-                    </>
-                  ) : (
-                    <>
-                      Please review your application. If everything is correct, continue to pay the
-                      processing fee of <strong className="text-foreground">Rs {PROCESSING_FEE}</strong>.
-                    </>
-                  )}
-                </p>
-              </CardContent>
-            </Card>
+        {/* ═══ STEP 2 — CONFIRM ADMISSION REQUEST (last chance to edit) ═══ */}
+        {step === "confirm" && draftMode && personal && ssc && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div className="rounded-2xl border border-gold/40 bg-gradient-to-b from-gold/10 to-transparent p-4 text-center">
+              <h2 className="font-heading text-lg font-bold text-foreground">Confirm Admission Request</h2>
+              <p className="mx-auto mt-1 max-w-md text-[12.5px] leading-relaxed text-muted-foreground">
+                Review every detail. Use <strong className="text-foreground">Edit</strong> to change anything now —
+                after you submit, the application is final and cannot be edited. Processing fee: <strong className="text-foreground">Rs {PROCESSING_FEE}</strong>.
+              </p>
+            </div>
 
-            <Card className="border-border/80 shadow-card">
-              <CardContent className="p-5 sm:p-7 space-y-5">
-                {/* Application summary */}
-                <AdmissionInfoGrid items={[
-                    ["College", `${COLLEGE_NAME} (Mohmand)`],
-                    ["Admission Cycle", ADMISSION_CYCLE],
-                    ["Study Level", STUDY_LEVEL],
-                    ["Program", program?.name ?? ""],
-                    ["Subject Group", subjectGroup || "N/A"],
-                    ["Application Quota", `${quotaLabel}${quota === "local_quota" && criteria.criteria === "domicile_of_area" ? ` (Having Domicile of the Local Area: ${personal.union_council})` : ""}`],
-                    ["Shift", "Morning"],
-                    ["Username", formatCnic(session?.applicant?.cnic_formb ?? "")],
-                    ["Tracking ID", submitResult?.tracking_id ?? "Assigned when you submit"],
-                    ["Date Applied", formatDateLong(new Date())],
-                  ].map(([k, v]) => ({ label: String(k), value: v as React.ReactNode }))} />
-                
+            <AdmissionReviewTable
+              title="Application"
+              icon={<ClipboardList className="h-3.5 w-3.5" />}
+              onEdit={() => { setStep("form"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              rows={[
+                { label: "College", value: `${COLLEGE_NAME} (Mohmand)`, wide: true },
+                { label: "Admission Cycle", value: ADMISSION_CYCLE },
+                { label: "Study Level", value: STUDY_LEVEL },
+                { label: "Program", value: program?.name ?? "" },
+                { label: "Subject Group", value: subjectGroup || "N/A" },
+                { label: "Category", value: `${quotaLabel}${quota === "local_quota" && criteria.criteria === "domicile_of_area" ? ` (Domicile of Local Area: ${personal.union_council})` : ""}`, wide: true },
+                { label: "Shift", value: "Morning" },
+                { label: "Date", value: formatDateLong(new Date()) },
+                { label: "Username (CNIC)", value: formatCnic(session?.applicant?.cnic_formb ?? "") },
+                { label: "Tracking ID", value: "Given on submit" },
+              ]}
+            />
 
-                {/* Personal info review */}
-                <div>
-                  <h3 className="font-heading font-bold text-foreground mb-2.5">Personal Information</h3>
-                  <AdmissionInfoGrid items={[
-                      ["Name", personal.full_name], ["Personal Mobile", personal.mobile_number],
-                      ["Father Name", personal.father_name], ["Father's Mobile", personal.father_mobile],
-                      ["Applicant's CNIC", formatCnic(session?.applicant?.cnic_formb ?? "")],
-                      ["Father's CNIC", formatCnic(personal.father_cnic)],
-                      ["Date of Birth", formatDateLong(personal.date_of_birth)],
-                      ["Gender", personal.gender],
-                      ["Nationality", personal.nationality], ["Province", personal.domicile_province],
-                      ["Domicile District", personal.domicile_district], ["Tehsil", personal.tehsil],
-                      ["Union Council", personal.union_council], ["Religion", personal.religion],
-                      ["Mailing Address", personal.mailing_address],
-                    ].map(([k, v]) => ({ label: String(k), value: v as React.ReactNode }))} />
+            <AdmissionReviewTable
+              title="Personal Information"
+              icon={<UserRound className="h-3.5 w-3.5" />}
+              editTo="/admission/profile"
+              rows={[
+                { label: "Name", value: personal.full_name },
+                { label: "Father Name", value: personal.father_name },
+                { label: "Mobile", value: personal.mobile_number },
+                { label: "Father Mobile", value: personal.father_mobile },
+                { label: "Applicant CNIC", value: formatCnic(session?.applicant?.cnic_formb ?? "") },
+                { label: "Father CNIC", value: formatCnic(personal.father_cnic) },
+                { label: "Date of Birth", value: formatDateLong(personal.date_of_birth) },
+                { label: "Gender", value: personal.gender },
+                { label: "Nationality", value: personal.nationality },
+                { label: "Religion", value: personal.religion },
+                { label: "Province", value: personal.domicile_province },
+                { label: "District", value: personal.domicile_district },
+                { label: "Tehsil", value: personal.tehsil },
+                { label: "Union Council", value: personal.union_council },
+                { label: "Mailing Address", value: personal.mailing_address, wide: true },
+              ]}
+            />
+
+            <AdmissionReviewTable
+              title="Academic Information"
+              icon={<BookOpen className="h-3.5 w-3.5" />}
+              editTo="/admission/ssc"
+              rows={[
+                { label: "Highest Exam", value: "SSC" },
+                { label: "Exam Session", value: ssc.exam_session },
+                { label: "Board", value: ssc.exam_board },
+                { label: "Passing Year", value: String(ssc.passing_year) },
+                { label: "Study Group", value: ssc.study_group },
+                { label: "Roll No.", value: ssc.roll_number },
+                { label: "Net Marks", value: `${ssc.marks_obtained} / ${ssc.marks_total} (${ssc.marks_percentage}%)` },
+                { label: "Grade", value: ssc.grade },
+                { label: "Sport Certificate", value: ssc.sport_certificate || "N/A" },
+                { label: "Hafiz e Quran", value: ssc.hafiz_e_quran ? "Yes" : "No" },
+                { label: "Institute District", value: ssc.institute_district },
+                { label: "Board Record", value: "Not Verified" },
+                { label: "School / College", value: ssc.institute_name, wide: true },
+              ]}
+            />
+
+            <div className="flex items-start gap-2.5 rounded-xl border border-border bg-muted/60 p-3 text-[12.5px] leading-relaxed text-muted-foreground">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              {ADMISSION_MESSAGES.declaration}
+            </div>
+
+            {/* Security check — full width, never clipped */}
+            <div className="rounded-2xl border border-border bg-card p-3 text-center shadow-card">
+              <p className="mb-2 flex items-center justify-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Security check
+              </p>
+              <div className="flex w-full justify-center">
+                <div className="min-h-[65px] w-[300px] max-w-full origin-top max-[340px]:scale-[0.86]">
+                  <Turnstile
+                    key={turnstileKey}
+                    size="normal"
+                    appearance="always"
+                    onToken={handleTurnstileToken}
+                    onExpire={handleTurnstileExpire}
+                    onError={handleTurnstileExpire}
+                  />
                 </div>
+              </div>
+            </div>
 
-                {/* Academic review */}
-                <div>
-                  <h3 className="font-heading font-bold text-foreground mb-2.5">Academic Information</h3>
-                  <AdmissionInfoGrid items={[
-                      ["Highest Exam", "SSC"], ["Exam Session", ssc.exam_session],
-                      ["Exam Board/Uni", ssc.exam_board],
-                      ["Passing Year", String(ssc.passing_year)],
-                      ["Study Group", ssc.study_group],
-                      ["Roll No.", ssc.roll_number],
-                      ["Net Marks", `${ssc.marks_obtained} / ${ssc.marks_total} (${ssc.marks_percentage}%)`],
-                      ["Grade", ssc.grade],
-                      ["Sport Certificate", ssc.sport_certificate || "N/A"],
-                      ["Hafiz e Quran", ssc.hafiz_e_quran ? "Yes" : "No"],
-                      ["School/College Districts", ssc.institute_district],
-                      ["Board Record", "Not Verified"],
-                      ["School/College", ssc.institute_name],
-                    ].map(([k, v]) => ({ label: String(k), value: v as React.ReactNode }))} />
-                </div>
-
-                <div className="flex items-start gap-2.5 rounded-xl bg-muted/60 border border-border p-3.5 text-[13px] text-muted-foreground">
-                  <Info className="w-5 h-5 shrink-0 text-primary mt-0.5" />
-                  {ADMISSION_MESSAGES.declaration}
-                </div>
-
-                {draftMode && (
-                  <div className="w-full flex justify-center overflow-hidden">
-                    <div className="w-full max-w-[400px]">
-                      <Turnstile
-                        key={turnstileKey}
-                        size="flexible"
-                        appearance="always"
-                        onToken={handleTurnstileToken}
-                        onExpire={handleTurnstileExpire}
-                        onError={handleTurnstileExpire}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-2.5">
-                  {draftMode ? (
-                    <Button onClick={handleFinalSubmit} disabled={busy || (turnstileRequired && !turnstileToken)}
-                      className="h-12 w-full font-semibold">
-                      {busy
-                        ? <Loader2 className="w-5 h-5 animate-spin" />
-                        : <Send className="w-5 h-5" />}
-                      {busy ? "Submitting…" : "Submit Application"}
-                    </Button>
-                  ) : (
-                    <Button onClick={() => { setStep("pay"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                      className="h-12 w-full font-semibold">
-                      <Wallet className="w-5 h-5" />
-                      Continue to Payment
-                    </Button>
-                  )}
-                  <Button variant="outline" onClick={() => { setStep("form"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                    className="h-11 w-full font-semibold">
-                    <ChevronLeft className="w-5 h-5" /> Go Back
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col gap-2">
+              <Button onClick={handleFinalSubmit} disabled={busy || (turnstileRequired && !turnstileToken)}
+                className="h-10 w-full text-[13.5px] font-semibold">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {busy ? "Submitting…" : "Submit Application"}
+              </Button>
+              <Button variant="outline" onClick={() => { setStep("form"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                className="h-10 w-full text-[13.5px] font-semibold">
+                <PencilLine className="h-4 w-4" /> Edit Application
+              </Button>
+            </div>
           </motion.div>
         )}
 
-        {/* ═══ STEP 3 — PAY APPLICATION PROCESSING FEE ═══ */}
-        {step === "pay" && submitResult && personal && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+        {/* ═══ STEP 3 — SUBMITTED: ONE screen (tracking · downloads · pay · later) ═══ */}
+        {step === "done" && submitResult && (
+          <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
+            <div className="flex items-center justify-center gap-3 rounded-2xl border border-green-500/40 bg-green-500/[0.06] px-4 py-3 text-left">
+              <CheckCircle2 className="h-8 w-8 shrink-0 text-green-600" />
+              <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+                <strong className="block text-[14px] text-foreground">Submitted successfully</strong>
+                Keep your Tracking ID safe. Your application is final and cannot be edited.
+              </p>
+            </div>
+
+            <AdmissionReviewTable
+              title="Submission Details"
+              icon={<FileText className="h-3.5 w-3.5" />}
+              rows={[
+                { label: "Tracking ID", value: <span className="font-mono text-[14px] font-bold text-primary">{submitResult.tracking_id || "—"}</span> },
+                { label: "Payment Reference", value: payResult ? <span className="font-mono text-[14px] font-bold">{payResult.token}</span> : <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> },
+                { label: "Amount", value: `Rs ${PROCESSING_FEE}` },
+                { label: "Pay Before", value: payResult?.deadline || "—" },
+                { label: "Fee Status", value: <span className="text-amber-600 dark:text-amber-400">Pending</span>, wide: true },
+              ]}
+            />
+
+            {/* Downloads — directly under the details, they only download */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={handleChallan} className="h-9 text-[13px] font-semibold">
+                <Printer className="h-4 w-4" /> Fee Challan
+              </Button>
+              <Button variant="outline" onClick={handleApplicationPdf} className="h-9 text-[13px] font-semibold">
+                <FileText className="h-4 w-4" /> Application PDF
+              </Button>
+            </div>
+
             <Card className="border-border/80 shadow-card">
-              <CardContent className="p-5 sm:p-7 space-y-6">
-                <h2 className="font-heading text-xl font-bold text-foreground text-center">Pay Processing Fee</h2>
-
-                {/* Payment Details */}
-                <div>
-                  <h3 className="font-heading font-bold text-foreground mb-2.5 text-center">Payment Details</h3>
-                  <AdmissionInfoGrid items={[
-                    { label: "Tracking ID", value: <span className="font-mono">{submitResult.tracking_id}</span> },
-                    { label: "Total Payable", value: `Rs ${PROCESSING_FEE}` },
-                  ]} />
-                </div>
-
+              <CardContent className="space-y-3 p-4 sm:p-5">
+                <h3 className="flex items-center justify-center gap-1.5 font-heading text-[13px] font-semibold uppercase tracking-[0.14em] text-foreground">
+                  <Wallet className="h-4 w-4 text-primary" /> Pay Processing Fee
+                </h3>
                 <OnlinePayPanel
-                  token={token!}
+                  token={authToken || token || ""}
                   applicationId={submitResult.application_id}
                   trackingId={submitResult.tracking_id}
                   fee={PROCESSING_FEE}
                   methods={admSettings?.payment_methods ?? []}
-                  hasReference
-                  ensureReference={async () => {
-                    const res = (await interApi.proceedPayment(token!, submitResult.application_id)) as unknown as { ok?: boolean; error?: string };
-                    if (!res?.ok) { toast.error(res?.error || "Payment initialization failed."); return false; }
-                    return true;
-                  }}
+                  hasReference={Boolean(payResult)}
+                  ensureReference={async () => (await ensureReference()) !== null}
                 />
-
-                <div className="flex flex-col gap-2.5 border-t border-border/60 pt-5">
-                  <Button variant="outline" onClick={handleProceedPayment} disabled={busy}
-                    className="h-11 w-full border-primary/40 font-semibold text-primary hover:text-primary">
-                    {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Wallet className="w-5 h-5" />}
-                    Generate Fee Challan
-                  </Button>
-                  <Button variant="ghost" onClick={() => navigate("/admission/portal")}
-                    className="h-11 w-full font-semibold text-muted-foreground">
-                    Pay Later
-                  </Button>
-                </div>
               </CardContent>
             </Card>
-          </motion.div>
-        )}
 
-        {/* ═══ STEP 4: DONE ═══ */}
-        {step === "done" && payResult && (
-          <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="space-y-5">
-            <Card className="border-green-500/40 shadow-card">
-              <CardContent className="p-5 sm:p-7 text-center">
-                <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
-                </div>
-                <h2 className="font-heading text-xl font-bold text-foreground">Application Submitted</h2>
-                <p className="text-sm text-muted-foreground mt-1.5">Pay your processing fee online or by manual transfer, then track your status.</p>
-
-                <div className="mt-5">
-                  <AdmissionInfoGrid items={[
-                    { label: "Tracking ID", value: <span className="font-mono text-base">{payResult.tracking_id}</span> },
-                    { label: "Payment Reference", value: <span className="font-mono text-base">{payResult.token}</span> },
-                    { label: "Amount", value: `Rs ${PROCESSING_FEE}` },
-                    { label: "Pay Before", value: payResult.deadline },
-                  ]} />
-                </div>
-
-                <div className="mt-6 text-left">
-                  <OnlinePayPanel
-                    token={token!}
-                    applicationId={submitResult!.application_id}
-                    trackingId={payResult.tracking_id}
-                    fee={PROCESSING_FEE}
-                    methods={admSettings?.payment_methods ?? []}
-                    hasReference
-                    ensureReference={async () => true}
-                  />
-                </div>
-
-                <div className="mt-6 space-y-2.5 border-t border-border/60 pt-5">
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <Button variant="outline" className="h-11 w-full font-semibold" onClick={handleChallan}>
-                      <Printer className="w-4 h-4" /> Fee Challan
-                    </Button>
-                    <Link to={`/admission/application/${submitResult?.application_id}`} className="block">
-                      <Button variant="outline" className="h-11 w-full font-semibold">View Application</Button>
-                    </Link>
-                  </div>
-                  <Link to="/admission/portal" className="block">
-                    <Button variant="ghost" className="h-11 w-full font-semibold text-muted-foreground">
-                      <BadgeCheck className="w-4 h-4" /> Go to Dashboard
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+            <Button variant="ghost" onClick={() => navigate("/admission/portal")}
+              className="h-10 w-full border border-border text-[13px] font-semibold text-muted-foreground">
+              <LayoutDashboard className="h-4 w-4" /> Pay Later · Go to Dashboard
+            </Button>
           </motion.div>
         )}
       </div>
