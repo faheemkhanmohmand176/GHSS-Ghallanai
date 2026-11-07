@@ -33,7 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ClipboardList, RefreshCw, Search, Loader2, Wallet, CheckCircle2,
-  XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark, Plus, Trash2, Download, FileSpreadsheet, LockOpen,
+  XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark, Plus, Trash2, Download, FileSpreadsheet, AlertTriangle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { exportApplicationsExcel, type ExportRow } from "@/lib/admissionExcel";
@@ -124,8 +124,8 @@ export default function AdminAdmissions() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [delApp, setDelApp] = useState<AdminApp | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [unlockDialog, setUnlockDialog] = useState<AdminApp | null>(null);
-  const [unlockReason, setUnlockReason] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetText, setResetText] = useState("");
 
   // debounce search
   const onSearch = (v: string) => {
@@ -226,19 +226,23 @@ export default function AdminAdmissions() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Unlock a fee-paid application so the applicant can edit it again.
-  // The action is logged to audit_log (trigger + explicit log_admin_action).
-  const unlockApp = useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
-      const { data, error } = await supabase.rpc("inter_admin_unlock_application", {
-        p_application_id: id, p_reason: reason || null,
-      });
+  // Delete ALL applicants + applications + merit lists (for the next session).
+  // Requires the exact confirmation text; the database re-checks it.
+  const resetAll = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("inter_admin_reset_all", { p_confirm: "DELETE ALL" });
       if (error) throw error;
-      const d = data as { ok?: boolean; error?: string };
-      if (d?.ok === false) throw new Error(d?.error || "Unlock failed.");
+      const d = data as { ok?: boolean; error?: string; applications?: number };
+      if (d?.ok === false) throw new Error(d?.error || "Delete failed.");
       return d;
     },
-    onSuccess: () => { toast.success("Application unlocked. The applicant can now edit it."); setUnlockDialog(null); setUnlockReason(""); qc.invalidateQueries({ queryKey: ["inter-admin-apps"] }); },
+    onSuccess: (d) => {
+      toast.success(`${d?.applications ?? 0} application(s) deleted. Ready for the next session.`);
+      setResetOpen(false); setResetText("");
+      qc.invalidateQueries({ queryKey: ["inter-admin-apps"] });
+      qc.invalidateQueries({ queryKey: ["inter-admin-merit-lists"] });
+      qc.invalidateQueries({ queryKey: ["inter-merit-public"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -288,6 +292,28 @@ export default function AdminAdmissions() {
   const paid = apps.filter((a) => a.payment_status === "paid").length;
   const pendingFee = apps.filter((a) => a.payment_status === "pending").length;
 
+  // One action row per application: Fee · Status · Delete (no duplicates, no Unlock).
+  // The action the office needs next is highlighted: Fee while unpaid, Status once paid.
+  const btn = "h-7 px-2 text-[11.5px] font-semibold";
+  const FeeBtn = ({ a }: { a: AdminApp }) => (
+    <Button size="sm" variant={a.payment_status === "paid" ? "outline" : "default"} className={btn}
+      onClick={() => { setPayDialog(a); setPayRef(a.payment_reference ?? ""); setPayMethod(a.payment_method || "cash"); }}>
+      <Wallet className="w-3 h-3" /> Fee
+    </Button>
+  );
+  const StatusBtn = ({ a }: { a: AdminApp }) => (
+    <Button size="sm" variant={a.payment_status === "paid" ? "default" : "outline"} className={btn}
+      onClick={() => { setStatusDialog(a); setStatusValue(suggestedStage(a.status)); setStatusNote(""); }}>
+      <CheckCircle2 className="w-3 h-3" /> Status
+    </Button>
+  );
+  const DeleteBtn = ({ a }: { a: AdminApp }) => (
+    <Button size="sm" variant="outline" className={`${btn} text-red-600 border-red-200 hover:bg-red-500/5`}
+      onClick={() => setDelApp(a)} aria-label={`Delete ${a.tracking_id}`}>
+      <Trash2 className="w-3 h-3" /> Delete
+    </Button>
+  );
+
   return (
     <div className="space-y-5">
       {/* Section tabs */}
@@ -316,9 +342,9 @@ export default function AdminAdmissions() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { icon: ClipboardList, label: "Total Applications", value: apps.length, color: "text-primary" },
-          { icon: Wallet, label: "Fee Pending", value: pendingFee, color: "text-amber-600" },
-          { icon: BadgeCheck, label: "Fee Paid", value: paid, color: "text-green-600" },
+          { icon: ClipboardList, label: "Applications", value: apps.length, color: "text-primary" },
+          { icon: Wallet, label: "Pending", value: pendingFee, color: "text-amber-600" },
+          { icon: BadgeCheck, label: "Paid", value: paid, color: "text-green-600" },
           { icon: Users, label: "Session", value: settings?.session_year ?? "N/A", color: "text-azure-strong dark:text-azure" },
         ].map((s) => (
           <Card key={s.label} className="border-border/80">
@@ -342,7 +368,7 @@ export default function AdminAdmissions() {
           <Input
             value={search}
             onChange={(e) => onSearch(e.target.value)}
-            placeholder="Search Tracking ID, name or CNIC"
+            placeholder="Search ID, name or CNIC"
             className="pl-9 h-9 text-[13px]"
           />
         </div>
@@ -355,6 +381,12 @@ export default function AdminAdmissions() {
         <Button size="sm" className="h-9 px-3 text-[12.5px] whitespace-nowrap bg-green-700 hover:bg-green-800 text-white" onClick={exportExcel} disabled={exporting}>
           {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />} Export Excel
         </Button>
+        {apps.length > 0 && !debounced && (
+          <Button variant="outline" size="sm" className="h-9 px-3 text-[12.5px] whitespace-nowrap text-red-600 border-red-200 hover:bg-red-500/5"
+            onClick={() => { setResetText(""); setResetOpen(true); }}>
+            <Trash2 className="w-3.5 h-3.5" /> Delete All
+          </Button>
+        )}
         <Badge variant="secondary" className={`whitespace-nowrap ${admState.open ? "bg-green-500/15 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-600"}`}>
           {admState.open
             ? `Admissions Open${admState.daysLeft !== null ? `, ${admState.daysLeft} day${admState.daysLeft === 1 ? "" : "s"} left` : ""}`
@@ -392,25 +424,10 @@ export default function AdminAdmissions() {
                       <StageBadge app={a} />
                       {a.marks && <Badge variant="secondary">{a.marks}</Badge>}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
-                      <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
-                        onClick={() => { setPayDialog(a); setPayRef(a.payment_reference ?? ""); setPayMethod(a.payment_method || "cash"); }}>
-                        <Wallet className="w-3 h-3" /> Fee
-                      </Button>
-                      {a.payment_status === "paid" && (
-                        <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px] text-amber-700 dark:text-amber-400 border-amber-200 hover:bg-amber-500/5"
-                          onClick={() => { setUnlockDialog(a); setUnlockReason(""); }}>
-                          <LockOpen className="w-3 h-3" /> Unlock
-                        </Button>
-                      )}
-                      <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
-                        onClick={() => { setStatusDialog(a); setStatusValue(suggestedStage(a.status)); setStatusNote(""); }}>
-                        <CheckCircle2 className="w-3 h-3" /> Status
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px] text-red-600 border-red-200 hover:bg-red-500/5"
-                        onClick={() => setDelApp(a)} aria-label={`Delete ${a.tracking_id}`}>
-                        <Trash2 className="w-3 h-3" /> Delete
-                      </Button>
+                    <div className="mt-1 grid w-full max-w-xs grid-cols-3 gap-1.5">
+                      <FeeBtn a={a} />
+                      <StatusBtn a={a} />
+                      <DeleteBtn a={a} />
                     </div>
                   </div>
                 ))}
@@ -453,24 +470,9 @@ export default function AdminAdmissions() {
                         </td>
                         <td className="px-3 py-3 text-center align-middle">
                           <div className="flex items-center justify-center gap-1.5">
-                            <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
-                              onClick={() => { setPayDialog(a); setPayRef(a.payment_reference ?? ""); setPayMethod(a.payment_method || "cash"); }}>
-                              <Wallet className="w-3 h-3" /> Fee
-                            </Button>
-                            {a.payment_status === "paid" && (
-                              <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px] text-amber-700 dark:text-amber-400 border-amber-200 hover:bg-amber-500/5"
-                                onClick={() => { setUnlockDialog(a); setUnlockReason(""); }} title="Unlock so applicant can edit">
-                                <LockOpen className="w-3 h-3" /> Unlock
-                              </Button>
-                            )}
-                            <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
-                              onClick={() => { setStatusDialog(a); setStatusValue(suggestedStage(a.status)); setStatusNote(""); }}>
-                              <CheckCircle2 className="w-3 h-3" /> Status
-                            </Button>
-                            <Button size="icon" variant="outline" className="h-7 w-7 text-red-600 border-red-200 hover:bg-red-500/5"
-                              onClick={() => setDelApp(a)} aria-label={`Delete ${a.tracking_id}`} title="Delete application">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                            <FeeBtn a={a} />
+                            <StatusBtn a={a} />
+                            <DeleteBtn a={a} />
                           </div>
                         </td>
                       </tr>
@@ -508,41 +510,35 @@ export default function AdminAdmissions() {
         </DialogContent>
       </Dialog>
 
-      {/* Unlock dialog — admin unlocks a fee-paid application so the applicant
-          can edit it again. The action is logged to audit_log. */}
-      <Dialog open={Boolean(unlockDialog)} onOpenChange={(o) => !o && setUnlockDialog(null)}>
-        <DialogContent>
+      {/* Delete ALL — clears the whole session for next year */}
+      <Dialog open={resetOpen} onOpenChange={(o) => { if (!o) { setResetOpen(false); setResetText(""); } }}>
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Unlock application: {unlockDialog?.tracking_id}</DialogTitle>
+            <DialogTitle className="flex items-center justify-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" /> Delete All Applications
+            </DialogTitle>
           </DialogHeader>
-          {unlockDialog && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-500/10 p-3.5 text-[12.5px] text-amber-800 dark:text-amber-300">
-                <p className="font-semibold mb-1">This application is currently locked because the fee was paid.</p>
-                <p>Unlocking it sets the payment status back to <strong>Pending</strong> and lets the applicant edit their program, group or quota again. The Tracking ID and payment reference are preserved. The action is recorded in the audit log.</p>
-              </div>
-              <div>
-                <Label className="text-[13px] font-semibold">Reason (optional, shown in audit log)</Label>
-                <Textarea
-                  value={unlockReason}
-                  onChange={(e) => setUnlockReason(e.target.value)}
-                  placeholder="e.g. Applicant paid the wrong program fee and needs to change it."
-                  className="mt-1.5 min-h-[70px]"
-                />
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2.5">
-                <Button className="flex-1 h-11 font-semibold"
-                  disabled={unlockApp.isPending}
-                  onClick={() => unlockApp.mutate({ id: unlockDialog.id, reason: unlockReason })}>
-                  {unlockApp.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LockOpen className="w-4 h-4" />}
-                  Unlock Application
-                </Button>
-                <Button variant="outline" className="flex-1 h-11 font-semibold" onClick={() => setUnlockDialog(null)}>
-                  Cancel
-                </Button>
-              </div>
+          <div className="space-y-3.5 text-center">
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              This permanently deletes <strong className="text-foreground">{apps.length} application(s)</strong>, all applicant
+              profiles and every merit list. Programs, seats and settings are kept.
+            </p>
+            <Button variant="outline" className="h-9 w-full text-[12.5px] font-semibold" onClick={exportExcel} disabled={exporting}>
+              {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+              Download Excel backup first
+            </Button>
+            <div className="space-y-1.5 text-left">
+              <Label className="text-[12px] font-semibold">Type <span className="font-mono text-red-600">DELETE ALL</span> to confirm</Label>
+              <Input value={resetText} onChange={(e) => setResetText(e.target.value)} className="h-10 text-center font-mono" autoComplete="off" />
             </div>
-          )}
+            <div className="flex gap-2.5">
+              <Button variant="outline" className="h-10 flex-1 font-semibold" onClick={() => setResetOpen(false)}>Cancel</Button>
+              <Button className="h-10 flex-1 font-semibold bg-red-600 hover:bg-red-700 text-white"
+                disabled={resetText !== "DELETE ALL" || resetAll.isPending} onClick={() => resetAll.mutate()}>
+                {resetAll.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete All
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -570,45 +566,66 @@ export default function AdminAdmissions() {
                 </p>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-semibold">Paid by</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {PAYMENT_METHODS.map((m) => (
-                    <button key={m.value} type="button" onClick={() => setPayMethod(m.value)}
-                      className={`h-9 rounded-xl border-2 text-[12.5px] font-semibold transition-all ${
-                        payMethod === m.value ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"
-                      }`}>
-                      {m.label}
-                    </button>
-                  ))}
+              {payDialog.payment_status === "paid" ? (
+                <div className="space-y-2.5">
+                  <p className="flex items-center justify-center gap-2 rounded-xl border border-green-500/30 bg-green-500/5 px-3 py-2.5 text-center text-[12.5px] font-semibold text-green-700 dark:text-green-400">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" /> Fee received. This application is final.
+                  </p>
+                  <Button variant="ghost" className="w-full h-9 text-[12px] font-semibold text-muted-foreground"
+                    disabled={setPayment.isPending}
+                    onClick={() => {
+                      if (window.confirm("Only use this to correct a payment marked Paid by mistake. Reset to Fee Pending?")) {
+                        setPayment.mutate({ id: payDialog.id, status: "pending", ref: payRef, method: payMethod });
+                      }
+                    }}>
+                    Marked paid by mistake? Reset to Pending
+                  </Button>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-semibold">Paid by</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {PAYMENT_METHODS.map((m) => (
+                        <button key={m.value} type="button" onClick={() => setPayMethod(m.value)}
+                          className={`h-9 rounded-xl border-2 text-[12.5px] font-semibold transition-all ${
+                            payMethod === m.value ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"
+                          }`}>
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-semibold">Receipt / transaction number (optional)</Label>
-                <Input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="Bank or wallet receipt number" className="h-10" />
-              </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-semibold">Receipt / transaction number (optional)</Label>
+                    <Input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="Bank or wallet receipt number" className="h-10" />
+                  </div>
 
-              <div className="flex flex-col sm:flex-row gap-2.5">
-                <Button className="flex-1 h-10 font-semibold bg-green-600 hover:bg-green-700"
-                  disabled={setPayment.isPending}
-                  onClick={() => setPayment.mutate({ id: payDialog.id, status: "paid", ref: payRef, method: payMethod })}>
-                  {setPayment.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  Mark Fee Paid (Rs {settings?.processing_fee ?? 100})
-                </Button>
-                <Button variant="outline" className="flex-1 h-10 font-semibold text-red-600 border-red-200 hover:bg-red-500/5"
-                  disabled={setPayment.isPending}
-                  onClick={() => setPayment.mutate({ id: payDialog.id, status: "rejected", ref: payRef, method: payMethod })}>
-                  <XCircle className="w-4 h-4" /> Reject Payment
-                </Button>
-              </div>
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <Button className="flex-1 h-10 font-semibold bg-green-600 hover:bg-green-700"
+                      disabled={setPayment.isPending}
+                      onClick={() => setPayment.mutate({ id: payDialog.id, status: "paid", ref: payRef, method: payMethod })}>
+                      {setPayment.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                      Mark Fee Paid (Rs {settings?.processing_fee ?? 100})
+                    </Button>
+                    {payDialog.payment_status !== "rejected" && (
+                      <Button variant="outline" className="flex-1 h-10 font-semibold text-red-600 border-red-200 hover:bg-red-500/5"
+                        disabled={setPayment.isPending}
+                        onClick={() => setPayment.mutate({ id: payDialog.id, status: "rejected", ref: payRef, method: payMethod })}>
+                        <XCircle className="w-4 h-4" /> Reject Payment
+                      </Button>
+                    )}
+                  </div>
 
-              {payDialog.payment_status !== "pending" && (
-                <Button variant="ghost" className="w-full h-10 font-semibold text-muted-foreground"
-                  disabled={setPayment.isPending}
-                  onClick={() => setPayment.mutate({ id: payDialog.id, status: "pending", ref: payRef, method: payMethod })}>
-                  Reset to Fee Pending
-                </Button>
+                  {payDialog.payment_status === "rejected" && (
+                    <Button variant="ghost" className="w-full h-9 text-[12px] font-semibold text-muted-foreground"
+                      disabled={setPayment.isPending}
+                      onClick={() => setPayment.mutate({ id: payDialog.id, status: "pending", ref: payRef, method: payMethod })}>
+                      Reset to Fee Pending
+                    </Button>
+                  )}
+                </>
               )}
 
               <p className="text-[11.5px] leading-snug text-muted-foreground">
