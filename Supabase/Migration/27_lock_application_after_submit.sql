@@ -24,3 +24,40 @@ BEGIN
     );
 END;
 $$;
+
+
+-- ─────────────────────────────────────────────────────────────────────
+-- Profiles (Personal + SSC) are locked too once an application is
+-- submitted.  Guard on UPDATE only, so the first-time atomic apply (an
+-- INSERT) and re-apply after a cancelled/rejected application still work.
+-- Signed-in staff (auth.uid() not null) are never blocked.
+-- ─────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.inter_profile_lock_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF auth.uid() IS NOT NULL THEN
+        RETURN NEW;
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM public.inter_applications a
+        WHERE a.applicant_id = NEW.applicant_id
+          AND a.status::text NOT IN ('cancelled', 'rejected')
+          AND a.submitted_at < now()
+    ) THEN
+        RAISE EXCEPTION 'Your application has been submitted; profile details can no longer be edited.';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_inter_personal_lock ON public.inter_personal_profiles;
+CREATE TRIGGER trg_inter_personal_lock
+    BEFORE UPDATE ON public.inter_personal_profiles
+    FOR EACH ROW EXECUTE FUNCTION public.inter_profile_lock_guard();
+
+DROP TRIGGER IF EXISTS trg_inter_ssc_lock ON public.inter_ssc_profiles;
+CREATE TRIGGER trg_inter_ssc_lock
+    BEFORE UPDATE ON public.inter_ssc_profiles
+    FOR EACH ROW EXECUTE FUNCTION public.inter_profile_lock_guard();
