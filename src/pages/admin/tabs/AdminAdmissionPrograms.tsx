@@ -15,11 +15,10 @@ import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { Landmark, Loader2, Save, Info } from "lucide-react";
+import { Landmark, Loader2, Save } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface InterProgram {
@@ -93,17 +92,6 @@ export default function AdminAdmissionPrograms() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start gap-2.5 rounded-xl border border-azure/25 bg-azure-soft/60 dark:bg-azure-soft/20 p-3.5 text-[13px] text-muted-foreground">
-        <Info className="w-5 h-5 shrink-0 text-azure-strong dark:text-azure mt-0.5" />
-        <p>
-          GHSS Ghallanai offers <strong className="text-foreground">Intermediate (1st / 2nd Year)</strong> admission in
-          exactly four faculties, Pre-Medical, Pre-Engineering, ICS (Computer Sciences) and Arts/Humanities.
-          The faculty list is fixed (no BS / ADP / D.Com / DIT); here you only control the
-          <strong className="text-foreground"> sanctioned seats</strong> and whether a faculty is currently
-          <strong className="text-foreground"> open for admission</strong>.
-        </p>
-      </div>
-
       <Card className="border-border/80">
         <CardContent className="p-0">
           {isLoading ? (
@@ -162,9 +150,7 @@ export default function AdminAdmissionPrograms() {
                         </td>
                         <td className="text-center align-middle px-4 py-3">
                           <div className="inline-flex items-center justify-center gap-2.5">
-                            <Badge variant="secondary" className={p.allowed_gender === "both" ? "bg-muted" : "capitalize"}>
-                              {p.allowed_gender === "both" ? "Boys & Girls" : p.allowed_gender}
-                            </Badge>
+                            <Badge variant="secondary" className="bg-muted">Boys</Badge>
                             <Switch
                               checked={p.is_active !== false}
                               onCheckedChange={(checked) => toggleActive.mutate({ id: p.id, active: checked })}
@@ -183,10 +169,6 @@ export default function AdminAdmissionPrograms() {
         </CardContent>
       </Card>
 
-      <p className="text-[12px] text-muted-foreground flex items-center gap-1.5">
-        <Label className="text-[12px]">Note:</Label>
-        Closing a faculty hides it from the public program list and the apply form; submitted applications stay intact.
-      </p>
     </div>
   );
 }
