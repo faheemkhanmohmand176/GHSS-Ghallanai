@@ -324,21 +324,35 @@ export default function AdminAdmissions() {
   return (
     <div className="space-y-5">
       {/* Section tabs */}
-      <div className="flex flex-wrap items-center gap-2">
-        {TABS.map((t) => (
-          <button
-            key={t.value}
-            type="button"
-            onClick={() => setTab(t.value)}
-            className={`h-10 px-4 rounded-xl text-[13px] font-semibold inline-flex items-center gap-2 border transition-all ${
-              tab === t.value
-                ? "bg-primary text-white border-primary shadow-md shadow-primary/25"
-                : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-primary"
-            }`}
-          >
-            <t.icon className="w-4 h-4" /> {t.label}
-          </button>
+      <div className="space-y-2">
+        {[
+          TABS.filter((t) => t.value !== "merit"),
+          TABS.filter((t) => t.value === "merit"),
+        ].map((row, i) => (
+          <div key={i} className={`flex items-center justify-center gap-2 ${i === 0 ? "" : "pt-0.5"}`}>
+            {row.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setTab(t.value)}
+                className={`h-8 px-3.5 rounded-full text-[12px] font-semibold whitespace-nowrap inline-flex items-center justify-center gap-1.5 border transition-all ${
+                  i === 0 ? "flex-1 max-w-[200px]" : "min-w-[140px]"
+                } ${
+                  tab === t.value
+                    ? "bg-primary text-white border-primary shadow-sm shadow-primary/25"
+                    : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-primary"
+                }`}
+              >
+                <t.icon className="w-3.5 h-3.5 shrink-0" /> {t.label}
+              </button>
+            ))}
+          </div>
         ))}
+        {/* paper-style header rule */}
+        <div className="pt-1" aria-hidden="true">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+          <div className="mt-[3px] h-px w-full bg-gradient-to-r from-transparent via-gold/60 to-transparent" />
+        </div>
       </div>
 
       {tab === "merit" && <AdminMeritLists />}
