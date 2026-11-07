@@ -33,7 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ClipboardList, Search, Loader2, Wallet, CheckCircle2,
-  XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark, Trash2, UserPlus, FileSpreadsheet, AlertTriangle,
+  XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark, Plus, Trash2, UserPlus, FileSpreadsheet, AlertTriangle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { exportApplicationsExcel, type ExportRow } from "@/lib/admissionExcel";
@@ -827,6 +827,56 @@ function SettingsBody({
         <Switch checked={onlinePay} onCheckedChange={setOnlinePay} />
       </div>
 
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-[13px] font-semibold">School Payment Accounts</Label>
+          <Button type="button" variant="outline" size="sm" className="h-8 text-xs rounded-full" onClick={() => setMethods((m) => [...m, { type: "bank" }])}>
+            <Plus className="w-3.5 h-3.5" /> Add
+          </Button>
+        </div>
+        {methods.length === 0 && (
+          <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-[12.5px] text-muted-foreground">
+            No account added. Applicants will be told to pay at the school office.
+          </p>
+        )}
+        {methods.map((m, i) => (
+          <div key={i} className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+            <div className="flex items-center gap-2">
+              <select
+                value={m.type}
+                onChange={(e) => setPm(i, "type", e.target.value)}
+                className="h-9 flex-1 rounded-lg border border-input bg-background px-2 text-sm"
+              >
+                {PM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={() => setMethods((x) => x.filter((_, j) => j !== i))}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+            {m.type === "bank" && (
+              <div className="grid grid-cols-2 gap-2">
+                <Input className="h-9 text-sm" placeholder="Bank name" value={m.bank_name ?? ""} onChange={(e) => setPm(i, "bank_name", e.target.value)} />
+                <Input className="h-9 text-sm" placeholder="Account title" value={m.account_title ?? ""} onChange={(e) => setPm(i, "account_title", e.target.value)} />
+                <Input className="h-9 text-sm" placeholder="Account number" value={m.account_number ?? ""} onChange={(e) => setPm(i, "account_number", e.target.value)} />
+                <Input className="h-9 text-sm" placeholder="IBAN" value={m.iban ?? ""} onChange={(e) => setPm(i, "iban", e.target.value)} />
+              </div>
+            )}
+            {(m.type === "easypaisa" || m.type === "jazzcash") && (
+              <div className="grid grid-cols-2 gap-2">
+                <Input className="h-9 text-sm" placeholder="Account name" value={m.account_name ?? ""} onChange={(e) => setPm(i, "account_name", e.target.value)} />
+                <Input className="h-9 text-sm" placeholder="Mobile number" value={m.phone ?? ""} onChange={(e) => setPm(i, "phone", e.target.value)} />
+              </div>
+            )}
+            {(m.type === "cash" || m.type === "other") && (
+              <div className="space-y-2">
+                {m.type === "other" && <Input className="h-9 text-sm" placeholder="Method name" value={m.label ?? ""} onChange={(e) => setPm(i, "label", e.target.value)} />}
+                <Input className="h-9 text-sm" placeholder="Instructions" value={m.instructions ?? ""} onChange={(e) => setPm(i, "instructions", e.target.value)} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-[13px] font-semibold">Session Year</Label>
@@ -887,50 +937,6 @@ function SettingsBody({
         <p className="text-[11px] text-muted-foreground">
           These limits are enforced server-side by the Vercel auth-gateway and the database — a browser cannot bypass them.
         </p>
-      </div>
-
-      <div className="space-y-2.5">
-        {methods.length === 0 && (
-          <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-[12.5px] text-muted-foreground">
-            No account added. Applicants will be told to pay at the school office.
-          </p>
-        )}
-        {methods.map((m, i) => (
-          <div key={i} className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
-            <div className="flex items-center gap-2">
-              <select
-                value={m.type}
-                onChange={(e) => setPm(i, "type", e.target.value)}
-                className="h-9 flex-1 rounded-lg border border-input bg-background px-2 text-sm"
-              >
-                {PM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 text-destructive" onClick={() => setMethods((x) => x.filter((_, j) => j !== i))}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-            {m.type === "bank" && (
-              <div className="grid grid-cols-2 gap-2">
-                <Input className="h-9 text-sm" placeholder="Bank name" value={m.bank_name ?? ""} onChange={(e) => setPm(i, "bank_name", e.target.value)} />
-                <Input className="h-9 text-sm" placeholder="Account title" value={m.account_title ?? ""} onChange={(e) => setPm(i, "account_title", e.target.value)} />
-                <Input className="h-9 text-sm" placeholder="Account number" value={m.account_number ?? ""} onChange={(e) => setPm(i, "account_number", e.target.value)} />
-                <Input className="h-9 text-sm" placeholder="IBAN" value={m.iban ?? ""} onChange={(e) => setPm(i, "iban", e.target.value)} />
-              </div>
-            )}
-            {(m.type === "easypaisa" || m.type === "jazzcash") && (
-              <div className="grid grid-cols-2 gap-2">
-                <Input className="h-9 text-sm" placeholder="Account name" value={m.account_name ?? ""} onChange={(e) => setPm(i, "account_name", e.target.value)} />
-                <Input className="h-9 text-sm" placeholder="Mobile number" value={m.phone ?? ""} onChange={(e) => setPm(i, "phone", e.target.value)} />
-              </div>
-            )}
-            {(m.type === "cash" || m.type === "other") && (
-              <div className="space-y-2">
-                {m.type === "other" && <Input className="h-9 text-sm" placeholder="Method name" value={m.label ?? ""} onChange={(e) => setPm(i, "label", e.target.value)} />}
-                <Input className="h-9 text-sm" placeholder="Instructions" value={m.instructions ?? ""} onChange={(e) => setPm(i, "instructions", e.target.value)} />
-              </div>
-            )}
-          </div>
-        ))}
       </div>
 
       <Button className="w-full h-11 font-semibold" disabled={saving} onClick={submit}>
