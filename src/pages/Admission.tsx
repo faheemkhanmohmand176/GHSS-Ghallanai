@@ -7,6 +7,7 @@
  * The applicant portal lives under /admission/portal (no account, no login).
  */
 
+import { MeritTitleBlock, MeritDates, MeritInstructions } from "@/components/shared/MeritListSheet";
 import { useState, useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
@@ -338,23 +339,16 @@ function MeritLists() {
 
       {/* Merit list detail */}
       <Dialog open={Boolean(viewId)} onOpenChange={(o) => !o && setViewId(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-3xl max-h-[88vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-left pr-8">{view?.list?.title ?? "Merit List"}</DialogTitle>
+            <DialogTitle className="sr-only">{view?.list?.title ?? "Merit List"}</DialogTitle>
           </DialogHeader>
           {viewLoading && !view ? (
             <div className="space-y-2.5 py-2">{[1, 2, 3].map((i) => <div key={i} className="h-9 rounded-lg bg-muted/50 animate-pulse" />)}</div>
           ) : view?.ok ? (
             <div className="space-y-4">
-              {(view.list?.admission_start_date || view.list?.admission_last_date) && (
-                <div className="rounded-xl border border-gold/40 bg-gold/5 p-3.5 text-[13px]">
-                  <p className="font-bold text-foreground mb-1">Important Dates</p>
-                  <p className="text-muted-foreground">
-                    Admission Start: <span className="font-semibold text-foreground">{view.list?.admission_start_date ?? "N/A"}</span>
-                    {"   "}Admission Last Date: <span className="font-semibold text-foreground">{view.list?.admission_last_date ?? "N/A"}</span>
-                  </p>
-                </div>
-              )}
+              <MeritTitleBlock title={view.list?.title ?? "Merit List"} />
+              <MeritDates start={view.list?.admission_start_date} last={view.list?.admission_last_date} />
               <div className="space-y-2 md:hidden">
                 {(view.entries ?? []).map((e) => (
                   <div key={e.tracking_id} className="rounded-xl border border-border bg-card px-3 py-2.5 text-center">
@@ -400,12 +394,7 @@ function MeritLists() {
                   </tbody>
                 </table>
               </div>
-              {view.list?.instructions && (
-                <div className="rounded-xl bg-muted/60 border border-border p-3.5 text-[12.5px] text-muted-foreground">
-                  <p className="font-bold text-foreground mb-1">Instructions</p>
-                  <p className="whitespace-pre-line">{view.list.instructions}</p>
-                </div>
-              )}
+              <MeritInstructions text={view.list?.instructions} />
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4 text-center">This merit list is no longer available.</p>
