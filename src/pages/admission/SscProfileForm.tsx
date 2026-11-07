@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useRef, useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Save, BookOpen, BadgeCheck } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,19 @@ function gradeFor(pct: number): string {
 export default function SscProfileForm() {
   const { session, loading, token, isDraft, netError, refresh } = useInterSession();
   const navigate = useNavigate();
+
+  // Return-to-Confirm: when opened from "Edit" on the Confirm step, saving goes
+  // straight back there (no repeating earlier steps).
+  const [searchParams] = useSearchParams();
+  const returnConfirm = isDraft && searchParams.get("return") === "confirm";
+  // A SUBMITTED application is final — profiles are locked after Submit.
+  const profileLocked = !loading && !isDraft &&
+    (session?.applications ?? []).some((a) => !["cancelled", "rejected"].includes(a.status));
+  useEffect(() => {
+    if (!profileLocked) return;
+    toast("Your application is submitted. Profile details can no longer be edited.", { icon: "🔒", id: "profile-locked" });
+    navigate("/admission/portal", { replace: true });
+  }, [profileLocked, navigate]);
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SscProfileData>(EMPTY);
   const [busy, setBusy] = useState(false);
@@ -135,7 +148,7 @@ export default function SscProfileForm() {
         // is done too (and no application exists yet) go straight to the
         // admission request; otherwise back to the dashboard.
         const hasApp = (session?.applications ?? []).some((a) => !["cancelled", "rejected"].includes(a.status));
-        navigate(session?.personal && !hasApp ? "/admission/apply" : "/admission/portal", { replace: true });
+        navigate(returnConfirm ? "/admission/apply?step=confirm" : session?.personal && !hasApp ? "/admission/apply" : "/admission/portal", { replace: true });
       } else {
         toast.error(res?.error || "Could not save your matric profile.");
       }
