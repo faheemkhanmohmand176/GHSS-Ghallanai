@@ -390,22 +390,24 @@ export default function AdminAdmissions() {
             className="pl-9 h-9 text-[12.5px] rounded-full"
           />
         </div>
-        <Button size="sm" className="h-8 px-4 text-[11.5px] rounded-full whitespace-nowrap gap-1" onClick={() => setWalkinOpen(true)}>
-          <UserPlus className="w-3 h-3" /> Add Walk-in / Import
-        </Button>
         <div className="flex flex-nowrap items-center justify-center gap-1.5 w-full">
-          <Button variant="outline" size="sm" className="h-8 px-2.5 text-[11.5px] rounded-full whitespace-nowrap gap-1" onClick={() => setSettingsOpen(true)}>
+          <Button variant="outline" size="sm" className="h-8 px-3 text-[11.5px] rounded-full whitespace-nowrap gap-1" onClick={() => setSettingsOpen(true)}>
             <Settings2 className="w-3 h-3" /> Settings
           </Button>
-          <Button size="sm" className="h-8 px-2.5 text-[11.5px] rounded-full whitespace-nowrap gap-1 bg-green-700 hover:bg-green-800 text-white" onClick={exportExcel} disabled={exporting}>
-            {exporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />} Export Excel
-          </Button>
           {allApps.length > 0 && !query && (
-            <Button variant="outline" size="sm" className="h-8 px-2.5 text-[11.5px] rounded-full whitespace-nowrap gap-1 text-red-600 border-red-200 hover:bg-red-500/5"
+            <Button variant="outline" size="sm" className="h-8 px-3 text-[11.5px] rounded-full whitespace-nowrap gap-1 text-red-600 border-red-200 hover:bg-red-500/5"
               onClick={() => { setResetText(""); setResetOpen(true); }}>
               <Trash2 className="w-3 h-3" /> Delete All
             </Button>
           )}
+        </div>
+        <div className="flex flex-nowrap items-center justify-center gap-1.5 w-full">
+          <Button size="sm" className="h-8 px-3 text-[11.5px] rounded-full whitespace-nowrap gap-1 bg-green-700 hover:bg-green-800 text-white" onClick={exportExcel} disabled={exporting}>
+            {exporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />} Export Excel
+          </Button>
+          <Button size="sm" className="h-8 px-3 text-[11.5px] rounded-full whitespace-nowrap gap-1" onClick={() => setWalkinOpen(true)}>
+            <UserPlus className="w-3 h-3" /> Add Walk-in / Import
+          </Button>
         </div>
       </div>
 
