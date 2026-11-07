@@ -6,7 +6,8 @@
  *   applications (inter_admin_merit_generate) — net marks = SSC obtained
  *   + 20 if Hafiz e Quran, sorted descending.
  * • Publish / unpublish (inter_admin_merit_publish) — published lists show
- *   on the public Admission page.
+ *   on the public Admission page, and the listed applicants are moved to
+ *   "Merit Listed" automatically (unpublishing reverts them).
  * • Delete drafts (inter_admin_merit_delete — published lists must be
  *   unpublished first).
  * • Preview published lists (inter_merit_list_view — the same table the
@@ -40,6 +41,7 @@ interface AdminMeritList {
 }
 
 const QUOTA_OPTIONS = Object.entries(QUOTA_LABEL);
+const quotaKey = (q: string) => q.toLowerCase().replace(/ /g, "_");
 
 interface MeritEntry {
   id?: string;
@@ -182,6 +184,52 @@ export default function AdminMeritLists() {
   });
 
   const lists: AdminMeritList[] = listsQ.data ?? [];
+
+  // Next list number for a program + quota (1st, 2nd, 3rd provisional …).
+  function nextListNo(programId: number | "", quota: string) {
+    const name = (programsQ.data ?? []).find((p) => p.id === programId)?.name;
+    if (!name) return 1;
+    const nos = lists.filter((l) => l.program === name && quotaKey(l.quota) === quota).map((l) => l.list_no);
+    return nos.length ? Math.max(...nos) + 1 : 1;
+  }
+
+  const publishingId = publish.isPending ? publish.variables?.id : null;
+  function togglePublish(m: AdminMeritList) {
+    if (!m.is_published && !window.confirm(
+      `Publish ${m.program} (${QUOTA_LABEL[quotaKey(m.quota)] ?? m.quota}) list #${m.list_no}?\n\nIt becomes public, and its ${m.no_of_applicants} fee-paid applicant(s) are marked "Merit Listed".`,
+    )) return;
+    publish.mutate({ id: m.id, published: !m.is_published });
+  }
+  const ListActions = ({ m }: { m: AdminMeritList }) => (
+    <div className="flex flex-wrap items-center justify-center gap-1.5">
+      <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]" onClick={() => setViewId(m.id)}>
+        <Eye className="w-3 h-3" /> View
+      </Button>
+      <Button size="sm" variant={m.is_published ? "outline" : "default"} className="h-7 px-2.5 text-[11.5px]"
+        disabled={publish.isPending} onClick={() => togglePublish(m)}>
+        {publishingId === m.id
+          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          : m.is_published ? <GlobeLock className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
+        {m.is_published ? "Unpublish" : "Publish"}
+      </Button>
+      {!m.is_published && (
+        <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px] text-red-600 border-red-200 hover:bg-red-500/5"
+          disabled={remove.isPending}
+          onClick={() => {
+            if (window.confirm(`Delete the draft merit list for ${m.program} (${m.quota})?`)) remove.mutate(m.id);
+          }}>
+          <Trash2 className="w-3.5 h-3.5" /> Delete
+        </Button>
+      )}
+    </div>
+  );
+  const StatusPill = ({ m }: { m: AdminMeritList }) => (
+    <Badge variant="secondary" className={
+      m.is_published ? "bg-green-500/15 text-green-700 dark:text-green-400" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+    }>
+      {m.is_published ? `Published ${m.published_at ?? ""}` : "Draft"}
+    </Badge>
+  );
   const sel = "h-10 rounded-xl border border-input bg-background px-3 text-sm w-full";
 
   return (
@@ -196,6 +244,11 @@ export default function AdminMeritLists() {
           <Plus className="w-4 h-4" /> Generate Merit List
         </Button>
       </div>
+
+      <p className="rounded-xl border border-border bg-muted/40 px-3 py-2 text-center text-[12px] leading-snug text-muted-foreground">
+        Generate a <strong className="text-foreground">Draft</strong> from fee-paid applicants, check it with View, then <strong className="text-foreground">Publish</strong>.
+        Publishing shows it publicly and marks those applicants “Merit Listed”; unpublishing reverts them.
+      </p>
 
       {/* Lists */}
       <Card className="border-border/80">
@@ -213,7 +266,21 @@ export default function AdminMeritLists() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-border/60">
+              {lists.map((m) => (
+                <div key={m.id} className="flex flex-col items-center gap-1.5 px-4 py-4 text-center">
+                  <p className="text-[14px] font-semibold text-foreground">{m.program}</p>
+                  <p className="text-[12.5px] text-muted-foreground">
+                    {QUOTA_LABEL[quotaKey(m.quota)] ?? m.quota} · List #{m.list_no} · {m.no_of_applicants} applicant{m.no_of_applicants === 1 ? "" : "s"}
+                  </p>
+                  <StatusPill m={m} />
+                  <div className="mt-1"><ListActions m={m} /></div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-[13px] min-w-[860px]">
                 <thead className="bg-muted/60 border-b border-border">
                   <tr>
@@ -236,47 +303,14 @@ export default function AdminMeritLists() {
                       <td className="text-center align-middle px-4 py-3 text-[12px] text-muted-foreground whitespace-nowrap">
                         {m.admission_start_date ?? "N/A"} → {m.admission_last_date ?? "N/A"}
                       </td>
-                      <td className="text-center align-middle px-4 py-3">
-                        <Badge variant="secondary" className={
-                          m.is_published
-                            ? "bg-green-500/15 text-green-700 dark:text-green-400"
-                            : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                        }>
-                          {m.is_published ? `Published ${m.published_at ?? ""}` : "Draft"}
-                        </Badge>
-                      </td>
-                      <td className="text-center align-middle px-4 py-3">
-                        <div className="flex flex-wrap items-center justify-center gap-1.5">
-                        <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
-                          onClick={() => setViewId(m.id)}>
-                          <Eye className="w-3 h-3" /> View
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px]"
-                          disabled={publish.isPending}
-                          onClick={() => publish.mutate({ id: m.id, published: !m.is_published })}>
-                          {publish.isPending
-                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            : m.is_published ? <GlobeLock className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
-                          {m.is_published ? "Unpublish" : "Publish"}
-                        </Button>
-                        {!m.is_published && (
-                          <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px] text-red-600 border-red-200 hover:bg-red-500/5"
-                            disabled={remove.isPending}
-                            onClick={() => {
-                              if (window.confirm(`Delete the draft merit list for ${m.program} (${m.quota})?`)) {
-                                remove.mutate(m.id);
-                              }
-                            }}>
-                            <Trash2 className="w-3.5 h-3.5" /> Delete
-                          </Button>
-                        )}
-                      </div>
-                      </td>
+                      <td className="text-center align-middle px-4 py-3"><StatusPill m={m} /></td>
+                      <td className="text-center align-middle px-4 py-3"><ListActions m={m} /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -291,7 +325,7 @@ export default function AdminMeritLists() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-[13px] font-semibold">Program <span className="text-red-500">*</span></Label>
-                <select className={sel} value={gProgram} onChange={(e) => setGProgram(e.target.value ? Number(e.target.value) : "")}>
+                <select className={sel} value={gProgram} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : ""; setGProgram(v); setGListNo(nextListNo(v, gQuota)); }}>
                   <option value="">Select Program</option>
                   {(programsQ.data ?? []).map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -300,7 +334,7 @@ export default function AdminMeritLists() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[13px] font-semibold">Quota <span className="text-red-500">*</span></Label>
-                <select className={sel} value={gQuota} onChange={(e) => setGQuota(e.target.value)}>
+                <select className={sel} value={gQuota} onChange={(e) => { setGQuota(e.target.value); setGListNo(nextListNo(gProgram, e.target.value)); }}>
                   {QUOTA_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
@@ -353,7 +387,42 @@ export default function AdminMeritLists() {
             <p className="text-[11px] text-muted-foreground">
               Remarks are editable (e.g. “2 Session(s) Missed”), they appear on the public merit list.
             </p>
-            <div className="overflow-x-auto rounded-xl border border-border">
+            {/* Mobile cards */}
+            <div className="space-y-2 md:hidden">
+              {(viewQ.data.entries ?? []).map((e) => {
+                const key = e.id ?? e.tracking_id;
+                const draft = remarkDraft[key];
+                const dirty = draft !== undefined && draft !== (e.remarks ?? "");
+                return (
+                  <div key={key} className="rounded-xl border border-border bg-card px-3 py-2.5 text-center">
+                    <p className="text-[13px] font-semibold text-foreground">#{e.position} · {e.name}</p>
+                    <p className="text-[11.5px] text-muted-foreground">S/O {e.father_name}</p>
+                    <p className="mt-0.5 font-mono text-[11.5px] font-semibold text-primary">{e.tracking_id}</p>
+                    <p className="mt-0.5 text-[12px] text-muted-foreground">
+                      {e.obtained_marks}/{e.total_marks} · Net <strong className="text-foreground">{e.net_marks}</strong> · <strong className="text-primary">{e.percentage}%</strong>
+                    </p>
+                    <div className="mt-1.5 flex items-center justify-center gap-1.5">
+                      <input
+                        value={draft ?? e.remarks ?? ""}
+                        onChange={(ev) => setRemarkDraft((r) => ({ ...r, [key]: ev.target.value }))}
+                        placeholder="Remarks"
+                        className="h-8 w-40 rounded-lg border border-input bg-background px-2 text-center text-[12px]"
+                        aria-label={`Remarks for ${e.name}`}
+                      />
+                      {dirty && e.id && (
+                        <Button size="sm" variant="outline" className="h-8 px-2.5 text-[11px] font-semibold"
+                          disabled={saveRemark.isPending}
+                          onClick={() => saveRemark.mutate({ id: e.id!, remarks: draft })}>Save</Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              {(viewQ.data.entries ?? []).length === 0 && (
+                <p className="py-4 text-center text-sm text-muted-foreground">No entries — no fee-paid applicant matched this program and quota.</p>
+              )}
+            </div>
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-[12.5px]">
                 <thead className="bg-muted/60">
                   <tr>
