@@ -114,7 +114,6 @@ export default function AdminAdmissions() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<AdminTab>("applications");
   const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState("");
   const [payDialog, setPayDialog] = useState<AdminApp | null>(null);
   const [payRef, setPayRef] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
@@ -127,18 +126,14 @@ export default function AdminAdmissions() {
   const [resetOpen, setResetOpen] = useState(false);
   const [resetText, setResetText] = useState("");
 
-  // debounce search
-  const onSearch = (v: string) => {
-    setSearch(v);
-    const t = setTimeout(() => setDebounced(v.trim()), 350);
-    return () => clearTimeout(t);
-  };
+  // Instant client-side search (the list is small); matches ID, name, CNIC, mobile and program.
+  const onSearch = (v: string) => setSearch(v);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["inter-admin-apps", debounced],
+    queryKey: ["inter-admin-apps"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("inter_admin_list", {
-        p_search: debounced || null,
+        p_search: null,
       });
       if (error) throw error;
       const d = data as { ok?: boolean; error?: string; applications?: AdminApp[] } | AdminApp[];
@@ -150,7 +145,20 @@ export default function AdminAdmissions() {
     refetchOnWindowFocus: false,
   });
 
-  const apps: AdminApp[] = (data as unknown as AdminApp[]) ?? [];
+  const allApps: AdminApp[] = (data as unknown as AdminApp[]) ?? [];
+  const query = search.trim().toLowerCase();
+  const qDigits = query.replace(/\D/g, "");
+  const apps: AdminApp[] = query
+    ? allApps.filter((a) => {
+        const text = [a.tracking_id, a.name, a.program, a.jazzcash_token].filter(Boolean).join(" ").toLowerCase();
+        if (text.includes(query)) return true;
+        if (qDigits.length >= 3) {
+          const nums = `${a.applicant_cnic ?? ""} ${a.applicant_mobile ?? ""}`.replace(/\D/g, "");
+          return nums.includes(qDigits);
+        }
+        return false;
+      })
+    : allApps;
 
   const { data: settings } = useAdmissionSettings();
 
@@ -288,8 +296,8 @@ export default function AdminAdmissions() {
   });
 
 
-  const paid = apps.filter((a) => a.payment_status === "paid").length;
-  const pendingFee = apps.filter((a) => a.payment_status === "pending").length;
+  const paid = allApps.filter((a) => a.payment_status === "paid").length;
+  const pendingFee = allApps.filter((a) => a.payment_status === "pending").length;
 
   // One action row per application: Fee · Status · Delete (no duplicates, no Unlock).
   // The action the office needs next is highlighted: Fee while unpaid, Status once paid.
@@ -339,36 +347,31 @@ export default function AdminAdmissions() {
       {tab === "applications" && (
       <>
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
         {[
-          { icon: ClipboardList, label: "Applications", value: apps.length, color: "text-primary" },
+          { icon: ClipboardList, label: "Applied", value: allApps.length, color: "text-primary" },
           { icon: Wallet, label: "Pending", value: pendingFee, color: "text-amber-600" },
           { icon: BadgeCheck, label: "Paid", value: paid, color: "text-green-600" },
           { icon: Users, label: "Session", value: settings?.session_year ?? "N/A", color: "text-azure-strong dark:text-azure" },
         ].map((s) => (
-          <Card key={s.label} className="border-border/80">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                <s.icon className={`w-5 h-5 ${s.color}`} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground truncate">{s.label}</p>
-                <p className="font-heading text-xl font-bold text-foreground">{s.value}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div key={s.label} className="flex flex-col items-center justify-center rounded-xl border border-border/80 bg-card px-1 py-2 shadow-sm">
+            <p className="font-heading text-[15px] sm:text-xl font-bold leading-none text-foreground">{s.value}</p>
+            <p className="mt-1.5 flex items-center gap-1 text-[9px] sm:text-[11px] font-bold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
+              <s.icon className={`w-3 h-3 shrink-0 ${s.color}`} /> {s.label}
+            </p>
+          </div>
         ))}
       </div>
 
       {/* Toolbar */}
       <div className="flex flex-col items-center gap-2.5">
-        <div className="relative w-full max-w-md mx-auto">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="relative w-full max-w-xs mx-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => onSearch(e.target.value)}
             placeholder="Search ID, name or CNIC"
-            className="pl-10 h-10 text-[13px] text-center rounded-full"
+            className="pl-9 h-9 text-[12.5px] rounded-full"
           />
         </div>
         <div className="flex flex-nowrap items-center justify-center gap-1.5 w-full">
@@ -378,7 +381,7 @@ export default function AdminAdmissions() {
           <Button size="sm" className="h-8 px-2.5 text-[11.5px] rounded-full whitespace-nowrap gap-1 bg-green-700 hover:bg-green-800 text-white" onClick={exportExcel} disabled={exporting}>
             {exporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />} Export Excel
           </Button>
-          {apps.length > 0 && !debounced && (
+          {allApps.length > 0 && !query && (
             <Button variant="outline" size="sm" className="h-8 px-2.5 text-[11.5px] rounded-full whitespace-nowrap gap-1 text-red-600 border-red-200 hover:bg-red-500/5"
               onClick={() => { setResetText(""); setResetOpen(true); }}>
               <Trash2 className="w-3 h-3" /> Delete All
@@ -396,7 +399,7 @@ export default function AdminAdmissions() {
             <div className="p-10 text-center">
               <GraduationCap className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">
-                {debounced ? "No applications match your search." : "No applications yet, they will appear here as students apply."}
+                {query ? "No applications match your search." : "No applications yet, they will appear here as students apply."}
               </p>
             </div>
           ) : (
@@ -517,7 +520,7 @@ export default function AdminAdmissions() {
           </DialogHeader>
           <div className="space-y-3.5 text-center">
             <p className="text-[13px] leading-relaxed text-muted-foreground">
-              This permanently deletes <strong className="text-foreground">{apps.length} application(s)</strong>, all applicant
+              This permanently deletes <strong className="text-foreground">{allApps.length} application(s)</strong>, all applicant
               profiles and every merit list. Programs, seats and settings are kept.
             </p>
             <Button variant="outline" className="h-9 w-full text-[12.5px] font-semibold" onClick={exportExcel} disabled={exporting}>
@@ -543,50 +546,55 @@ export default function AdminAdmissions() {
           This is the ONLY place the fee is recorded; the Status dialog below
           deals with the college's workflow stages alone. */}
       <Dialog open={Boolean(payDialog)} onOpenChange={(o) => !o && setPayDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Processing Fee: {payDialog?.tracking_id}</DialogTitle>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-md rounded-2xl p-0 overflow-hidden gap-0">
+          <DialogHeader className="border-b border-border/60 bg-gradient-to-r from-green-700/10 to-transparent px-5 py-4">
+            <DialogTitle className="flex items-center justify-center gap-2 text-[15px]">
+              <Wallet className="w-4 h-4 text-primary" /> Processing Fee
+            </DialogTitle>
           </DialogHeader>
           {payDialog && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-muted/40 p-3.5 text-[13px] space-y-1">
-                <p><span className="text-muted-foreground">Applicant:</span> <span className="font-semibold">{payDialog.name}</span></p>
-                <p><span className="text-muted-foreground">Payment Reference:</span> <span className="font-mono font-bold">{payDialog.jazzcash_token ?? "not generated"}</span></p>
-                <p><span className="text-muted-foreground">Deadline:</span> <span className="font-semibold">{payDialog.fee_deadline}</span></p>
-                <p>
-                  <span className="text-muted-foreground">Fee status:</span>{" "}
-                  <span className="font-semibold">
-                    {payDialog.payment_status === "paid" ? "Paid"
-                      : payDialog.payment_status === "rejected" ? "Rejected" : "Pending"}
-                    {payDialog.payment_method && ` via ${paymentMethodLabel(payDialog.payment_method)}`}
-                  </span>
-                </p>
+            <div className="space-y-4 px-5 py-4 max-h-[75vh] overflow-y-auto">
+              <div className="overflow-hidden rounded-2xl border border-border/70 bg-muted/30">
+                <div className="flex flex-col items-center gap-1 px-4 py-3 text-center">
+                  <span className="rounded-full bg-primary/10 px-3 py-0.5 font-mono text-[11px] font-bold tracking-wider text-primary">{payDialog.tracking_id}</span>
+                  <p className="font-heading text-[15px] font-bold text-foreground">{payDialog.name ?? "N/A"}</p>
+                </div>
+                <div className="divide-y divide-border/60 border-t border-border/60 text-[12.5px]">
+                  <div className="flex items-center justify-between gap-3 px-4 py-2">
+                    <span className="text-muted-foreground">Reference</span>
+                    <span className="font-mono font-bold">{payDialog.jazzcash_token ?? "not generated"}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-4 py-2">
+                    <span className="text-muted-foreground">Deadline</span>
+                    <span className="font-semibold">{payDialog.fee_deadline}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 px-4 py-2">
+                    <span className="text-muted-foreground">Fee status</span>
+                    <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-bold ${
+                      payDialog.payment_status === "paid" ? "bg-green-500/15 text-green-700 dark:text-green-400"
+                      : payDialog.payment_status === "rejected" ? "bg-red-500/10 text-red-600"
+                      : "bg-amber-500/15 text-amber-700 dark:text-amber-400"}`}>
+                      {payDialog.payment_status === "paid" ? "Paid"
+                        : payDialog.payment_status === "rejected" ? "Rejected" : "Pending"}
+                      {payDialog.payment_method && ` · ${paymentMethodLabel(payDialog.payment_method)}`}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {payDialog.payment_status === "paid" ? (
-                <div className="space-y-2.5">
-                  <p className="flex items-center justify-center gap-2 rounded-xl border border-green-500/30 bg-green-500/5 px-3 py-2.5 text-center text-[12.5px] font-semibold text-green-700 dark:text-green-400">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" /> Fee received. This application is final.
-                  </p>
-                  <Button variant="ghost" className="w-full h-9 text-[12px] font-semibold text-muted-foreground"
-                    disabled={setPayment.isPending}
-                    onClick={() => {
-                      if (window.confirm("Only use this to correct a payment marked Paid by mistake. Reset to Fee Pending?")) {
-                        setPayment.mutate({ id: payDialog.id, status: "pending", ref: payRef, method: payMethod });
-                      }
-                    }}>
-                    Marked paid by mistake? Reset to Pending
-                  </Button>
-                </div>
+                <p className="flex items-center justify-center gap-2 rounded-xl border border-green-500/30 bg-green-500/5 px-3 py-3 text-center text-[12.5px] font-semibold text-green-700 dark:text-green-400">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" /> Fee received. This application is final.
+                </p>
               ) : (
                 <>
                   <div className="space-y-1.5">
-                    <Label className="text-[13px] font-semibold">Paid by</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <Label className="text-[12px] font-semibold">Paid by</Label>
+                    <div className="grid grid-cols-3 gap-1.5">
                       {PAYMENT_METHODS.map((m) => (
                         <button key={m.value} type="button" onClick={() => setPayMethod(m.value)}
-                          className={`h-9 rounded-xl border-2 text-[12.5px] font-semibold transition-all ${
-                            payMethod === m.value ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"
+                          className={`h-9 rounded-full border text-[12px] font-semibold transition-all ${
+                            payMethod === m.value ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"
                           }`}>
                           {m.label}
                         </button>
@@ -595,39 +603,37 @@ export default function AdminAdmissions() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-[13px] font-semibold">Receipt / transaction number (optional)</Label>
-                    <Input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="Bank or wallet receipt number" className="h-10" />
+                    <Label className="text-[12px] font-semibold">Receipt / transaction no. (optional)</Label>
+                    <Input value={payRef} onChange={(e) => setPayRef(e.target.value)} placeholder="Bank or wallet receipt number" className="h-9 text-[13px] rounded-xl" />
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-2.5">
-                    <Button className="flex-1 h-10 font-semibold bg-green-600 hover:bg-green-700"
+                  <div className="flex flex-col gap-2">
+                    <Button className="h-10 rounded-full font-semibold bg-green-600 hover:bg-green-700"
                       disabled={setPayment.isPending}
                       onClick={() => setPayment.mutate({ id: payDialog.id, status: "paid", ref: payRef, method: payMethod })}>
                       {setPayment.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                       Mark Fee Paid (Rs {settings?.processing_fee ?? 100})
                     </Button>
                     {payDialog.payment_status !== "rejected" && (
-                      <Button variant="outline" className="flex-1 h-10 font-semibold text-red-600 border-red-200 hover:bg-red-500/5"
+                      <Button variant="outline" className="h-10 rounded-full font-semibold text-red-600 border-red-200 hover:bg-red-500/5"
                         disabled={setPayment.isPending}
                         onClick={() => setPayment.mutate({ id: payDialog.id, status: "rejected", ref: payRef, method: payMethod })}>
                         <XCircle className="w-4 h-4" /> Reject Payment
                       </Button>
                     )}
+                    {payDialog.payment_status === "rejected" && (
+                      <Button variant="ghost" className="h-9 text-[12px] font-semibold text-muted-foreground"
+                        disabled={setPayment.isPending}
+                        onClick={() => setPayment.mutate({ id: payDialog.id, status: "pending", ref: payRef, method: payMethod })}>
+                        Reset to Fee Pending
+                      </Button>
+                    )}
                   </div>
-
-                  {payDialog.payment_status === "rejected" && (
-                    <Button variant="ghost" className="w-full h-9 text-[12px] font-semibold text-muted-foreground"
-                      disabled={setPayment.isPending}
-                      onClick={() => setPayment.mutate({ id: payDialog.id, status: "pending", ref: payRef, method: payMethod })}>
-                      Reset to Fee Pending
-                    </Button>
-                  )}
                 </>
               )}
 
-              <p className="text-[11.5px] leading-snug text-muted-foreground">
-                The processing fee is recorded here only. Moving the application through review,
-                merit and admission is done with the Status action.
+              <p className="text-center text-[11px] leading-snug text-muted-foreground">
+                Fee is recorded here only. Review, merit and admission are handled with the Status action.
               </p>
             </div>
           )}
