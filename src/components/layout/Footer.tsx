@@ -64,7 +64,7 @@ const Footer = () => {
   const address = settings?.address || "Ghallanai, District Mohmand, KPK, Pakistan";
 
   const action =
-    "flex h-11 items-center justify-center gap-1.5 rounded-xl border text-[12.5px] font-semibold transition-all active:scale-[0.97]";
+    "flex h-8 items-center justify-center gap-1 rounded-lg border text-[11.5px] font-semibold transition-all active:scale-[0.97]";
 
   return (
     <footer className="relative overflow-hidden bg-[hsl(144_62%_12%)] text-[#E8F5EC] dark:bg-[hsl(146_41%_6%)]">
@@ -81,15 +81,15 @@ const Footer = () => {
             <div className="flex items-center gap-3">
               {settings?.logo_url && !logoFailed ? (
                 <img
-                  src={optimizedCloudinaryUrl(settings.logo_url, { width: 112 }) || safeMediaUrl(settings.logo_url)!}
+                  src={optimizedCloudinaryUrl(settings.logo_url, { width: 80 }) || safeMediaUrl(settings.logo_url)!}
                   alt={`${name} logo`}
-                  className="h-12 w-12 shrink-0 rounded-xl bg-white object-cover p-0.5 shadow-lg ring-1 ring-[hsl(43_74%_66%)]/50"
+                  className="h-9 w-9 shrink-0 rounded-lg bg-white object-cover p-0.5 shadow-lg ring-1 ring-[hsl(43_74%_66%)]/50"
                   loading="lazy" decoding="async"
                   onError={() => setLogoFailed(true)}
                 />
               ) : (
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-[hsl(43_74%_66%)]/40">
-                  <GraduationCap className="h-6 w-6" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 ring-1 ring-[hsl(43_74%_66%)]/40">
+                  <GraduationCap className="h-5 w-5" />
                 </div>
               )}
               <div className="min-w-0">
@@ -105,18 +105,18 @@ const Footer = () => {
                 "Government Higher Secondary School Ghallanai, District Mohmand — quality education for 1st Year and 2nd Year students."}
             </p>
 
-            <div className="mt-4 grid grid-cols-3 gap-2">
+            <div className="mt-3 grid grid-cols-3 gap-1.5">
               <a href={`tel:${phone.replace(/\s/g, "")}`} aria-label="Call the school"
                 className={`${action} border-[hsl(43_74%_66%)]/40 bg-[hsl(43_74%_66%)]/15 text-[hsl(43_74%_72%)] hover:bg-[hsl(43_74%_66%)]/25`}>
-                <Phone className="h-4 w-4" /> Call
+                <Phone className="h-3.5 w-3.5" /> Call
               </a>
               <a href={WA_URL} target="_blank" rel="noopener noreferrer" aria-label="Contact GHSS Ghallanai on WhatsApp"
                 className={`${action} border-[#25D366]/40 bg-[#25D366]/15 text-[#7BEFA6] hover:bg-[#25D366]/25`}>
-                <MessageCircle className="h-4 w-4" /> Chat
+                <MessageCircle className="h-3.5 w-3.5" /> Chat
               </a>
               <a href={FB_URL} target="_blank" rel="noopener noreferrer" aria-label="Follow GHSS Ghallanai on Facebook"
                 className={`${action} border-[#1877F2]/50 bg-[#1877F2]/20 text-[#9CC4FF] hover:bg-[#1877F2]/30`}>
-                <Facebook className="h-4 w-4" /> Follow
+                <Facebook className="h-3.5 w-3.5" /> Follow
               </a>
             </div>
           </div>
@@ -164,15 +164,15 @@ const Footer = () => {
         </div>
 
         {/* ── Bottom bar ── */}
-        <div className="mt-6 flex items-center justify-between gap-3 border-t border-white/10 pt-3.5">
-          <p className="min-w-0 text-[11.5px] leading-snug text-white/55">
+        <div className="relative mt-6 flex items-center justify-center border-t border-white/10 pt-3.5">
+          <p className="px-12 text-center text-[11.5px] leading-snug text-white/55">
             &copy; {new Date().getFullYear()} <span className="font-medium text-white/80">{name}</span>. All rights reserved.
           </p>
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             aria-label="Back to top"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/75 transition-colors hover:text-white active:scale-95"
+            className="absolute right-0 top-1/2 mt-[7px] flex h-9 w-9 -translate-y-1/2 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/75 transition-colors hover:text-white active:scale-95"
             style={{ boxShadow: `0 0 0 1px ${GOLD_HSL}22` }}
           >
             <ArrowUp className="h-4 w-4" />
