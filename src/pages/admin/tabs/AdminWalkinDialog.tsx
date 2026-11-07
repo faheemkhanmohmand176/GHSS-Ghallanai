@@ -45,12 +45,22 @@ const ALIASES: Record<string, string> = {
   rollnumber: "roll_number", rollno: "roll_number", board: "board",
   institute: "institute", school: "institute", address: "address",
   studygroup: "study_group", passingyear: "passing_year", year: "passing_year",
+  // headers of the styled template
+  hafizyesno: "hafiz", dobyyyymmdd: "dob", feepaidyesno: "paid", receiptno: "receipt",
+  previousschool: "institute", sscobtained: "marks_obtained", ssctotal: "marks_total",
 };
 
-const TEMPLATE_HEAD = [
-  "full_name", "father_name", "cnic", "mobile", "program", "quota",
-  "marks_obtained", "marks_total", "hafiz", "union_council", "dob",
-  "paid", "payment_method", "receipt", "roll_number", "board", "institute", "address",
+// Template columns: header text, field key, width, required
+const TEMPLATE_COLS: Array<{ h: string; w: number; req?: boolean; text?: boolean }> = [
+  { h: "Full Name", w: 24, req: true }, { h: "Father Name", w: 24, req: true },
+  { h: "CNIC / Form-B", w: 19, req: true, text: true }, { h: "Mobile", w: 15, req: true, text: true },
+  { h: "Program", w: 16, req: true }, { h: "Quota", w: 18 },
+  { h: "Marks Obtained", w: 11, req: true }, { h: "Marks Total", w: 10, req: true },
+  { h: "Hafiz (yes/no)", w: 10 }, { h: "Union Council", w: 18 },
+  { h: "DOB (YYYY-MM-DD)", w: 16, text: true }, { h: "Fee Paid (yes/no)", w: 11 },
+  { h: "Payment Method", w: 14 }, { h: "Receipt No", w: 14 },
+  { h: "Roll No", w: 11, text: true }, { h: "Board", w: 14 },
+  { h: "Previous School", w: 24 }, { h: "Address", w: 24 },
 ];
 
 function cellToText(v: unknown): string {
@@ -148,31 +158,115 @@ export default function AdminWalkinDialog({
   }
 
   async function downloadTemplate() {
-    const XLSX = await import("xlsx");
-    const example = [
-      "Ali Khan", "Gul Khan", "2148700000000", "03001234567",
-      programs[0]?.name ?? "Pre-Medical", "Local Quota", "850", "1100", "no",
-      "", "2010-05-14", "yes", "cash", "", "123456", "Peshawar", "GHSS Ghallanai", "Ghallanai",
-    ];
-    const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEAD, example]);
-    // keep CNIC / mobile as text so Excel does not turn them into 2.1E+12
-    for (const col of ["C", "D"]) {
-      const c = ws[`${col}2`]; if (c) { c.t = "s"; c.z = "@"; }
+    try {
+      const ExcelJS = (await import("exceljs")).default;
+      const GREEN = "FF14532D", GOLD = "FFB8891F", TINT = "FFFBF5E2", WHITE = "FFFFFFFF", GREY = "FFF3F4F1";
+      const side = { style: "thin" as const, color: { argb: "FF9CA3AF" } };
+      const box = { top: side, left: side, bottom: side, right: side };
+      const fill = (argb: string) => ({ type: "pattern" as const, pattern: "solid" as const, fgColor: { argb } });
+      const mid = { horizontal: "center" as const, vertical: "middle" as const, wrapText: true };
+      const n = TEMPLATE_COLS.length;
+      const FIRST = 5, ROWS = 100, LAST_VALID = 504;
+
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "GHSS Ghallanai";
+      const ws = wb.addWorksheet("Walk-in", { views: [{ state: "frozen", ySplit: 4, xSplit: 1 }] });
+      ws.columns = TEMPLATE_COLS.map((c) => ({ width: c.w }));
+
+      const band = (r: number, text: string, size: number, bg: string, color: string, h: number, bold = true) => {
+        ws.mergeCells(r, 1, r, n);
+        const c = ws.getCell(r, 1);
+        c.value = text; c.alignment = mid; c.fill = fill(bg);
+        c.font = { name: "Calibri", size, bold, color: { argb: color } };
+        ws.getRow(r).height = h;
+      };
+      band(1, "GOVERNMENT HIGHER SECONDARY SCHOOL GHALLANAI", 16, GREEN, WHITE, 28);
+      band(2, "Walk-in Admission Applications, Import Sheet", 12, GOLD, WHITE, 22);
+      band(3, "Type one student per row from row 5. Columns marked * are required. Do not change the header row (row 4).", 10, TINT, "FF3A3A3A", 20, false);
+
+      const head = ws.getRow(4);
+      head.height = 32;
+      TEMPLATE_COLS.forEach((c, i) => {
+        const cell = head.getCell(i + 1);
+        cell.value = c.req ? `${c.h} *` : c.h;
+        cell.font = { name: "Calibri", size: 11, bold: true, color: { argb: WHITE } };
+        cell.fill = fill(c.req ? GREEN : "FF4B7F5E");
+        cell.alignment = mid; cell.border = box;
+      });
+
+      for (let r = FIRST; r < FIRST + ROWS; r++) {
+        const row = ws.getRow(r);
+        row.height = 22;
+        TEMPLATE_COLS.forEach((c, i) => {
+          const cell = row.getCell(i + 1);
+          cell.alignment = mid; cell.border = box;
+          cell.font = { name: "Calibri", size: 11 };
+          if (c.text) cell.numFmt = "@";
+          if ((r - FIRST) % 2 === 1) cell.fill = fill(GREY);
+        });
+      }
+
+      // dropdowns (Program / Quota / Yes-No / Payment method) on every data row up to 500
+      const list = (col: number, items: string[]) => {
+        const letter = ws.getColumn(col).letter;
+        for (let r = FIRST; r <= LAST_VALID; r++) {
+          ws.getCell(`${letter}${r}`).dataValidation = {
+            type: "list", allowBlank: true, showErrorMessage: true,
+            errorTitle: "Choose from the list", error: "Please pick one of the listed values.",
+            formulae: [`"${items.join(",")}"`],
+          };
+        }
+      };
+      const progNames = programs.map((p) => p.name).filter((n) => !n.includes(","));
+      if (progNames.length) list(5, progNames);
+      list(6, QUOTAS.map((q) => q.label));
+      list(9, ["yes", "no"]);
+      list(12, ["yes", "no"]);
+      list(13, ["cash", "bank", "easypaisa", "jazzcash", "other"]);
+
+      // ── Help sheet ────────────────────────────────────────────────────
+      const hs = wb.addWorksheet("Help");
+      hs.columns = [{ width: 24 }, { width: 70 }];
+      hs.mergeCells(1, 1, 1, 2);
+      const t = hs.getCell(1, 1);
+      t.value = "How to fill the Walk-in sheet"; t.alignment = mid; t.fill = fill(GREEN);
+      t.font = { name: "Calibri", size: 14, bold: true, color: { argb: WHITE } };
+      hs.getRow(1).height = 28;
+      const help: Array<[string, string]> = [
+        ["Required (*)", "Full Name, Father Name, CNIC / Form-B, Mobile, Program, Marks Obtained, Marks Total"],
+        ["CNIC / Form-B", "13 digits, no dashes needed (cells are already text)"],
+        ["Mobile", "03XXXXXXXXX"],
+        ["Program", (programs.map((p) => p.name).join(" / ")) || "Pre-Medical / Pre-Engineering / ICS / Arts"],
+        ["Quota", QUOTAS.map((q) => q.label).join(" / ") + "  (empty = Local Quota)"],
+        ["Marks", "SSC obtained and total, for example 850 and 1100"],
+        ["Hafiz (yes/no)", "yes adds 20 marks in the merit list"],
+        ["Fee Paid (yes/no)", "yes = fee received at the office. Only fee-paid students enter the merit list"],
+        ["Payment Method", "cash, bank, easypaisa, jazzcash or other (empty = cash)"],
+        ["DOB", "YYYY-MM-DD, optional"],
+        ["Example row", "Ali Khan | Gul Khan | 2148700000000 | 03001234567 | Pre-Medical | Local Quota | 850 | 1100 | no | ... | yes | cash"],
+      ];
+      help.forEach(([k, v], i) => {
+        const r = hs.getRow(i + 2);
+        r.height = 24;
+        const a1 = r.getCell(1), b1 = r.getCell(2);
+        a1.value = k; b1.value = v;
+        a1.font = { name: "Calibri", size: 11, bold: true, color: { argb: GREEN } };
+        b1.font = { name: "Calibri", size: 11 };
+        a1.alignment = mid; b1.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+        a1.fill = fill(TINT); a1.border = box; b1.border = box;
+      });
+
+      ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "Walk-in-Applications-Template.xlsx";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch {
+      toast.error("Could not create the template.");
     }
-    const help = XLSX.utils.aoa_to_sheet([
-      ["Field", "Rules"],
-      ["program", programs.map((p) => p.name).join(" / ") || "Pre-Medical / Pre-Engineering / ICS / Arts"],
-      ["quota", QUOTAS.map((q) => q.label).join(" / ") + "  (blank = Local Quota)"],
-      ["cnic / mobile", "13 digits / 03XXXXXXXXX (type them as text)"],
-      ["hafiz, paid", "yes or no"],
-      ["payment_method", "cash, bank, easypaisa, jazzcash, other (blank = cash)"],
-      ["dob", "YYYY-MM-DD (optional)"],
-      ["Required", "full_name, father_name, cnic, mobile, program, marks_obtained, marks_total"],
-    ]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Walk-in");
-    XLSX.utils.book_append_sheet(wb, help, "Help");
-    XLSX.writeFile(wb, "walk-in-applications-template.xlsx");
   }
 
   async function onFile(file: File | undefined) {
@@ -182,13 +276,19 @@ export default function AdminWalkinDialog({
       const XLSX = await import("xlsx");
       const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "", raw: true });
-      const parsed: Row[] = raw
+      const grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: true });
+      const keyOf = (v: unknown) => ALIASES[String(v ?? "").toLowerCase().replace(/[^a-z0-9]/g, "")];
+      // header row = first row (within the top 15) that has 3 or more known column names
+      const hi = grid.slice(0, 15).findIndex((r) => r.filter((c) => keyOf(c)).length >= 3);
+      if (hi < 0) { toast.error("Column headings not found. Use the downloaded template."); return; }
+      const keys = grid[hi].map((c) => keyOf(c) ?? "");
+      const parsed: Row[] = grid.slice(hi + 1)
         .map((r) => {
           const o: Row = {};
-          Object.entries(r).forEach(([k, v]) => {
-            const key = ALIASES[k.toLowerCase().replace(/[^a-z0-9]/g, "")];
-            if (key) o[key] = key === "dob" ? normDob(cellToText(v)) : cellToText(v);
+          keys.forEach((key, i) => {
+            if (!key || o[key]) return;
+            const v = r[i];
+            o[key] = key === "dob" ? normDob(cellToText(v)) : cellToText(v);
           });
           return o;
         })
