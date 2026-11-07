@@ -6,14 +6,14 @@
  * NO ACCOUNT / LOGIN: before the final Submit this page shows the applicant's
  * draft, which lives only on their own device.  After Submit (or after
  * "Track Application" opens an application) it shows the submitted
- * application(s) with Pay / View (no edit after submit).
+ * application(s) with a single View button (no edit after submit).
  */
 
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   ClipboardList, ArrowRight, UserRound, BookOpen,
-  LogOut, Search, AlertCircle, BadgeCheck, Wallet,
+  LogOut, Search, AlertCircle, BadgeCheck,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -143,8 +143,9 @@ export default function AdmissionPortal() {
           </Card>
         )}
 
-        <div className="grid lg:grid-cols-[240px_1fr] gap-6">
-          {/* Sidebar — admission menu */}
+        <div className={`grid gap-6 ${hasActiveApp ? "" : "lg:grid-cols-[240px_1fr]"}`}>
+          {/* Sidebar — profile menu, ONLY before submit (a submitted application is final) */}
+          {!hasActiveApp && (
           <aside className="lg:sticky lg:top-24 self-start">
             <Card className="border-border/80">
               <CardContent className="p-4">
@@ -162,6 +163,7 @@ export default function AdmissionPortal() {
               </CardContent>
             </Card>
           </aside>
+          )}
 
           {/* Main */}
           <div className="space-y-5 min-w-0">
@@ -214,7 +216,7 @@ export default function AdmissionPortal() {
                     </div>
                     <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-[13px]">
                       <div><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Tracking ID</dt>
-                        <dd><Link to={`/admission/application/${a.id}`} className="font-mono font-bold text-primary hover:underline break-all">{a.tracking_id}</Link></dd></div>
+                        <dd className="font-mono font-bold text-primary break-all">{a.tracking_id}</dd></div>
                       <div><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Program</dt>
                         <dd className="font-semibold text-foreground">{a.program_name}</dd></div>
                       <div><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Quota</dt>
@@ -222,14 +224,11 @@ export default function AdmissionPortal() {
                       <div className="sm:col-span-2"><dt className="text-[11px] uppercase tracking-wider text-muted-foreground">Fee Submission Deadline</dt>
                         <dd>{formatDeadline(a.fee_deadline_iso)}</dd></div>
                     </dl>
-                    <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-                      {unpaid && !closed && (
-                        <Link to={`/admission/application/${a.id}?pay=1`}>
-                          <Button variant="outline" className="h-9 min-w-[7.5rem] text-[13px] font-semibold"><Wallet className="w-4 h-4" /> Pay Fee</Button>
-                        </Link>
-                      )}
-                      <Link to={`/admission/application/${a.id}`}>
-                        <Button className="h-9 min-w-[7.5rem] text-[13px] font-semibold"><Search className="w-4 h-4" /> View</Button>
+                    <div className="mt-5 flex justify-center">
+                      <Link to={`/admission/application/${a.id}${unpaid && !closed ? "?pay=1" : ""}`}>
+                        <Button className="h-9 min-w-[11rem] text-[13px] font-semibold">
+                          <Search className="w-4 h-4" /> {unpaid && !closed ? "View & Pay Fee" : "View Application"}
+                        </Button>
                       </Link>
                     </div>
                   </CardContent>
