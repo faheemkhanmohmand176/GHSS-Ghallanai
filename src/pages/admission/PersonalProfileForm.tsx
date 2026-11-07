@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, Save, UserRound, BadgeCheck } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,19 @@ export default function PersonalProfileForm() {
   const [dobYear, setDobYear] = useState("");
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
+
+  // Return-to-Confirm: when opened from "Edit" on the Confirm step, saving goes
+  // straight back there (no repeating earlier steps).
+  const [searchParams] = useSearchParams();
+  const returnConfirm = isDraft && searchParams.get("return") === "confirm";
+  // A SUBMITTED application is final — profiles are locked after Submit.
+  const profileLocked = !loading && !isDraft &&
+    (session?.applications ?? []).some((a) => !["cancelled", "rejected"].includes(a.status));
+  useEffect(() => {
+    if (!profileLocked) return;
+    toast("Your application is submitted. Profile details can no longer be edited.", { icon: "🔒", id: "profile-locked" });
+    navigate("/admission/portal", { replace: true });
+  }, [profileLocked, navigate]);
   const queryClient = useQueryClient();
   // HYDRATE ONCE. The old effect re-ran whenever the session object changed
   // (background refetch, invalidation after another save) and reset the form
@@ -170,7 +183,7 @@ export default function PersonalProfileForm() {
         // DIRECT FLOW: after Personal Information go straight to the next
         // unfinished step — Matric profile, then the admission request.
         const hasApp = (session?.applications ?? []).some((a) => !["cancelled", "rejected"].includes(a.status));
-        navigate(hasApp ? "/admission/portal" : session?.ssc ? "/admission/apply" : "/admission/ssc", { replace: true });
+        navigate(returnConfirm ? "/admission/apply?step=confirm" : hasApp ? "/admission/portal" : session?.ssc ? "/admission/apply" : "/admission/ssc", { replace: true });
       } else {
         toast.error(res?.error || "Could not save your profile.");
       }
