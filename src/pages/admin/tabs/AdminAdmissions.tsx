@@ -15,7 +15,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useAdmissionSettings, getAdmissionState, formatAdmissionDate, ADMISSION_SETTINGS_KEY, type AdmissionSettings } from "@/hooks/useAdmission";
+import { useAdmissionSettings, ADMISSION_SETTINGS_KEY, type AdmissionSettings } from "@/hooks/useAdmission";
 import { markAdmissionSettingsBust } from "@/lib/publicData";
 import type { PaymentMethod } from "@/hooks/useFees";
 import {
@@ -32,7 +32,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ClipboardList, RefreshCw, Search, Loader2, Wallet, CheckCircle2,
+  ClipboardList, Search, Loader2, Wallet, CheckCircle2,
   XCircle, Settings2, Users, GraduationCap, BadgeCheck, Trophy, Landmark, Plus, Trash2, Download, FileSpreadsheet, AlertTriangle,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -134,7 +134,7 @@ export default function AdminAdmissions() {
     return () => clearTimeout(t);
   };
 
-  const { data, isLoading, refetch, isFetching } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["inter-admin-apps", debounced],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("inter_admin_list", {
@@ -287,14 +287,13 @@ export default function AdminAdmissions() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const admState = getAdmissionState(settings);
 
   const paid = apps.filter((a) => a.payment_status === "paid").length;
   const pendingFee = apps.filter((a) => a.payment_status === "pending").length;
 
   // One action row per application: Fee · Status · Delete (no duplicates, no Unlock).
   // The action the office needs next is highlighted: Fee while unpaid, Status once paid.
-  const btn = "h-7 px-2 text-[11.5px] font-semibold";
+  const btn = "h-8 px-2 text-[11.5px] font-semibold rounded-full";
   const FeeBtn = ({ a }: { a: AdminApp }) => (
     <Button size="sm" variant={a.payment_status === "paid" ? "outline" : "default"} className={btn}
       onClick={() => { setPayDialog(a); setPayRef(a.payment_reference ?? ""); setPayMethod(a.payment_method || "cash"); }}>
@@ -362,37 +361,30 @@ export default function AdminAdmissions() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[180px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <div className="flex flex-col items-center gap-2.5">
+        <div className="relative w-full max-w-md mx-auto">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => onSearch(e.target.value)}
             placeholder="Search ID, name or CNIC"
-            className="pl-9 h-9 text-[13px]"
+            className="pl-10 h-10 text-[13px] text-center rounded-full"
           />
         </div>
-        <Button variant="outline" size="sm" className="h-9 px-3 text-[12.5px] whitespace-nowrap" onClick={() => refetch()} disabled={isFetching}>
-          <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} /> Refresh
-        </Button>
-        <Button variant="outline" size="sm" className="h-9 px-3 text-[12.5px] whitespace-nowrap" onClick={() => setSettingsOpen(true)}>
-          <Settings2 className="w-3.5 h-3.5" /> Settings
-        </Button>
-        <Button size="sm" className="h-9 px-3 text-[12.5px] whitespace-nowrap bg-green-700 hover:bg-green-800 text-white" onClick={exportExcel} disabled={exporting}>
-          {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />} Export Excel
-        </Button>
-        {apps.length > 0 && !debounced && (
-          <Button variant="outline" size="sm" className="h-9 px-3 text-[12.5px] whitespace-nowrap text-red-600 border-red-200 hover:bg-red-500/5"
-            onClick={() => { setResetText(""); setResetOpen(true); }}>
-            <Trash2 className="w-3.5 h-3.5" /> Delete All
+        <div className="flex flex-nowrap items-center justify-center gap-1.5 w-full">
+          <Button variant="outline" size="sm" className="h-8 px-2.5 text-[11.5px] rounded-full whitespace-nowrap gap-1" onClick={() => setSettingsOpen(true)}>
+            <Settings2 className="w-3 h-3" /> Settings
           </Button>
-        )}
-        <Badge variant="secondary" className={`whitespace-nowrap ${admState.open ? "bg-green-500/15 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-600"}`}>
-          {admState.open
-            ? `Admissions Open${admState.daysLeft !== null ? `, ${admState.daysLeft} day${admState.daysLeft === 1 ? "" : "s"} left` : ""}`
-            : admState.reason === "not_started" ? `Opens ${formatAdmissionDate(admState.openDate)}`
-            : admState.reason === "ended" ? "Admissions Ended" : "Admissions Closed"}
-        </Badge>
+          <Button size="sm" className="h-8 px-2.5 text-[11.5px] rounded-full whitespace-nowrap gap-1 bg-green-700 hover:bg-green-800 text-white" onClick={exportExcel} disabled={exporting}>
+            {exporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />} Export Excel
+          </Button>
+          {apps.length > 0 && !debounced && (
+            <Button variant="outline" size="sm" className="h-8 px-2.5 text-[11.5px] rounded-full whitespace-nowrap gap-1 text-red-600 border-red-200 hover:bg-red-500/5"
+              onClick={() => { setResetText(""); setResetOpen(true); }}>
+              <Trash2 className="w-3 h-3" /> Delete All
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Applications table */}
@@ -410,24 +402,29 @@ export default function AdminAdmissions() {
           ) : (
             <>
               {/* Mobile cards */}
-              <div className="md:hidden divide-y divide-border/60">
+              <div className="md:hidden">
                 {apps.map((a) => (
-                  <div key={a.id} className="flex flex-col items-center gap-1.5 px-4 py-4 text-center">
-                    <p className="font-mono text-[13px] font-bold text-primary">{a.tracking_id}</p>
-                    <p className="text-[14px] font-semibold text-foreground">{a.name ?? "N/A"}</p>
-                    <p className="font-mono text-[11px] text-muted-foreground">{a.applicant_cnic} {a.applicant_mobile}</p>
-                    <p className="text-[12.5px] text-muted-foreground">
-                      {a.program}, {QUOTA_LABELS[a.quota] ?? a.quota}
-                    </p>
-                    <div className="flex flex-wrap items-center justify-center gap-1.5">
-                      <FeeBadge app={a} />
-                      <StageBadge app={a} />
-                      {a.marks && <Badge variant="secondary">{a.marks}</Badge>}
-                    </div>
-                    <div className="mt-1 grid w-full max-w-xs grid-cols-3 gap-1.5">
-                      <FeeBtn a={a} />
-                      <StatusBtn a={a} />
-                      <DeleteBtn a={a} />
+                  <div key={a.id} className="p-3">
+                    <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-gradient-to-b from-card to-muted/30 shadow-[0_6px_20px_-10px_rgba(0,0,0,0.25)]">
+                      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-green-700 via-emerald-500 to-amber-400" />
+                      <div className="flex flex-col items-center gap-1.5 px-4 pt-5 pb-4 text-center">
+                        <span className="rounded-full bg-primary/10 px-3 py-1 font-mono text-[11.5px] font-bold tracking-wider text-primary">{a.tracking_id}</span>
+                        <p className="mt-1 font-heading text-[16px] font-bold leading-tight text-foreground">{a.name ?? "N/A"}</p>
+                        <p className="font-mono text-[11px] text-muted-foreground">{a.applicant_cnic} · {a.applicant_mobile}</p>
+                        <p className="text-[12px] font-medium text-muted-foreground">
+                          {a.program} <span className="mx-1 opacity-50">•</span> {QUOTA_LABELS[a.quota] ?? a.quota}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+                          <FeeBadge app={a} />
+                          <StageBadge app={a} />
+                          {a.marks && <Badge variant="secondary" className="font-semibold">{a.marks}</Badge>}
+                        </div>
+                        <div className="mt-2.5 grid w-full grid-cols-3 gap-1.5 border-t border-border/60 pt-3">
+                          <FeeBtn a={a} />
+                          <StatusBtn a={a} />
+                          <DeleteBtn a={a} />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
