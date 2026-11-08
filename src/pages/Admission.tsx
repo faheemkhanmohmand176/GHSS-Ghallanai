@@ -110,9 +110,6 @@ function TrackApplication() {
           </div>
           <span className="premium-kicker mt-2 block !text-[0.6rem]">Status</span>
           <h2 className="font-heading text-xl font-semibold leading-tight text-foreground sm:text-2xl">Track Application</h2>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">
-            Enter your Tracking ID to check your application status.
-          </p>
         </div>
         <form onSubmit={doSearch} className="mx-auto mt-4 max-w-md space-y-3">
           <div className="flex items-center gap-1.5 rounded-full border border-border bg-background/70 p-1 pl-4 shadow-sm transition-colors focus-within:border-gold/60 focus-within:ring-2 focus-within:ring-gold/15">
@@ -283,11 +280,7 @@ function MeritLists() {
   return (
     <section id="merit-lists">
       <div className="text-center mb-7">
-        <span className="premium-kicker block">Merit Lists</span>
         <h2 className="section-title premium-display !text-[1.9rem] sm:!text-4xl mt-1">Admission Merit Lists</h2>
-        <p className="text-muted-foreground mt-2 text-sm max-w-2xl mx-auto">
-          Merit lists are prepared from fee-paid applications and published here by the college, per program and quota.
-        </p>
       </div>
 
       {isLoading ? (
@@ -565,11 +558,7 @@ export default function Admission() {
         {/* How to apply */}
         <section>
           <div className="text-center mb-7">
-            <span className="premium-kicker block">Process</span>
             <h2 className="section-title premium-display !text-[1.75rem] sm:!text-4xl mt-1">How to Apply</h2>
-            <p className="text-muted-foreground mt-2 max-w-md mx-auto text-[13px] sm:text-sm leading-relaxed">
-              Eight simple steps, completed entirely online.
-            </p>
           </div>
           <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-gold/30 bg-card shadow-card">
             <div className="h-1 bg-gradient-to-r from-primary via-emerald-500 to-amber-400" />
@@ -687,46 +676,42 @@ export default function Admission() {
 
         {/* Instructions */}
         <section className="mx-auto max-w-2xl">
-          <Card className="border-gold/25 shadow-card">
-            <CardContent className="p-5">
-              <div className="mb-3.5 flex items-center gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/40 bg-gold/[0.06]">
-                  <ClipboardList className="h-4 w-4 text-gold" strokeWidth={1.4} />
-                </span>
-                <h3 className="font-heading text-[15px] font-semibold text-foreground">Important Instructions</h3>
-              </div>
-              <ol className="space-y-2.5 text-[12.5px] leading-snug text-muted-foreground">
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">1</span>
-                  <span>Submit a separate application for each quota or program.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">2</span>
-                  <span>Only one application is allowed per quota in the same program.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">3</span>
-                  <span>Fields marked * are mandatory.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">4</span>
-                  <span>Enter your mobile number carefully (03451234567). It cannot be changed later and is used for fee payment and SMS alerts.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">5</span>
-                  <span>All applications are online. No manual or postal forms are accepted.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">6</span>
-                  <span>The deadline is final. The system closes after the last date.</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">7</span>
-                  <span>Any false information will cancel your application.</span>
-                </li>
-              </ol>
-            </CardContent>
-          </Card>
+          <div className="overflow-hidden rounded-2xl border border-gold/30 bg-card shadow-card">
+            <div className="h-1 bg-gradient-to-r from-primary via-emerald-500 to-amber-400" />
+            <div className="px-4 pt-5 text-center sm:px-6">
+              <span className="mx-auto mb-1.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><ClipboardList className="h-[18px] w-[18px]" /></span>
+              <h3 className="font-luxe text-[1.6rem] font-bold leading-none text-foreground">Important Instructions</h3>
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Please read before applying</p>
+            </div>
+            <ol className="relative ml-[1.35rem] sm:ml-8 mr-3 sm:mr-6 my-5 border-l-2 border-gold/30 pl-6 sm:pl-8 space-y-3">
+              {[
+                "Submit a separate application for each quota or program.",
+                "Only one application is allowed per quota in the same program.",
+                "Fields marked * are mandatory.",
+                "Enter your mobile number carefully (03451234567). It cannot be changed later and is used for fee payment and SMS alerts.",
+                "All applications are online. No manual or postal forms are accepted.",
+                "The deadline is final. The system closes after the last date.",
+                "Any false information will cancel your application.",
+              ].map((text, i, arr) => {
+                const last = i === arr.length - 1;
+                return (
+                  <li key={i} className="relative">
+                    <span
+                      className={`absolute -left-[2.95rem] sm:-left-[3.45rem] top-3 flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 text-[11px] font-bold ${
+                        last ? "border-destructive bg-destructive text-destructive-foreground" : "border-gold bg-card text-gold"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {i + 1}
+                    </span>
+                    <div className={`rounded-2xl border px-4 py-3 ${last ? "border-destructive/30 bg-destructive/[0.04]" : "border-border bg-card"}`}>
+                      <p className="text-[13px] leading-relaxed text-foreground/90 break-words">{text}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
         </section>
 
         {/* Helpline */}
