@@ -507,13 +507,13 @@ export const CelebrationCanvas = ({ mode }: { mode: CelebrationMode }) => {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // dpr capped at 1.5: a full-screen canvas at 2-3x is the main CPU cost on phones
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const w = window.innerWidth, h = window.innerHeight;
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
-    ctx.scale(dpr, dpr);
 
     const gold = mode === "gold";
     const colors = gold
@@ -522,7 +522,7 @@ export const CelebrationCanvas = ({ mode }: { mode: CelebrationMode }) => {
 
     interface P { x: number; y: number; vx: number; vy: number; size: number; rot: number; vr: number; color: string; round: boolean; delay: number; }
     const parts: P[] = [];
-    const N = gold ? 120 : 16;
+    const N = gold ? 130 : 16;
     for (let i = 0; i < N; i++) {
       if (gold) {
         // Burst from behind the card, like a party popper
@@ -533,7 +533,7 @@ export const CelebrationCanvas = ({ mode }: { mode: CelebrationMode }) => {
           y: h * 0.4 + (Math.random() - 0.5) * 40,
           vx: Math.cos(a) * sp,
           vy: Math.sin(a) * sp - 5.5,
-          size: 3 + Math.random() * 4.5,
+          size: 5 + Math.random() * 6,
           rot: Math.random() * Math.PI,
           vr: (Math.random() - 0.5) * 0.3,
           color: colors[i % colors.length],
@@ -557,13 +557,17 @@ export const CelebrationCanvas = ({ mode }: { mode: CelebrationMode }) => {
       }
     }
 
+    parts.sort((a, b) => (a.color < b.color ? -1 : 1));   // fewer fillStyle switches while drawing
     let raf = 0;
     const t0 = performance.now();
-    const LIFE = gold ? 2200 : 3000;
+    const LIFE = gold ? 2400 : 3000;
     const tick = (t: number) => {
       const el = t - t0;
-      ctx.clearRect(0, 0, w, h);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       let alive = false;
+      let lastColor = "";
+      let lastAlpha = -1;
       for (const p of parts) {
         if (el < p.delay) { alive = true; continue; }
         const age = el - p.delay;
@@ -572,18 +576,18 @@ export const CelebrationCanvas = ({ mode }: { mode: CelebrationMode }) => {
         if (gold) { p.vy += 0.16; p.vx *= 0.985; p.vy *= 0.99; }
         else { p.vx += Math.sin(age / 500 + p.rot) * 0.012; }
         p.x += p.vx; p.y += p.vy; p.rot += p.vr;
-        const fade = age > LIFE - 500 ? (LIFE - age) / 500 : 1;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, fade);
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
-        ctx.fillStyle = p.color;
+        if (p.y > h + 30) continue;                       // off-screen: skip drawing
+        const fade = age > LIFE - 500 ? Math.max(0, (LIFE - age) / 500) : 1;
+        if (fade !== lastAlpha) { ctx.globalAlpha = fade; lastAlpha = fade; }
+        if (p.color !== lastColor) { ctx.fillStyle = p.color; lastColor = p.color; }
+        // one setTransform per piece (no save/restore)
+        const c = Math.cos(p.rot) * dpr, sn = Math.sin(p.rot) * dpr;
+        ctx.setTransform(c, sn, -sn, c, p.x * dpr, p.y * dpr);
         if (p.round) { ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2); ctx.fill(); }
         else ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.62);
-        ctx.restore();
       }
-      if (alive && el < LIFE + 1200) raf = requestAnimationFrame(tick);
-      else ctx.clearRect(0, 0, w, h);
+      if (alive && el < LIFE + 1200 && !document.hidden) raf = requestAnimationFrame(tick);
+      else { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height); }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
