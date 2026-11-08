@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
-  Printer, Loader2, AlertCircle, CheckCircle2, FileText, Eye, EyeOff, ClipboardList, UserRound, BookOpen, Receipt,
+  Printer, Loader2, AlertCircle, CheckCircle2, FileText, Eye, EyeOff, ClipboardList, UserRound, BookOpen, Receipt, History, Check, Clock,
 } from "lucide-react";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import AdmissionReviewTable from "@/components/shared/AdmissionReviewTable";
@@ -419,31 +419,41 @@ export default function ApplicationView() {
 
         {/* Timeline */}
         {detail.timeline && detail.timeline.length > 0 && (
-          <Card className="border-border/80 shadow-card">
-            <CardContent className="p-5 sm:p-6">
-              <h3 className={H3}>Application Timeline</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-[13px]">
-                  <thead className="bg-muted/60">
-                    <tr>
-                      <th className="px-3 py-2 text-center align-middle font-semibold">#</th>
-                      <th className="px-3 py-2 text-center align-middle font-semibold">Title</th>
-                      <th className="px-3 py-2 text-center align-middle font-semibold">Date</th>
-                      <th className="px-3 py-2 text-center align-middle font-semibold">Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.timeline.map((t, i) => (
-                      <tr key={i} className="border-t border-border">
-                        <td className="px-3 py-2.5 text-center align-middle">{i + 1}</td>
-                        <td className="px-3 py-2.5 text-center align-middle font-semibold">{t.title}</td>
-                        <td className="px-3 py-2.5 text-center align-middle whitespace-nowrap">{t.date}</td>
-                        <td className="px-3 py-2.5 text-center align-middle text-muted-foreground">{t.details}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <Card className="border-gold/30 shadow-card overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-primary via-emerald-500 to-amber-400" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="mb-4 text-center">
+                <span className="mx-auto mb-1.5 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><History className="h-[18px] w-[18px]" /></span>
+                <h3 className="font-luxe text-[1.6rem] font-bold leading-none text-foreground">Application Timeline</h3>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{detail.timeline.length} update{detail.timeline.length === 1 ? "" : "s"}</p>
               </div>
+
+              <ol className="relative ml-3.5 border-l-2 border-gold/30 pl-5 space-y-3.5">
+                {detail.timeline.map((t, i) => {
+                  const latest = i === detail.timeline!.length - 1;
+                  return (
+                    <li key={i} className="relative">
+                      <span
+                        className={`absolute -left-[31px] top-3 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 ${
+                          latest ? "border-primary bg-primary text-primary-foreground shadow-[0_0_0_4px_hsl(var(--primary)/.15)]" : "border-gold bg-card text-gold"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
+                      </span>
+                      <div className={`rounded-2xl border px-3.5 py-3 ${latest ? "border-primary/30 bg-primary/[0.04]" : "border-border bg-card"}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                          <p className="text-[13.5px] font-bold leading-snug text-foreground">{t.title}</p>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10.5px] font-semibold text-muted-foreground">
+                            <Clock className="h-3 w-3" /> {t.date}
+                          </span>
+                        </div>
+                        {t.details && <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground break-words">{t.details}</p>}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
             </CardContent>
           </Card>
         )}
