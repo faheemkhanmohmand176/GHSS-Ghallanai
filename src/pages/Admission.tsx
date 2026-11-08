@@ -350,7 +350,7 @@ function MeritLists() {
               <MeritTitleBlock title={view.list?.title ?? "Merit List"} />
               <MeritDates start={view.list?.admission_start_date} last={view.list?.admission_last_date} />
               <div className="space-y-2 md:hidden">
-                {(view.entries ?? []).map((e) => (
+                {(Array.isArray(view.entries) ? view.entries : []).map((e) => (
                   <div key={e.tracking_id} className="rounded-xl border border-border bg-card px-3 py-2.5 text-center">
                     <p className="text-[13px] font-semibold text-foreground">#{e.position} · {e.name}</p>
                     <p className="text-[11.5px] text-muted-foreground">S/O {e.father_name}</p>
@@ -378,7 +378,7 @@ function MeritLists() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(view.entries ?? []).map((e) => (
+                    {(Array.isArray(view.entries) ? view.entries : []).map((e) => (
                       <tr key={e.tracking_id} className="border-t border-border">
                         <td className="text-center align-middle px-2.5 py-2.5">{e.position}</td>
                         <td className="text-center align-middle px-2.5 py-2.5 font-mono font-semibold">{e.tracking_id}</td>
@@ -524,7 +524,15 @@ export default function Admission() {
     staleTime: ADMISSION_CLIENT_CACHE.programsStaleMs,
     enabled: state.open || settingsError,
   });
-  const programList = (programs as unknown as { id?: number; name: string; study_level: string; seats: number }[] | undefined) ?? [];
+  // Defensive: the RPC / edge cache can return a wrapped object or an error object
+  // instead of a bare array. Never call .map on anything that is not an array.
+  const programList = ((): { id?: number; name: string; study_level: string; seats: number }[] => {
+    const p = programs as unknown;
+    if (Array.isArray(p)) return p;
+    const inner = (p as { programs?: unknown; data?: unknown; items?: unknown } | null | undefined);
+    for (const k of [inner?.programs, inner?.data, inner?.items]) if (Array.isArray(k)) return k;
+    return [];
+  })();
 
   if (settingsLoading) {
     return (
@@ -587,12 +595,10 @@ export default function Admission() {
                     >
                       {i + 1}
                     </span>
-                    <div className={`flex items-start gap-3 rounded-2xl border px-3.5 py-3 ${last ? "border-primary/30 bg-primary/[0.04]" : "border-border bg-card"}`}>
-                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold/10 text-gold">
-                        <s.icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
-                      </span>
+                    <div className={`rounded-2xl border px-4 py-3 ${last ? "border-primary/30 bg-primary/[0.04]" : "border-border bg-card"}`}>
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-[13.5px] font-bold leading-snug text-foreground">{s.title}</h3>
+                        <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-strong dark:text-gold">Step {String(i + 1).padStart(2, "0")}</p>
+                        <h3 className="font-luxe text-[1.15rem] font-bold leading-tight text-foreground">{s.title}</h3>
                         <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground break-words">{s.desc}</p>
                       </div>
                     </div>
@@ -680,7 +686,7 @@ export default function Admission() {
         </section>
 
         {/* Instructions */}
-        <section className="grid gap-4 lg:grid-cols-2">
+        <section className="mx-auto max-w-2xl">
           <Card className="border-gold/25 shadow-card">
             <CardContent className="p-5">
               <div className="mb-3.5 flex items-center gap-2.5">
@@ -717,46 +723,6 @@ export default function Admission() {
                 <li className="flex items-start gap-2.5">
                   <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">7</span>
                   <span>Any false information will cancel your application.</span>
-                </li>
-              </ol>
-            </CardContent>
-          </Card>
-          <Card className="border-gold/25 shadow-card">
-            <CardContent className="p-5" dir="rtl">
-              <div className="mb-3.5 flex items-center gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/40 bg-gold/[0.06]">
-                  <ClipboardList className="h-4 w-4 text-gold" strokeWidth={1.4} />
-                </span>
-                <h3 className="font-urdu text-[16px] font-semibold text-foreground">ضروری ہدایات</h3>
-              </div>
-              <ol className="font-urdu space-y-3 text-[13px] leading-[2] text-muted-foreground">
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">1</span>
-                  <span>ہر کوٹے یا پروگرام کے لیے الگ درخواست جمع کروائیں۔</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">2</span>
-                  <span>ایک پروگرام میں ایک کوٹے پر صرف ایک درخواست دی جا سکتی ہے۔</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">3</span>
-                  <span>ستارے (*) والے خانے پُر کرنا لازمی ہے۔</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">4</span>
-                  <span>موبائل نمبر احتیاط سے درج کریں (03451234567)۔ یہ بعد میں تبدیل نہیں ہو سکے گا اور فیس اور ایس ایم ایس کے لیے استعمال ہوگا۔</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">5</span>
-                  <span>تمام درخواستیں آن لائن جمع ہوں گی۔ دستی یا ڈاک کے ذریعے فارم قبول نہیں کیا جائے گا۔</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">6</span>
-                  <span>آخری تاریخ حتمی ہے۔ اس کے بعد سسٹم فارم قبول نہیں کرے گا۔</span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 text-[10px] font-semibold text-gold">7</span>
-                  <span>غلط معلومات کی صورت میں درخواست منسوخ کر دی جائے گی۔</span>
                 </li>
               </ol>
             </CardContent>
