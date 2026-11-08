@@ -1044,6 +1044,8 @@ const Home = () => {
       {/* ══ 2. HERO — ivory · ink · gold (premium, light) ══ */}
       <section id="hero-section" className="lux-hero relative md:min-h-[88vh] flex items-start md:items-center overflow-hidden">
         <div className="absolute inset-0 lux-grid" aria-hidden="true" />
+        <div className="luxe-blob w-[340px] h-[340px] -top-24 -right-20 bg-[hsl(42_90%_60%/.30)]" aria-hidden="true" />
+        <div className="luxe-blob w-[300px] h-[300px] bottom-10 -left-24 bg-[hsl(152_55%_45%/.18)]" style={{ animationDelay: "-7s" }} aria-hidden="true" />
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(40_80%_45%)] to-transparent opacity-70" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent" aria-hidden="true" />
 
@@ -1059,7 +1061,7 @@ const Home = () => {
               </m.div>
 
               <HeroTypewriterHeading
-                className="mt-5 sm:mt-6 text-[2.75rem] leading-[1.04] sm:text-[3.6rem] md:text-[4.4rem] lg:text-[5rem] premium-display"
+                className="mt-5 sm:mt-6 text-[3.2rem] leading-[0.98] sm:text-[4.3rem] md:text-[5.2rem] lg:text-[6rem] premium-display"
                 textColor={heroTextColor}
               />
 
@@ -1074,6 +1076,21 @@ const Home = () => {
                 <Link to="/about" aria-label="Learn more about our school" className="lux-btn lux-btn-line">
                   Learn more
                 </Link>
+              </m.div>
+
+              {/* Quick access — one tap to what visitors need most */}
+              <m.div variants={stagger.child} className="mt-8 grid grid-cols-4 gap-2 max-w-md">
+                {[
+                  { to: "/admission", icon: GraduationCap, label: "Admission" },
+                  { to: "/notices", icon: Bell, label: "Notices" },
+                  { to: "/results", icon: Award, label: "Results" },
+                  { to: "/contact", icon: Phone, label: "Contact" },
+                ].map(({ to, icon: Icon, label }) => (
+                  <Link key={to} to={to} className="luxe-tile-card flex flex-col items-center gap-1.5 !rounded-2xl px-1 py-3 text-center">
+                    <span className="lux-tile h-9 w-9"><Icon className="h-[18px] w-[18px]" /></span>
+                    <span className="text-[11px] font-bold tracking-wide lux-ink">{label}</span>
+                  </Link>
+                ))}
               </m.div>
             </m.div>
           </div>
