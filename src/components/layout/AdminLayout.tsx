@@ -10,6 +10,7 @@ import { pingDispatch } from "@/lib/push";
 import { useAuth } from "@/hooks/useAuth";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { cn } from "@/lib/utils";
+import { ADMIN_ICONS, type AdminIconName } from "@/components/admin/AdminIcons";
 
 // ── Nav structure with sections ───────────────────────────────────────────────
 interface NavItem {
@@ -79,6 +80,12 @@ const bottomBarItems: NavItem[] = allNavItems.slice(0, 4);
 // Moving them outside + wrapping NavBtn in memo() means React can now skip
 // re-rendering buttons whose props haven't changed. Pure refactor — the DOM
 // output is byte-identical to before.
+/** Full-colour SVG icon for a nav item (falls back to nothing if the id is unknown). */
+const NavIcon = ({ id, className }: { id: string; className?: string }) => {
+  const Cmp = ADMIN_ICONS[id as AdminIconName];
+  return Cmp ? <Cmp className={className} /> : null;
+};
+
 type NavBtnProps = {
   item: NavItem;
   activeTab: string;
@@ -110,13 +117,13 @@ const NavBtn = memo(({ item, activeTab, onTabChange, onItemClick }: NavBtnProps)
       <span
         aria-hidden
         className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all duration-200",
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
           isActive
-            ? "bg-white/15 text-[hsl(43_89%_70%)] ring-1 ring-inset ring-white/20"
-            : "bg-primary/[0.07] text-primary group-hover:bg-primary/15",
+            ? "bg-white/95 ring-1 ring-inset ring-white/40 shadow-sm"
+            : "bg-muted/60 ring-1 ring-inset ring-border/60 group-hover:bg-muted",
         )}
       >
-        <item.icon className="h-[15px] w-[15px]" strokeWidth={1.8} />
+        <NavIcon id={item.id} className="h-[19px] w-[19px]" />
       </span>
       <span className="admin-nav-label min-w-0 flex-1 text-left leading-tight break-words">{item.label}</span>
       <span
@@ -355,7 +362,7 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
                 aria-current={isActive ? "page" : undefined}
               >
                 {isActive && <span aria-hidden className="absolute -top-1.5 h-1 w-7 rounded-full bg-[hsl(43_89%_58%)] shadow-[0_0_10px_hsl(43_89%_58%/0.8)]" />}
-                <item.icon className="h-5 w-5" strokeWidth={isActive ? 2.2 : 1.8} aria-hidden />
+                <NavIcon id={item.id} className={`h-[26px] w-[26px] transition-transform duration-200 ${isActive ? "scale-110 drop-shadow" : "opacity-90"}`} />
                 <span className={`admin-dock-label text-[11px] font-semibold tracking-wide leading-none ${isActive ? "text-primary" : ""}`}>{item.short}</span>
               </button>
             );
