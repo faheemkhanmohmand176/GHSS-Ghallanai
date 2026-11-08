@@ -10,6 +10,7 @@ import {
   ArrowUpRight, FileText, BookMarked, MapPin, Landmark, Phone, Mail,
   Settings, RefreshCw, CalendarDays, Trophy, Sparkles,
 } from "lucide-react";
+import { ADMIN_ICONS as AI } from "@/components/admin/AdminIcons";
 
 /* ─── Data hooks ─────────────────────────────────────────────────
    NOTE: students are intentionally NOT counted or shown on this page. */
@@ -116,7 +117,7 @@ const KpiTile = ({
     />
     <div className="relative flex items-start justify-between">
       <span className={`grid h-10 w-10 place-items-center rounded-xl ring-1 ring-inset ${tone.chip} ${tone.ring}`}>
-        <Icon className={`h-[18px] w-[18px] ${tone.fg}`} aria-hidden="true" />
+        <Icon className="h-6 w-6 drop-shadow-sm" aria-hidden="true" />
       </span>
       <ArrowUpRight
         className="h-4 w-4 text-muted-foreground/40 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary"
@@ -139,8 +140,8 @@ const SectionHeader = ({
   icon: Icon, title, subtitle,
 }: { icon: React.ElementType; title: string; subtitle?: string }) => (
   <div className="mb-3.5 flex items-center gap-2.5 sm:mb-4">
-    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-      <Icon className="h-4 w-4" aria-hidden="true" />
+    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted/60 ring-1 ring-inset ring-border/70">
+      <Icon className="h-[22px] w-[22px]" aria-hidden="true" />
     </span>
     <div className="min-w-0">
       <h3 className="truncate text-[15px] font-bold leading-tight tracking-tight text-foreground">{title}</h3>
@@ -182,9 +183,9 @@ const PassRateRing = ({ value }: { value: number }) => {
 
 /* ─── Activity meta ──────────────────────────────────────────── */
 const ACTIVITY_META: Record<string, { Icon: React.ElementType; chip: string; kicker: string }> = {
-  notice:    { Icon: Bell,          chip: "bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400",       kicker: "Notice" },
-  admission: { Icon: GraduationCap, chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400", kicker: "Admission" },
-  user:      { Icon: UserCog,       chip: "bg-purple-100 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400",   kicker: "User" },
+  notice:    { Icon: AI.bell,          chip: "bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400",       kicker: "Notice" },
+  admission: { Icon: AI.admissions, chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400", kicker: "Admission" },
+  user:      { Icon: AI.users,       chip: "bg-purple-100 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400",   kicker: "User" },
 };
 const activityMeta = (type: string) => ACTIVITY_META[type] ?? ACTIVITY_META.user;
 
@@ -204,29 +205,29 @@ const AdminOverview = () => {
 
   /* Every figure appears exactly once on this page. */
   const schoolTiles = [
-    { to: "/admin?tab=teachers",   label: "Teachers",         value: stats?.teachers,   icon: Users,         tone: TONES.emerald },
-    { to: "/admin?tab=results",    label: "Results",          value: stats?.results,    icon: ClipboardList, tone: TONES.violet },
-    { to: "/admin?tab=admissions", label: "Admissions",       value: stats?.admissions, icon: FileText,      tone: TONES.gold },
-    { to: "/admin?tab=users",      label: "Registered Users", value: stats?.users,      icon: UserCog,       tone: TONES.rose },
+    { to: "/admin?tab=teachers",   label: "Teachers",         value: stats?.teachers,   icon: AI.teachers,      tone: TONES.emerald },
+    { to: "/admin?tab=results",    label: "Results",          value: stats?.results,    icon: AI.results,       tone: TONES.violet },
+    { to: "/admin?tab=admissions", label: "Admissions",       value: stats?.admissions, icon: AI.admissions,    tone: TONES.gold },
+    { to: "/admin?tab=users",      label: "Registered Users", value: stats?.users,      icon: AI.users,         tone: TONES.rose },
   ];
   const contentTiles = [
-    { to: "/admin?tab=announcements", label: "Notices",        value: stats?.notices, icon: Bell,       tone: TONES.amber },
-    { to: "/admin?tab=library",       label: "Library Files",  value: stats?.library, icon: BookOpen,   tone: TONES.cyan },
+    { to: "/admin?tab=announcements", label: "Notices",        value: stats?.notices, icon: AI.announcements, tone: TONES.amber },
+    { to: "/admin?tab=library",       label: "Library Files",  value: stats?.library, icon: AI.library,   tone: TONES.cyan },
   ];
 
   /* Shortcuts only point at pages that have NO tile above. */
   const shortcuts = [
-    { tab: "timetables",      label: "Timetables",  hint: "Classes & substitutes", icon: CalendarDays },
-    { tab: "exam-date-sheet", label: "Date Sheet",  hint: "Exam schedule",         icon: Calendar },
-    { tab: "merit-list",      label: "Merit List",  hint: "Top performers",        icon: Trophy },
-    { tab: "settings",        label: "Settings",    hint: "School profile",        icon: Settings },
+    { tab: "timetables",      label: "Timetables",  hint: "Classes & substitutes", icon: AI.timetables },
+    { tab: "exam-date-sheet", label: "Date Sheet",  hint: "Exam schedule",         icon: AI["exam-date-sheet"] },
+    { tab: "merit-list",      label: "Merit List",  hint: "Top performers",        icon: AI["merit-list"] },
+    { tab: "settings",        label: "Settings",    hint: "School profile",        icon: AI.settings },
   ];
 
   const identity = [
-    { Icon: MapPin,   label: "Address",     value: settings?.address || "District Mohmand, KPK" },
-    { Icon: Landmark, label: "Established", value: settings?.established_year ? String(settings.established_year) : "—" },
-    { Icon: Phone,    label: "Phone",       value: settings?.phone || null },
-    { Icon: Mail,     label: "Email",       value: settings?.email || null },
+    { Icon: AI.location, label: "Address",     value: settings?.address || "District Mohmand, KPK" },
+    { Icon: AI.school, label: "Established", value: settings?.established_year ? String(settings.established_year) : "—" },
+    { Icon: AI.phone,  label: "Phone",       value: settings?.phone || null },
+    { Icon: AI.mail,   label: "Email",       value: settings?.email || null },
   ].filter((row) => !!row.value);
 
   return (
@@ -293,7 +294,7 @@ const AdminOverview = () => {
       {/* ── Needs attention ──────────────────────────────────── */}
       {!isLoading && urgentCount > 0 && (
         <section>
-          <SectionHeader icon={AlertCircle} title="Needs Attention" subtitle="Waiting on an admin decision" />
+          <SectionHeader icon={AI.alert} title="Needs Attention" subtitle="Waiting on an admin decision" />
           <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
             {(stats?.pendingUsers ?? 0) > 0 && (
               <Link
@@ -335,7 +336,7 @@ const AdminOverview = () => {
 
       {/* ── School ───────────────────────────────────────────── */}
       <section>
-        <SectionHeader icon={Activity} title="School" subtitle="People, results and applications" />
+        <SectionHeader icon={AI.pulse} title="School" subtitle="People, results and applications" />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {schoolTiles.map((t) => <KpiTile key={t.label} {...t} isLoading={isLoading} />)}
         </div>
@@ -343,7 +344,7 @@ const AdminOverview = () => {
 
       {/* ── Content ──────────────────────────────────────────── */}
       <section>
-        <SectionHeader icon={BookOpen} title="Content" subtitle="Everything published on the website" />
+        <SectionHeader icon={AI.books} title="Content" subtitle="Everything published on the website" />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {contentTiles.map((t) => <KpiTile key={t.label} {...t} isLoading={isLoading} />)}
         </div>
@@ -351,7 +352,7 @@ const AdminOverview = () => {
 
       {/* ── Shortcuts ────────────────────────────────────────── */}
       <section>
-        <SectionHeader icon={Sparkles} title="Shortcuts" subtitle="Jump straight to a tool" />
+        <SectionHeader icon={AI.sparkle} title="Shortcuts" subtitle="Jump straight to a tool" />
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
           {shortcuts.map((a) => (
             <Link
@@ -359,8 +360,8 @@ const AdminOverview = () => {
               to={`/admin?tab=${a.tab}`}
               className="group flex items-center gap-3 rounded-2xl border border-border/80 bg-card p-3 shadow-card transition-[box-shadow,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-elevated"
             >
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                <a.icon className="h-[18px] w-[18px]" aria-hidden="true" />
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted/60 ring-1 ring-inset ring-border/70 transition-transform group-hover:scale-105">
+                <a.icon className="h-6 w-6 drop-shadow-sm" aria-hidden="true" />
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-[13px] font-bold leading-tight text-foreground">{a.label}</span>
@@ -373,7 +374,7 @@ const AdminOverview = () => {
 
       {/* ── Recent activity ──────────────────────────────────── */}
       <section>
-        <SectionHeader icon={Activity} title="Recent Activity" subtitle="Latest notices, admissions and sign-ups" />
+        <SectionHeader icon={AI.pulse} title="Recent Activity" subtitle="Latest notices, admissions and sign-ups" />
         <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-card">
           {actLoading ? (
             <div className="space-y-3 p-4">
@@ -405,7 +406,7 @@ const AdminOverview = () => {
                 return (
                   <li key={item.id + i} className="relative flex items-center gap-3 rounded-xl px-1.5 py-2.5 transition-colors hover:bg-secondary/50">
                     <span className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full ring-4 ring-card ${chip}`}>
-                      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                      <Icon className="h-5 w-5" aria-hidden="true" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -451,7 +452,7 @@ const AdminOverview = () => {
         <dl className="grid gap-x-4 gap-y-3.5 p-4 sm:grid-cols-2 sm:p-5">
           {identity.map((row) => (
             <div key={row.label} className="flex min-w-0 items-start gap-2.5">
-              <row.Icon className="mt-[3px] h-3.5 w-3.5 shrink-0 text-primary/70" aria-hidden="true" />
+              <row.Icon className="mt-[1px] h-5 w-5 shrink-0" aria-hidden="true" />
               <div className="min-w-0">
                 <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{row.label}</dt>
                 <dd className="mt-0.5 break-words text-[13px] font-medium leading-snug text-foreground">{row.value}</dd>
