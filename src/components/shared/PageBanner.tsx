@@ -1,4 +1,6 @@
 import { motion } from "framer-motion";
+import { Link, useLocation } from "react-router-dom";
+import { ChevronRight, Home as HomeIcon } from "lucide-react";
 
 interface PageBannerProps {
   title: string;
@@ -22,6 +24,41 @@ interface PageBannerProps {
   actions?: React.ReactNode;
 }
 
+
+/** Luxe decoration shared by both banner variants (static layers only). */
+const BannerDecor = () => (
+  <>
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      <div className="luxe-blob w-[380px] h-[380px] -top-40 -right-24 bg-[hsl(42_85%_55%/.28)]" />
+      <div className="luxe-blob w-[320px] h-[320px] -bottom-40 -left-24 bg-[hsl(152_55%_40%/.30)]" style={{ animationDelay: "-6s" }} />
+      <div className="absolute inset-0 dot-grid opacity-[0.08]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/25" />
+    </div>
+    {/* hairline frame + gold corner ticks */}
+    <div className="absolute inset-2.5 md:inset-4 rounded-[1.1rem] border border-white/10 pointer-events-none" aria-hidden="true" />
+    <span className="absolute top-2.5 left-2.5 md:top-4 md:left-4 w-4 h-4 rounded-tl-[1.1rem] border-t-2 border-l-2 border-gold/80 pointer-events-none" aria-hidden="true" />
+    <span className="absolute top-2.5 right-2.5 md:top-4 md:right-4 w-4 h-4 rounded-tr-[1.1rem] border-t-2 border-r-2 border-gold/80 pointer-events-none" aria-hidden="true" />
+    <span className="absolute bottom-2.5 left-2.5 md:bottom-4 md:left-4 w-4 h-4 rounded-bl-[1.1rem] border-b-2 border-l-2 border-gold/80 pointer-events-none" aria-hidden="true" />
+    <span className="absolute bottom-2.5 right-2.5 md:bottom-4 md:right-4 w-4 h-4 rounded-br-[1.1rem] border-b-2 border-r-2 border-gold/80 pointer-events-none" aria-hidden="true" />
+    <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-gold to-transparent" aria-hidden="true" />
+    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden="true" />
+  </>
+);
+
+const Crumbs = ({ title }: { title: string }) => {
+  const { pathname } = useLocation();
+  if (pathname === "/") return null;
+  return (
+    <nav aria-label="Breadcrumb" className="mb-3 flex justify-center">
+      <ol className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-on-hero-soft backdrop-blur-sm">
+        <li><Link to="/" className="inline-flex items-center gap-1 hover:text-gold transition-colors"><HomeIcon className="w-3 h-3" />Home</Link></li>
+        <li aria-hidden="true"><ChevronRight className="w-3 h-3 opacity-60" /></li>
+        <li className="text-gold truncate max-w-[40vw]" aria-current="page">{title}</li>
+      </ol>
+    </nav>
+  );
+};
+
 const PageBanner = ({
   title,
   subtitle,
@@ -42,17 +79,10 @@ const PageBanner = ({
             : compact ? "py-6 md:py-8" : "py-10 md:py-14"
         }`}
       >
-        {/* Layered decoration — static gradients only (cheap on mobile) */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="orb orb-gold w-[420px] h-[420px] -top-44 -right-28 opacity-80" />
-          <div className="orb orb-light w-[320px] h-[320px] -bottom-32 -left-20" />
-          <div className="absolute inset-0 dot-grid opacity-[0.10]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/20" />
-        </div>
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+        <BannerDecor />
 
         <div className="container mx-auto px-4 text-center relative z-10">
+          <Crumbs title={title} />
           {icon && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8, y: 10 }}
@@ -76,7 +106,7 @@ const PageBanner = ({
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`${compact ? "text-2xl md:text-4xl" : "text-[1.9rem] md:text-5xl"} leading-[1.1] font-heading font-bold text-on-hero tracking-tight`}
+            className={`${compact ? "text-[1.9rem] md:text-5xl" : "text-[2.4rem] md:text-6xl"} leading-[1.02] font-luxe font-bold text-on-hero tracking-tight`}
           >
             {title}
           </motion.h1>
@@ -137,12 +167,13 @@ const PageBanner = ({
         children ? "pt-10 md:pt-12 pb-10 md:pb-12" : "py-10 md:py-12"
       }`}
     >
-      <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/10 pointer-events-none" />
+      <BannerDecor />
       <div className="container mx-auto px-4 text-center relative z-10">
+        <Crumbs title={title} />
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-2xl md:text-4xl font-heading font-bold text-on-hero tracking-tight"
+          className="text-[2.2rem] md:text-5xl leading-[1.02] font-luxe font-bold text-on-hero tracking-tight"
         >
           {title}
         </motion.h1>
@@ -150,8 +181,8 @@ const PageBanner = ({
           initial={{ opacity: 0, scaleX: 0 }}
           animate={{ opacity: 1, scaleX: 1 }}
           transition={{ delay: 0.1 }}
-          className="mx-auto mt-3 h-[3px] w-14 rounded-full bg-gold"
-        />
+          className="luxe-orn mt-3"
+        ><i /></motion.div>
         {subtitle && (
           <motion.p
             initial={{ opacity: 0, y: 10 }}
