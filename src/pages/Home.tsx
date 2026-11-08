@@ -1328,50 +1328,44 @@ const Home = () => {
           track). */}
       <m.section initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={sectionFadeUp} className="section-y relative overflow-hidden cv-auto">
         <div className="container mx-auto px-4 relative z-10">
-          <div className="relative overflow-hidden rounded-[1.75rem] gradient-hero shadow-[0_30px_60px_-30px_hsl(var(--primary)/.7)]">
-            {/* decoration */}
-            <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-              <div className="luxe-blob w-[320px] h-[320px] -top-32 -right-20 bg-[hsl(42_90%_60%/.28)]" />
-              <div className="luxe-blob w-[280px] h-[280px] -bottom-32 -left-24 bg-[hsl(152_55%_45%/.25)]" style={{ animationDelay: "-6s" }} />
-              <div className="absolute inset-0 dot-grid opacity-[0.07]" />
-            </div>
-            <div className="absolute inset-2.5 sm:inset-3.5 rounded-[1.35rem] border border-white/10 pointer-events-none" aria-hidden="true" />
-            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-gold to-transparent" aria-hidden="true" />
+          <div className="relative overflow-hidden rounded-[1.75rem] border border-gold/35 bg-gradient-to-br from-card via-card to-gold/[0.08] shadow-[0_24px_50px_-30px_hsl(var(--foreground)/.35)]">
+            <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-gold to-transparent" aria-hidden="true" />
+            <div className="luxe-blob w-[260px] h-[260px] -top-28 -right-16 bg-[hsl(42_90%_60%/.16)] pointer-events-none" aria-hidden="true" />
 
-            <div className="relative grid lg:grid-cols-[1.1fr_1fr] gap-7 lg:gap-10 p-6 sm:p-10">
+            <div className="relative grid lg:grid-cols-[1.1fr_1fr] gap-6 lg:gap-10 p-5 sm:p-9">
               {/* Left: copy + CTAs */}
               <div className="text-center lg:text-left">
                 <div className="mb-4 flex flex-wrap items-center justify-center lg:justify-start gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/40 bg-emerald-400/15 px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.16em] text-emerald-200">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" /> Admissions Open
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.16em] text-foreground">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Admissions Open
                   </span>
-                  <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.16em] text-gold">Session 2026–27</span>
+                  <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.16em] text-gold-strong dark:text-gold">Session 2026–27</span>
                 </div>
-                <h2 className="font-luxe text-[2.6rem] sm:text-6xl font-bold leading-[0.98] text-on-hero">
-                  Intermediate <span className="italic text-gold">Admissions</span>
+                <h2 className="font-luxe text-[2.4rem] sm:text-6xl font-bold leading-[1] text-foreground">
+                  Intermediate <span className="italic lux-gold-text">Admissions</span>
                 </h2>
                 <div className="luxe-orn my-4 lg:justify-start lg:[&::before]:hidden"><i /></div>
-                <p className="mx-auto lg:mx-0 mb-6 max-w-xl text-[13.5px] sm:text-[15px] leading-relaxed text-on-hero-soft">
+                <p className="mx-auto lg:mx-0 mb-6 max-w-xl text-[13.5px] sm:text-[15px] leading-relaxed text-muted-foreground">
                   Apply for 1st Year and 2nd Year in Arts, Pre-Medical, Pre-Engineering and ICS through our
                   online admission system. Fill in your personal and matric details, submit your
                   application and pay the {admissionFee ? <>Rs&nbsp;{admissionFee} </> : null}processing fee online with Easypaisa or a wallet.
                 </p>
                 <div className="grid grid-cols-2 gap-2.5 sm:flex sm:justify-center lg:justify-start">
-                  <Link to="/admission/portal" className="inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-b from-[hsl(42_85%_60%)] to-[hsl(38_80%_46%)] px-5 text-[13px] font-bold tracking-wide text-[hsl(150_40%_10%)] shadow-[0_12px_24px_-10px_hsl(42_85%_50%/.8)] transition-all active:scale-[0.97] hover:brightness-105">
+                  <Link to="/admission/portal" className="inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-5 text-[13px] font-bold tracking-wide text-primary-foreground shadow-[0_12px_24px_-12px_hsl(var(--primary)/.8)] transition-all active:scale-[0.97] hover:brightness-110">
                     <UserPlus className="w-4 h-4" strokeWidth={2} /> Apply Online
                   </Link>
-                  <Link to="/admission#track" className="inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-white/25 bg-white/10 px-5 text-[13px] font-semibold tracking-wide text-on-hero backdrop-blur-sm transition-colors hover:bg-white/20 active:scale-[0.97]">
-                    <Search className="w-4 h-4" strokeWidth={2} /> Track Application
+                  <Link to="/admission#track" className="inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-gold/50 bg-card px-5 text-[13px] font-semibold tracking-wide text-foreground transition-colors hover:bg-gold/10 active:scale-[0.97]">
+                    <Search className="w-4 h-4 text-gold" strokeWidth={2} /> Track Application
                   </Link>
                 </div>
-                <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[11px] font-medium text-on-hero-soft">
-                  <Shield className="h-3.5 w-3.5 text-gold" /> Online applications only · one application per quota or program
+                <p className="mt-4 text-[11.5px] leading-relaxed text-muted-foreground">
+                  Online applications only. Submit a separate application for each quota or program.
                 </p>
               </div>
 
               {/* Right: how it works (5 steps) */}
-              <div className="rounded-2xl border border-white/15 bg-white/[0.07] p-5 sm:p-7 backdrop-blur-sm">
-                <p className="eyebrow mb-4 !text-gold justify-center lg:justify-start">How it works</p>
+              <div className="rounded-2xl border border-border bg-muted/40 p-5 sm:p-7">
+                <p className="eyebrow mb-4 justify-center lg:justify-start">How it works</p>
                 <ol className="relative">
                   {[
                     ["Complete Profiles", "CNIC or Form-B, personal and Matric (SSC) details"],
@@ -1381,11 +1375,11 @@ const Home = () => {
                     ["Visit College", "Print form, bring original documents"],
                   ].map(([t, d], i, arr) => (
                     <li key={t} className="relative flex items-start gap-3.5 pb-4 last:pb-0">
-                      {i < arr.length - 1 && <span aria-hidden className="absolute left-[13px] top-7 bottom-0 w-px bg-gradient-to-b from-gold/70 to-gold/10" />}
-                      <span className="relative z-10 flex h-[27px] w-[27px] shrink-0 items-center justify-center rounded-full border border-gold/70 bg-[hsl(150_45%_14%)] text-[11px] font-bold text-gold">{i + 1}</span>
+                      {i < arr.length - 1 && <span aria-hidden className="absolute left-[13px] top-7 bottom-0 w-px bg-gold/40" />}
+                      <span className="relative z-10 flex h-[27px] w-[27px] shrink-0 items-center justify-center rounded-full border border-gold bg-card text-[11px] font-bold text-gold-strong dark:text-gold">{i + 1}</span>
                       <div className="min-w-0 text-left">
-                        <p className="font-luxe text-[1.2rem] font-bold leading-tight text-on-hero">{t}</p>
-                        <p className="mt-0.5 text-[12px] leading-snug text-on-hero-soft">{d}</p>
+                        <p className="font-luxe text-[1.2rem] font-bold leading-tight text-foreground">{t}</p>
+                        <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">{d}</p>
                       </div>
                     </li>
                   ))}
