@@ -444,12 +444,12 @@
 
   /* ─── Section eyebrow label (unified) — heritage gold, institutional ─── */
   .eyebrow {
-    @apply text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] text-gold-strong dark:text-gold;
+    @apply inline-flex items-center gap-2.5 text-[11px] sm:text-xs font-bold uppercase tracking-[0.26em] text-gold-strong dark:text-gold;
   }
 
   /* ─── Section heading (unified hierarchy) ─── */
   .section-title {
-    @apply mt-3 text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground tracking-tight leading-tight;
+    @apply mt-3 text-[2.15rem] md:text-5xl lg:text-6xl font-luxe font-bold text-foreground tracking-tight leading-[1.05];
   }
   .section-subtitle {
     @apply mt-4 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed;
@@ -1293,3 +1293,47 @@ a.lux-chip:hover { border-color: hsl(38 80% 40% / .6); }
   color: hsl(42 78% 66%);
   background: hsl(42 80% 55% / .12); border-color: hsl(42 70% 60% / .3);
 }
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   LUXE v2 — shared premium layer (Home · About · Contact · Notices)
+   Static gradients + transform/opacity animation only (cheap on phones).
+   ═════════════════════════════════════════════════════════════════════════ */
+:root { --font-luxe: 'Cormorant Garamond', 'Playfair Display', 'Playfair Fallback', ui-serif, Georgia, serif; }
+.font-luxe { font-family: var(--font-luxe); letter-spacing: -0.015em; }
+.premium-display { font-family: var(--font-luxe); font-weight: 700; letter-spacing: -0.025em; line-height: 1; }
+
+/* eyebrow ornament: little gold rules either side */
+.eyebrow::before, .eyebrow::after {
+  content: ""; width: 1.4rem; height: 1px; flex: none;
+  background: linear-gradient(90deg, transparent, currentColor);
+  opacity: .65;
+}
+.eyebrow::after { transform: scaleX(-1); }
+
+/* slow drifting colour blobs behind a hero */
+@keyframes luxe-drift { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(2.5%,3%,0) scale(1.08); } }
+.luxe-blob { position: absolute; border-radius: 9999px; filter: blur(48px); pointer-events: none; will-change: transform; animation: luxe-drift 14s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .luxe-blob { animation: none; } }
+
+/* ornamental divider: line · diamond · line */
+.luxe-orn { display: flex; align-items: center; justify-content: center; gap: .6rem; }
+.luxe-orn::before, .luxe-orn::after { content: ""; height: 1px; width: 3.5rem; background: linear-gradient(90deg, transparent, hsl(var(--gold) / .75)); }
+.luxe-orn::after { transform: scaleX(-1); }
+.luxe-orn > i { width: .4rem; height: .4rem; transform: rotate(45deg); background: hsl(var(--gold)); display: block; }
+
+/* glass tile with gold hairline + lift */
+.luxe-tile-card {
+  position: relative; border-radius: 1.25rem; background: hsl(var(--card) / .86);
+  border: 1px solid hsl(var(--gold) / .25);
+  box-shadow: 0 14px 32px -20px hsl(var(--primary) / .45), inset 0 1px 0 hsl(0 0% 100% / .6);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.luxe-tile-card:hover { transform: translateY(-3px); border-color: hsl(var(--gold) / .55); box-shadow: 0 22px 40px -22px hsl(var(--primary) / .55), inset 0 1px 0 hsl(0 0% 100% / .7); }
+.luxe-tile-card:active { transform: scale(.98); }
+.dark .luxe-tile-card { box-shadow: 0 14px 32px -20px #000, inset 0 1px 0 hsl(0 0% 100% / .06); }
+
+/* richer hero ink + softer lift on the shared cards */
+.card-lift { transition: transform .28s ease, box-shadow .28s ease; }
+.card-lift:hover { transform: translateY(-4px); }
