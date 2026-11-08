@@ -20,6 +20,8 @@ interface PageBannerProps {
   icon?: React.ReactNode;
   /** Smaller banner (less padding, smaller icon/title) — premium variant only. */
   compact?: boolean;
+  /** Hide the Home › Page breadcrumb pill. */
+  hideCrumbs?: boolean;
   /** Action buttons rendered in normal flow below the subtitle (never overlap text) — premium variant only. */
   actions?: React.ReactNode;
 }
@@ -68,6 +70,7 @@ const PageBanner = ({
   icon,
   compact = false,
   actions,
+  hideCrumbs = false,
 }: PageBannerProps) => {
   if (variant === "premium") {
     return (
@@ -82,7 +85,7 @@ const PageBanner = ({
         <BannerDecor />
 
         <div className="container mx-auto px-4 text-center relative z-10">
-          <Crumbs title={title} />
+          {!hideCrumbs && <Crumbs title={title} />}
           {icon && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8, y: 10 }}
@@ -169,7 +172,7 @@ const PageBanner = ({
     >
       <BannerDecor />
       <div className="container mx-auto px-4 text-center relative z-10">
-        <Crumbs title={title} />
+        {!hideCrumbs && <Crumbs title={title} />}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
