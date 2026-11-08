@@ -232,16 +232,16 @@ async function buildApplicationForm(d: ApplicationFormData, k: number, L: Awaite
   header(doc, 8, m, inner, w, "DISTRICT MOHMAND  |  KHYBER PAKHTUNKHWA");
 
   // ONE photo box (right) for the three passport photos
-  const bw = 54, bh = 33, boxesW = bw;
+  const bw = 28, bh = 36, boxesW = bw;   // portrait (about 3:4, like a passport photo)
   const bx = w - m - bw, by = 27;
   draw(doc, C.gold); doc.setLineWidth(0.4); fill(doc, C.white);
   dash([1.4, 1.1]);
   doc.rect(bx, by, bw, bh, "FD");
   dash([]);
-  ink(doc, C.muted); doc.setFont("helvetica", "bold"); doc.setFontSize(8);
-  doc.text(["ATTACH 3", "PASSPORT SIZE", "PICS"], bx + bw / 2, by + 11.5, { align: "center", lineHeightFactor: 1.5 });
-  doc.setFont("helvetica", "normal"); doc.setFontSize(6.5);
-  doc.text("(white background)", bx + bw / 2, by + 27, { align: "center" });
+  ink(doc, C.muted); doc.setFont("helvetica", "bold"); doc.setFontSize(7);
+  doc.text(["ATTACH 3", "PASSPORT SIZE", "PICS"], bx + bw / 2, by + 13, { align: "center", lineHeightFactor: 1.5 });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(5.8);
+  doc.text("(white background)", bx + bw / 2, by + bh - 5, { align: "center" });
 
   // Title + key strip (left of the photos)
   const leftW = inner - boxesW - 4;
