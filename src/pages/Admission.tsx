@@ -13,7 +13,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import { motion } from "framer-motion";
 import {
-  GraduationCap, Search, UserPlus, LayoutDashboard, ClipboardList,
+  GraduationCap, Search, UserPlus, LayoutDashboard, ClipboardList, CalendarDays, Hourglass, CalendarCheck2,
   AlertCircle, Phone, Mail, Loader2, CheckCircle2, XCircle,
   BadgeCheck, BookOpen, Landmark, Wallet, Printer, Trophy, ArrowRight,
 } from "lucide-react";
@@ -108,7 +108,6 @@ function TrackApplication() {
           <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-gold/40 bg-gold/[0.07]">
             <Search className="h-[19px] w-[19px] text-gold" strokeWidth={1.4} />
           </div>
-          <span className="premium-kicker mt-2 block !text-[0.6rem]">Status</span>
           <h2 className="font-heading text-xl font-semibold leading-tight text-foreground sm:text-2xl">Track Application</h2>
         </div>
         <form onSubmit={doSearch} className="mx-auto mt-4 max-w-md space-y-3">
@@ -447,35 +446,36 @@ function AdmissionHero({
   session: string; daysLeft: number | null; lastDate: string | null; hasSession: boolean; open: boolean;
 }) {
   const navigate = useNavigate();
+  const stat = "luxe-tile-card flex flex-col items-center justify-center !rounded-2xl px-1.5 py-3 text-center";
+  const lab = "mb-1 inline-flex items-center gap-1 text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground";
+  const btn = "inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-[12.5px] font-bold tracking-wide transition-all active:scale-[0.97]";
   return (
-    <section className="relative overflow-hidden bg-[linear-gradient(135deg,#0a3220_0%,#0e4128_52%,#155534_100%)] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_88%_0%,rgba(214,170,60,0.30),transparent_62%),radial-gradient(50%_60%_at_0%_100%,rgba(214,170,60,0.14),transparent_60%)]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d6aa3c]/70 to-transparent" />
-      <div className="container relative mx-auto flex max-w-4xl flex-col items-center px-4 pb-7 pt-7 text-center sm:pb-10 sm:pt-10">
-        <span className="inline-flex items-center gap-2 rounded-full border border-[#d6aa3c]/50 bg-[#d6aa3c]/10 px-3.5 py-1 text-[10.5px] font-semibold uppercase tracking-[0.22em] text-[#f0d27a]">
-          <GraduationCap className="h-3.5 w-3.5" strokeWidth={1.6} /> Online Admissions
-        </span>
-        <h1 className="mt-4 font-heading text-[2rem] font-semibold leading-[1.1] sm:text-5xl">Intermediate Admissions</h1>
-        <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-white/70 sm:text-[15px]">{COLLEGE_SHORT}</p>
+    <section className="relative overflow-hidden bg-gradient-to-b from-[hsl(42_65%_95%)] via-[hsl(42_45%_97%)] to-background dark:from-card dark:via-card dark:to-background">
+      <div className="luxe-blob w-[300px] h-[300px] -top-28 -right-20 bg-[hsl(42_90%_60%/.22)]" aria-hidden="true" />
+      <div className="luxe-blob w-[260px] h-[260px] -bottom-28 -left-20 bg-[hsl(152_45%_45%/.10)]" style={{ animationDelay: "-6s" }} aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 dot-grid opacity-[0.05]" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent" aria-hidden="true" />
+      <div className="container relative mx-auto flex max-w-3xl flex-col items-center px-4 pb-8 pt-8 text-center sm:pb-12 sm:pt-12">
+        <h1 className="font-luxe text-[2.9rem] font-bold leading-[0.98] text-foreground sm:text-7xl">
+          Intermediate <span className="italic lux-gold-text">Admissions</span>
+        </h1>
+        <div className="luxe-orn mt-4"><i /></div>
+        <p className="mt-3 text-[11.5px] font-bold uppercase tracking-[0.22em] text-gold-strong dark:text-gold sm:text-xs">{COLLEGE_SHORT}</p>
 
         {/* Session + countdown */}
         {open && (
-          <div className="mt-4 grid w-full max-w-sm grid-cols-3 overflow-hidden rounded-xl border border-white/15 bg-white/[0.07] backdrop-blur-md">
-            <div className="flex flex-col items-center justify-center px-1.5 py-2">
-              <span className="text-[8.5px] font-semibold uppercase tracking-[0.16em] text-white/55">Session</span>
-              <span className="mt-0.5 font-heading text-[15px] font-semibold sm:text-base">{session || "N/A"}</span>
+          <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-2">
+            <div className={stat}>
+              <span className={lab}><CalendarDays className="h-3 w-3 text-gold" /> Session</span>
+              <span className="font-luxe text-[1.45rem] font-bold leading-none text-foreground">{session || "N/A"}</span>
             </div>
-            <div className="flex flex-col items-center justify-center border-x border-white/15 bg-[#d6aa3c]/[0.14] px-1.5 py-2">
-              <span className="text-[8.5px] font-semibold uppercase tracking-[0.16em] text-[#f0d27a]">
-                {daysLeft === null ? "Status" : daysLeft === 1 ? "Day Remaining" : "Days Remaining"}
-              </span>
-              <span className="mt-0.5 font-heading text-[19px] font-bold leading-none text-[#f6dc8c] sm:text-xl">
-                {daysLeft === null ? "Open" : daysLeft}
-              </span>
+            <div className={`${stat} !border-gold/60 bg-gradient-to-b from-gold/20 to-gold/5`}>
+              <span className={lab}><Hourglass className="h-3 w-3 text-gold" /> {daysLeft === 1 ? "Day Left" : "Days Left"}</span>
+              <span className="font-luxe text-[1.9rem] font-bold leading-none text-foreground">{daysLeft === null ? "Open" : daysLeft}</span>
             </div>
-            <div className="flex flex-col items-center justify-center px-1.5 py-2">
-              <span className="text-[8.5px] font-semibold uppercase tracking-[0.16em] text-white/55">Last Date</span>
-              <span className="mt-0.5 text-[11px] font-semibold leading-tight sm:text-xs">
+            <div className={stat}>
+              <span className={lab}><CalendarCheck2 className="h-3 w-3 text-gold" /> Last Date</span>
+              <span className="font-luxe text-[1.05rem] font-bold leading-tight text-foreground">
                 {lastDate ? formatAdmissionDate(lastDate) : "To be announced"}
               </span>
             </div>
@@ -483,19 +483,18 @@ function AdmissionHero({
         )}
 
         {/* Actions */}
-        <div className="mt-4 grid w-full max-w-xl gap-2 sm:grid-cols-2">
-          {hasSession ? (
-            <ActionTile icon={LayoutDashboard} title="My Application" sub="Pay, edit or view" gold onClick={() => navigate("/admission/portal")} />
-          ) : (
-            <ActionTile
-              icon={ClipboardList}
-              title="Apply Online"
-              sub={hasDraftData() ? "Continue your application" : "Start your application"}
-              gold
-              onClick={() => navigate("/admission/portal")}
-            />
-          )}
-          <ActionTile icon={Search} title="Track Application" sub="Check your status" href="#track" />
+        <div className="mt-5 grid w-full max-w-md grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={() => navigate("/admission/portal")}
+            className={`${btn} bg-primary text-primary-foreground shadow-[0_12px_24px_-12px_hsl(var(--primary)/.8)] hover:brightness-110`}
+          >
+            {hasSession ? <LayoutDashboard className="h-4 w-4" strokeWidth={2} /> : <ClipboardList className="h-4 w-4" strokeWidth={2} />}
+            {hasSession ? "My Application" : "Apply Online"}
+          </button>
+          <a href="#track" className={`${btn} border border-gold/60 bg-card text-foreground hover:bg-gold/10`}>
+            <Search className="h-4 w-4 text-gold" strokeWidth={2} /> Track Application
+          </a>
         </div>
       </div>
     </section>
@@ -689,7 +688,7 @@ export default function Admission() {
                 "Only one application is allowed per quota in the same program.",
                 "Fields marked * are mandatory.",
                 "Enter your mobile number carefully (03451234567). It cannot be changed later and is used for fee payment and SMS alerts.",
-                "All applications are online. No manual or postal forms are accepted.",
+                "Apply online, or submit your application in person at the school office. Postal forms are not accepted.",
                 "The deadline is final. The system closes after the last date.",
                 "Any false information will cancel your application.",
               ].map((text, i, arr) => {
