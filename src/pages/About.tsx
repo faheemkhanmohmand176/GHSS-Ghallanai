@@ -84,6 +84,7 @@ const About = () => {
 
       <section className="lux-hero relative overflow-hidden">
         <div className="absolute inset-0 lux-grid" aria-hidden="true" />
+        <div className="luxe-blob w-[320px] h-[320px] -top-24 -right-16 bg-[hsl(42_90%_60%/.28)]" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[hsl(38_80%_40%/.6)] to-transparent" />
 
         <div className="container mx-auto px-4 relative z-10 py-14 md:py-20 text-center">
@@ -92,10 +93,12 @@ const About = () => {
               prerendered when it really carries an <h1>) rejects the
               Chromium render of /about and the page falls back to the
               static SEO shell instead of the full rendered page. */}
-          <h1 className="font-display text-3xl md:text-5xl font-bold leading-tight text-on-hero">
+          <span className="eyebrow mb-3 text-[hsl(38_80%_34%)] dark:text-gold">Our Story</span>
+          <h1 className="font-luxe text-[2.7rem] md:text-7xl font-bold leading-[1.02] text-on-hero">
             About <span className="text-gradient-primary">{settings?.school_name || "GHSS Ghallanai"}</span>
           </h1>
 
+          <div className="luxe-orn my-4"><i /></div>
           <motion.p
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
