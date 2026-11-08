@@ -276,6 +276,8 @@ const Contact = () => {
       <section className="lux-hero relative overflow-hidden">
         {/* Decorative layers — static, GPU-safe */}
         <div className="absolute inset-0 lux-grid" aria-hidden="true" />
+        <div className="luxe-blob w-[320px] h-[320px] -top-24 -left-16 bg-[hsl(42_90%_60%/.26)]" aria-hidden="true" />
+        <div className="luxe-blob w-[280px] h-[280px] -bottom-24 -right-16 bg-[hsl(152_55%_45%/.16)]" style={{ animationDelay: "-7s" }} aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[hsl(38_80%_40%/.6)] to-transparent" />
 
         <div className="container mx-auto px-5 relative z-10 py-14 md:py-24 text-center">
@@ -293,7 +295,7 @@ const Contact = () => {
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.55 }}
-            className="mt-6 text-[2.5rem] md:text-6xl font-display font-semibold leading-[1.08] lux-ink"
+            className="mt-6 text-[3rem] md:text-7xl font-luxe font-bold leading-[1] lux-ink"
           >
             Let's start a<br className="hidden sm:block" />
             <span className="italic lux-gold-text"> conversation.</span>
