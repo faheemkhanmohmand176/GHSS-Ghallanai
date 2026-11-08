@@ -563,29 +563,44 @@ export default function Admission() {
               Eight simple steps, completed entirely online.
             </p>
           </div>
-          <ol className="relative mx-auto grid max-w-3xl gap-x-8 sm:grid-cols-2">
-            {steps.map((s, i) => (
-              <motion.li
-                key={s.title}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{ delay: (i % 4) * 0.04 }}
-                className="group relative flex items-start gap-3 py-2.5"
-              >
-                <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/[0.06] text-gold transition-colors group-hover:bg-gold/15">
-                  <s.icon className="h-[17px] w-[17px]" strokeWidth={1.35} />
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
-                    {i + 1}
-                  </span>
-                </span>
-                <div className="min-w-0 flex-1 border-b border-border/60 pb-2.5 group-last:border-b-0">
-                  <h3 className="font-heading text-[14px] font-semibold leading-snug text-foreground">{s.title}</h3>
-                  <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">{s.desc}</p>
-                </div>
-              </motion.li>
-            ))}
-          </ol>
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-gold/30 bg-card shadow-card">
+            <div className="h-1 bg-gradient-to-r from-primary via-emerald-500 to-amber-400" />
+            <ol className="relative ml-[1.35rem] sm:ml-8 mr-3 sm:mr-6 my-5 border-l-2 border-gold/30 pl-6 sm:pl-8 space-y-3.5">
+              {steps.map((s, i) => {
+                const last = i === steps.length - 1;
+                return (
+                  <motion.li
+                    key={s.title}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    transition={{ delay: (i % 4) * 0.04 }}
+                    className="relative"
+                  >
+                    <span
+                      className={`absolute -left-[2.95rem] sm:-left-[3.45rem] top-3 flex h-[26px] w-[26px] items-center justify-center rounded-full border-2 text-[11px] font-bold ${
+                        last
+                          ? "border-primary bg-primary text-primary-foreground shadow-[0_0_0_4px_hsl(var(--primary)/.15)]"
+                          : "border-gold bg-card text-gold"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {i + 1}
+                    </span>
+                    <div className={`flex items-start gap-3 rounded-2xl border px-3.5 py-3 ${last ? "border-primary/30 bg-primary/[0.04]" : "border-border bg-card"}`}>
+                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold/10 text-gold">
+                        <s.icon className="h-[18px] w-[18px]" strokeWidth={1.5} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-[13.5px] font-bold leading-snug text-foreground">{s.title}</h3>
+                        <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground break-words">{s.desc}</p>
+                      </div>
+                    </div>
+                  </motion.li>
+                );
+              })}
+            </ol>
+          </div>
         </section>
 
         {/* Track application */}
