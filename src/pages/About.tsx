@@ -94,7 +94,7 @@ const About = () => {
               Chromium render of /about and the page falls back to the
               static SEO shell instead of the full rendered page. */}
           <span className="eyebrow mb-3 text-[hsl(38_80%_34%)] dark:text-gold">Our Story</span>
-          <h1 className="font-luxe text-[2.7rem] md:text-7xl font-bold leading-[1.02] text-on-hero">
+          <h1 className="font-luxe text-[2.7rem] md:text-7xl font-bold leading-[1.02] lux-ink">
             About <span className="text-gradient-primary">{settings?.school_name || "GHSS Ghallanai"}</span>
           </h1>
 
