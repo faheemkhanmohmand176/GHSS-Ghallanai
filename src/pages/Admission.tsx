@@ -446,35 +446,35 @@ function AdmissionHero({
   session: string; daysLeft: number | null; lastDate: string | null; hasSession: boolean; open: boolean;
 }) {
   const navigate = useNavigate();
-  const stat = "luxe-tile-card flex flex-col items-center justify-center !rounded-2xl px-1.5 py-3 text-center";
-  const lab = "mb-1 inline-flex items-center gap-1 text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground";
+  const stat = "luxe-tile-card relative overflow-hidden flex flex-col items-center justify-center !rounded-2xl !border-primary/20 px-1.5 py-3 text-center before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:bg-gradient-to-r before:from-primary before:to-[hsl(152_50%_38%)]";
+  const lab = "mb-1 inline-flex items-center gap-1 text-[8.5px] sm:text-[9.5px] font-bold uppercase tracking-[0.14em] text-primary/80 dark:text-muted-foreground";
   const btn = "inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-4 text-[12.5px] font-bold tracking-wide transition-all active:scale-[0.97]";
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[hsl(42_65%_95%)] via-[hsl(42_45%_97%)] to-background dark:from-card dark:via-card dark:to-background">
+    <section className="relative overflow-hidden bg-gradient-to-b from-[hsl(42_65%_95%)] via-[hsl(100_22%_95%)] to-[hsl(152_30%_93%)] dark:from-card dark:via-card dark:to-background">
       <div className="luxe-blob w-[300px] h-[300px] -top-28 -right-20 bg-[hsl(42_90%_60%/.22)]" aria-hidden="true" />
-      <div className="luxe-blob w-[260px] h-[260px] -bottom-28 -left-20 bg-[hsl(152_45%_45%/.10)]" style={{ animationDelay: "-6s" }} aria-hidden="true" />
+      <div className="luxe-blob w-[260px] h-[260px] -bottom-28 -left-20 bg-[hsl(152_55%_32%/.18)]" style={{ animationDelay: "-6s" }} aria-hidden="true" />
       <div className="pointer-events-none absolute inset-0 dot-grid opacity-[0.05]" aria-hidden="true" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold to-transparent" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-[hsl(153_66%_15%)] via-gold to-[hsl(153_66%_15%)]" aria-hidden="true" />
       <div className="container relative mx-auto flex max-w-3xl flex-col items-center px-4 pb-8 pt-8 text-center sm:pb-12 sm:pt-12">
         <h1 className="font-luxe text-[2.9rem] font-bold leading-[0.98] text-foreground sm:text-7xl">
           Intermediate <span className="italic lux-gold-text">Admissions</span>
         </h1>
         <div className="luxe-orn mt-4"><i /></div>
-        <p className="mt-3 text-[11.5px] font-bold uppercase tracking-[0.22em] text-gold-strong dark:text-gold sm:text-xs">{COLLEGE_SHORT}</p>
+        <p className="mt-3 text-[11.5px] font-bold uppercase tracking-[0.22em] text-primary dark:text-gold sm:text-xs">{COLLEGE_SHORT}</p>
 
         {/* Session + countdown */}
         {open && (
           <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-2">
             <div className={stat}>
-              <span className={lab}><CalendarDays className="h-3 w-3 text-gold" /> Session</span>
+              <span className={lab}><CalendarDays className="h-3 w-3 text-primary dark:text-gold" /> Session</span>
               <span className="font-luxe text-[1.45rem] font-bold leading-none text-foreground">{session || "N/A"}</span>
             </div>
-            <div className={`${stat} !border-gold/60 bg-gradient-to-b from-gold/20 to-gold/5`}>
-              <span className={lab}><Hourglass className="h-3 w-3 text-gold" /> {daysLeft === 1 ? "Day Left" : "Days Left"}</span>
+            <div className={`${stat} !border-primary/50 bg-gradient-to-b from-primary/15 to-primary/[0.04] shadow-[0_10px_24px_-14px_hsl(var(--primary)/.55)]`}>
+              <span className={lab}><Hourglass className="h-3 w-3 text-primary dark:text-gold" /> {daysLeft === 1 ? "Day Left" : "Days Left"}</span>
               <span className="font-luxe text-[1.9rem] font-bold leading-none text-foreground">{daysLeft === null ? "Open" : daysLeft}</span>
             </div>
             <div className={stat}>
-              <span className={lab}><CalendarCheck2 className="h-3 w-3 text-gold" /> Last Date</span>
+              <span className={lab}><CalendarCheck2 className="h-3 w-3 text-primary dark:text-gold" /> Last Date</span>
               <span className="font-luxe text-[1.05rem] font-bold leading-tight text-foreground">
                 {lastDate ? formatAdmissionDate(lastDate) : "To be announced"}
               </span>
@@ -492,8 +492,8 @@ function AdmissionHero({
             {hasSession ? <LayoutDashboard className="h-4 w-4" strokeWidth={2} /> : <ClipboardList className="h-4 w-4" strokeWidth={2} />}
             {hasSession ? "My Application" : "Apply Online"}
           </button>
-          <a href="#track" className={`${btn} border border-gold/60 bg-card text-foreground hover:bg-gold/10`}>
-            <Search className="h-4 w-4 text-gold" strokeWidth={2} /> Track Application
+          <a href="#track" className={`${btn} border-2 border-primary/70 bg-card text-primary hover:bg-primary hover:text-primary-foreground dark:text-foreground`}>
+            <Search className="h-4 w-4" strokeWidth={2} /> Track Application
           </a>
         </div>
       </div>
