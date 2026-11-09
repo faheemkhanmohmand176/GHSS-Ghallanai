@@ -74,7 +74,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { getPageMeta, NAV_LINKS, SITE_URL, SITE_NAME } from "../scripts/seo-page-content.mjs";
-import { PUBLIC_ROUTE_SET } from "../scripts/site-routes.mjs";
+import { PUBLIC_ROUTE_SET, SCHOOL_EMIS_CODE, SCHOOL_FACEBOOK_URL } from "../scripts/site-routes.mjs";
 import { FAQ_ITEMS, FAQ_CATEGORIES, buildFaqJsonLd } from "../src/data/faqData.mjs";
 import { getCurrentBisepPayload } from "./bisep-proxy.js";
 
@@ -192,7 +192,11 @@ async function fetchSchoolProfile() {
     classes_offered: ["1st Year", "2nd Year"],
     board: "BISE Peshawar",
     website: SITE_URL,
-    facebook: "https://www.facebook.com/share/19doja9mNr/",
+    facebook: SCHOOL_FACEBOOK_URL,
+    // EMIS code — the official Government of Khyber Pakhtunkhwa identifier of
+    // this school. Unique to this institution, so it is what lets an AI or
+    // search engine attach this website to the RIGHT school entity.
+    emis_code: SCHOOL_EMIS_CODE,
   };
 }
 
@@ -557,7 +561,11 @@ async function getLiveSiteData(sections) {
     classes_offered: ["1st Year", "2nd Year"],
     board: "BISE Peshawar",
     website: SITE_URL,
-    facebook: "https://www.facebook.com/share/19doja9mNr/",
+    facebook: SCHOOL_FACEBOOK_URL,
+    // EMIS code — the official Government of Khyber Pakhtunkhwa identifier of
+    // this school. Unique to this institution, so it is what lets an AI or
+    // search engine attach this website to the RIGHT school entity.
+    emis_code: SCHOOL_EMIS_CODE,
   };
   data.admission = data.admission || { currently_open: null, how_to_apply: [], required_documents: [] };
   data.admissionFiles = data.admissionFiles || [];
@@ -986,7 +994,7 @@ function jsonLdFor(route, data, detail, pageName) {
   const generatedAt = new Date().toISOString();
   const graph = [
     {
-      "@type": "EducationalOrganization",
+      "@type": ["EducationalOrganization", "HighSchool"],
       "@id": `${SITE_URL}#organization`,
       name: "Government Higher Secondary School Ghallanai, District Mohmand",
       alternateName: SITE_NAME,
@@ -994,6 +1002,15 @@ function jsonLdFor(route, data, detail, pageName) {
       telephone: data.school.phone,
       email: data.school.email,
       foundingDate: data.school.established,
+      // EMIS code — the school's unique government identifier. It also matches
+      // the identical value in index.html, SiteSchema.tsx and
+      // scripts/seo-page-content.mjs, so every schema.org graph the site
+      // emits describes ONE entity.
+      identifier: { "@type": "PropertyValue", name: "EMIS Code", value: SCHOOL_EMIS_CODE },
+      additionalProperty: [
+        { "@type": "PropertyValue", name: "EMIS Code", value: SCHOOL_EMIS_CODE },
+      ],
+      sameAs: [SCHOOL_FACEBOOK_URL],
       // Live admin-maintained statistics — so AI answers quote the current
       // numbers, never a stale build-time figure.
       ...(typeof data.school.total_students === "number"

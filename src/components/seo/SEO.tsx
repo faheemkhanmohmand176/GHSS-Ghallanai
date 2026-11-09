@@ -3,6 +3,18 @@ import { Helmet } from "react-helmet-async";
 export const SITE_URL  = "https://ghssghallanai.dpdns.org";
 export const SITE_NAME = "GHSS Ghallanai";
 
+// EMIS code — the Government of Khyber Pakhtunkhwa identifier of this school
+// (Elementary & Secondary Education Department). It is a unique, non-generic
+// token for the institution, so it belongs in the structured data, the meta
+// layer and the machine-readable feeds: it is what lets Google attach this
+// site to the RIGHT school entity instead of to a generic secondary school.
+//
+// The single source of truth is scripts/site-routes.mjs (SCHOOL_EMIS_CODE).
+// The value is duplicated here as a literal because this module is imported
+// by the browser bundle, which cannot import the build-time .mjs scripts.
+// scripts/prerender-lib.mjs asserts on every build that the two values match.
+export const EMIS_CODE = "60645";
+
 // ✅ OG image: actual file is 1200×630 px (public/og-image.png)
 const DEFAULT_IMAGE        = `${SITE_URL}/og-image.png`;
 const DEFAULT_IMAGE_WIDTH  = "1200";

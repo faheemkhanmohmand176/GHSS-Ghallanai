@@ -68,7 +68,7 @@
 // Everything else answers with a real 404 + noindex (notFoundResponse()).
 //
 // NOTE: this module is dependency-free on purpose (Edge Runtime safe).
-import { classifyPath, NAV_LINKS } from "./scripts/site-routes.mjs";
+import { classifyPath, NAV_LINKS, isRemovedPath } from "./scripts/site-routes.mjs";
 
 export const config = {
   runtime: "edge",
@@ -573,17 +573,27 @@ function canonicalIndexHtmlRedirect(url: URL): Response | null {
   });
 }
 
-// ─── Removed feature: /gallery → 410 Gone ────────────────────────────────────
-// The Photo Gallery was removed from the website. Without this, the old URL
-// would fall through to the SPA catch-all rewrite and answer "200 OK" with the
-// homepage shell — which Google reports as a soft 404 and keeps re-crawling.
+// ─── Removed features: /gallery, /duty, /notes → 410 Gone ───────────────────
+// The Photo Gallery, the Duty Board and the Notes section were deleted from
+// the site and will never come back. Without this, the old URLs would fall
+// through to the SPA catch-all rewrite and answer "200 OK" with the homepage
+// shell — which Google reports as a soft 404 and keeps re-crawling.
+//
 // A real 410 tells every search engine the page is permanently gone so it is
 // dropped from the index quickly. (Googlebot never reaches the live renderer
-// for this path; it gets this response directly.)
-function isRemovedGalleryPath(pathname: string): boolean {
-  return pathname === "/gallery" || pathname.startsWith("/gallery/");
-}
-
+// for these paths; it gets this response directly.)
+//
+// WHY NOT A REDIRECT TO "/" (the old behaviour):
+//   Redirecting dozens of removed URLs to the homepage tells Google the
+//   homepage is a duplicate of all of them — the "duplicate content /
+//   soft-404" signal — and dilutes the homepage's own ranking signals.
+//   Google explicitly recommends 404/410 for removed pages and 301 only
+//   for pages that MOVED to a real equivalent. It also keeps Search
+//   Console's "Page with redirect" report empty.
+//
+//   The list lives in scripts/site-routes.mjs (the single source of truth
+//   shared with the prerender pipeline and the sitemap generator) so it can
+//   never drift between the layers again.
 function goneResponse(): Response {
   const html =
     '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
@@ -624,8 +634,9 @@ export default async function middleware(
   const { fingerprint } = getClientInfo(request);
   const isApiRoute = pathname.startsWith("/api/");
 
-  // 1b) Removed Photo Gallery → 410 Gone for every client (see helper above).
-  if (isRemovedGalleryPath(pathname)) return goneResponse();
+  // 1b) Removed features (/gallery, /duty, /notes + their sub-paths) →
+  //     410 Gone for every client (see the helper above).
+  if (isRemovedPath(pathname)) return goneResponse();
 
   // 2) Known attack-tool user agents → hard block.
   if (isBlockedUA(ua)) {

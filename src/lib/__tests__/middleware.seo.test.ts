@@ -330,3 +330,65 @@ describe("middleware API routes (BISE Peshawar proxy + OG image pass-through)", 
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REMOVED PAGES — 410 Gone, never a redirect to the homepage
+// ═══════════════════════════════════════════════════════════════════════════
+// Search Console reported "Page with redirect" as the reason pages were not
+// being indexed. The cause was three REMOVED features (/duty, /notes,
+// /notes/*) that answered 308 → "/". Redirecting a deleted page to the
+// homepage is the worst possible pattern: every old URL becomes a duplicate
+// of the homepage, the homepage's own ranking signals get diluted, and the
+// URLs are reported as "Page with redirect" forever.
+//
+// The correct answer for "this page is gone and has no equivalent" is
+// HTTP 410 Gone — which tells the engines to drop it and stop crawling it.
+// /result-card is deliberately NOT in this list: that page MOVED to
+// /results and still exists there, so it keeps its permanent redirect.
+describe("middleware removed pages (410 Gone)", () => {
+  const REMOVED = [
+    "/gallery",
+    "/gallery/2024",
+    "/duty",
+    "/duty/morning",
+    "/notes",
+    "/notes/anything",
+    "/notes/a/b/c",
+  ];
+
+  it("every removed feature answers 410 Gone with a noindex directive", async () => {
+    for (const path of REMOVED) {
+      const res = await middleware(makeRequest(path, BROWSER, "198.51.100.40"));
+      expect(res, `${path} must be answered, not passed through`).toBeDefined();
+      expect(res!.status, `${path} must be 410 Gone`).toBe(410);
+      expect(res!.headers.get("X-Robots-Tag"), `${path} must be noindex`).toBe("noindex");
+    }
+  });
+
+  it("a removed page is NEVER redirected to the homepage", async () => {
+    for (const path of ["/duty", "/notes", "/notes/x"]) {
+      const res = await middleware(makeRequest(path, BROWSER, "198.51.100.41"));
+      expect(res!.status).toBe(410);
+      // A 410 carries no Location header at all — there is nothing to follow.
+      expect(res!.headers.get("Location")).toBeNull();
+    }
+  });
+
+  it("crawlers get the 410 too — Googlebot must not be live-rendered for a gone page", async () => {
+    mockRenderHop(() => new Response(RENDER_200_HTML, { status: 200 }));
+    for (const path of ["/duty", "/notes"]) {
+      const res = await middleware(makeRequest(path, GOOGLEBOT, "198.51.100.42"));
+      expect(res).toBeDefined();
+      expect(res!.status).toBe(410);
+    }
+  });
+
+  it("the live pages that REPLACED removed features are still served normally", async () => {
+    mockRenderHop(() => new Response(RENDER_200_HTML, { status: 200 }));
+    for (const path of ["/", "/notices", "/teachers"]) {
+      const res = await middleware(makeRequest(path, GOOGLEBOT, "198.51.100.43"));
+      // undefined = the request continues into Vercel's static pipeline
+      expect(res).toBeUndefined();
+    }
+  });
+});

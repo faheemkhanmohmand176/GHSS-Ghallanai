@@ -34,6 +34,7 @@ export const SITE_LONG_NAME = "Government Higher Secondary School Ghallanai, Dis
 
 const SCHOOL_FACTS = [
   "Full name: Government Higher Secondary School Ghallanai (GHSS Ghallanai)",
+  "EMIS code: 60645 (Government of Khyber Pakhtunkhwa, Elementary & Secondary Education Department)",
   "Location: Ghallanai, District Mohmand, Khyber Pakhtunkhwa (KPK), Pakistan",
   "Principal: (set by the school office)",
   "Classes offered: 1st Year and 2nd Year (HSSC — classes 11 and 12)",
@@ -53,7 +54,11 @@ const SCHOOL_FACTS = [
 //
 // Re-exported from here so existing importers keep working unchanged.
 export { NAV_LINKS } from "./site-routes.mjs";
-import { NAV_LINKS } from "./site-routes.mjs";
+// SCHOOL_EMIS_CODE + SCHOOL_FACEBOOK_URL are the shared identity constants:
+// the EMIS code identifies THIS school uniquely, and the Facebook URL must
+// be byte-identical in every schema.org graph the site emits (see
+// site-routes.mjs for why a mismatch breaks the entity merge).
+import { NAV_LINKS, SCHOOL_EMIS_CODE, SCHOOL_FACEBOOK_URL } from "./site-routes.mjs";
 
 // ── Per-route content ────────────────────────────────────────────────────────
 // blocks: h2 = section heading, p = paragraph, ul = bullet list,
@@ -62,12 +67,12 @@ const PAGES = {
   "/": {
     title: "GHSS Ghallanai — Government Higher Secondary School, District Mohmand KPK",
     description:
-      "Official website of Government Higher Secondary School (GHSS) Ghallanai, District Mohmand, KPK, Pakistan. Online admission applications, exam results by roll number, notices, free past papers, and teacher directory for 1st Year and 2nd Year.",
+      "Official website of Government Higher Secondary School (GHSS) Ghallanai (EMIS code 60645), District Mohmand, KPK, Pakistan. Online admission applications, exam results by roll number, notices, free past papers, and teacher directory for 1st Year and 2nd Year.",
     h1: "Government Higher Secondary School Ghallanai — District Mohmand, KPK",
     blocks: [
       {
         p: [
-          "Government Higher Secondary School (GHSS) Ghallanai is a government higher secondary school in Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan. The school offers 1st Year and 2nd Year (HSSC — classes 11 and 12) and is affiliated with BISE Peshawar, the Board of Intermediate and Secondary Education Peshawar, whose examinations our 1st Year and 2nd Year students sit every year.",
+          "Government Higher Secondary School (GHSS) Ghallanai (EMIS code 60645) is a government higher secondary school in Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan. The school offers 1st Year and 2nd Year (HSSC — classes 11 and 12) and is affiliated with BISE Peshawar, the Board of Intermediate and Secondary Education Peshawar, whose examinations our 1st Year and 2nd Year students sit every year.",
           "This official website is the school's digital front door. Students and parents can apply for admission online, search exam results by roll number, read official notices, download free past papers, browse the teacher directory and view photos of school events. The site also works as a Progressive Web App (PWA), so it can be installed on a phone and used offline.",
         ],
       },
@@ -93,12 +98,12 @@ const PAGES = {
   "/about": {
     title: "About Us — GHSS Ghallanai, District Mohmand",
     description:
-      "About Government Higher Secondary School Ghallanai, District Mohmand, KPK: principal set by the school office, 1st Year and 2nd Year (HSSC), affiliated with BISE Peshawar. Our mission, vision and values.",
+      "About Government Higher Secondary School Ghallanai (EMIS code 60645), District Mohmand, KPK: principal set by the school office, 1st Year and 2nd Year (HSSC), affiliated with BISE Peshawar. Our mission, vision and values.",
     h1: "About GHSS Ghallanai",
     blocks: [
       {
         p: [
-          "Government Higher Secondary School Ghallanai is a public higher secondary school serving Ghallanai and the surrounding villages of District Mohmand, Khyber Pakhtunkhwa, Pakistan. The school operates under the Elementary & Secondary Education Department of Khyber Pakhtunkhwa. It educates students in 1st Year and 2nd Year (HSSC — classes 11 and 12), preparing them for the Higher Secondary School Certificate examinations conducted by BISE Peshawar.",
+          "Government Higher Secondary School Ghallanai (EMIS code 60645) is a public higher secondary school serving Ghallanai and the surrounding villages of District Mohmand, Khyber Pakhtunkhwa, Pakistan. The school operates under the Elementary & Secondary Education Department of Khyber Pakhtunkhwa. It educates students in 1st Year and 2nd Year (HSSC — classes 11 and 12), preparing them for the Higher Secondary School Certificate examinations conducted by BISE Peshawar.",
           "The school serves a rural tribal district, and its mission is to give every child of the area access to qualified teachers, a proper science education and modern learning tools — free of cost, as provided by the Government of Khyber Pakhtunkhwa. Students receive free textbooks under the provincial free textbook scheme, and the school building houses science facilities, a library corner and a playground for sports and assemblies.",
         ],
       },
@@ -126,7 +131,7 @@ const PAGES = {
   "/contact": {
     title: "Contact Us — GHSS Ghallanai, District Mohmand",
     description:
-      "Contact Government Higher Secondary School Ghallanai: phone and email set by the school office, Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan. Contact form, WhatsApp and location map.",
+      "Contact Government Higher Secondary School Ghallanai (EMIS code 60645): phone and email set by the school office, Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan. Contact form, WhatsApp and location map.",
     h1: "Contact GHSS Ghallanai",
     blocks: [
       {
@@ -138,11 +143,12 @@ const PAGES = {
         h2: "Contact details",
         ul: [
           "School: Government Higher Secondary School Ghallanai",
+          "EMIS code: 60645",
           "Address: Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan",
           "Phone: (set by the school office)",
           "Email: (set by the school office)",
           "Principal: (set by the school office)",
-          "Facebook page: https://www.facebook.com/share/1EERTSk1W7/",
+          "Facebook page: https://www.facebook.com/share/19doja9mNr/",
         ],
       },
       {
@@ -466,7 +472,15 @@ export function buildJsonLd(route) {
           "@type": "AdministrativeArea",
           name: "District Mohmand, Khyber Pakhtunkhwa, Pakistan",
         },
-        sameAs: ["https://www.facebook.com/share/1EERTSk1W7/"],
+        // EMIS code — the official government identifier of this school.
+        // A unique, non-generic token that lets Google attach the site to
+        // the RIGHT school entity (and disambiguate it from every other
+        // "government high school" in the district).
+        identifier: { "@type": "PropertyValue", name: "EMIS Code", value: SCHOOL_EMIS_CODE },
+        additionalProperty: [
+          { "@type": "PropertyValue", name: "EMIS Code", value: SCHOOL_EMIS_CODE },
+        ],
+        sameAs: ["https://www.facebook.com/share/19doja9mNr/"],
       },
       {
         "@type": "WebSite",
@@ -590,7 +604,15 @@ export function buildNoticeDetailJsonLd(notice, route) {
           "@type": "AdministrativeArea",
           name: "District Mohmand, Khyber Pakhtunkhwa, Pakistan",
         },
-        sameAs: ["https://www.facebook.com/share/1EERTSk1W7/"],
+        // EMIS code — the official government identifier of this school.
+        // A unique, non-generic token that lets Google attach the site to
+        // the RIGHT school entity (and disambiguate it from every other
+        // "government high school" in the district).
+        identifier: { "@type": "PropertyValue", name: "EMIS Code", value: SCHOOL_EMIS_CODE },
+        additionalProperty: [
+          { "@type": "PropertyValue", name: "EMIS Code", value: SCHOOL_EMIS_CODE },
+        ],
+        sameAs: ["https://www.facebook.com/share/19doja9mNr/"],
       },
       {
         "@type": "WebSite",
@@ -620,26 +642,55 @@ export function buildNoticeDetailJsonLd(notice, route) {
   return JSON.stringify(graph).replace(/</g, "\\u003c");
 }
 
-/**
- * Build the complete fallback HTML for one route by taking the BUILT shell
- * (dist/index.html, which already references the hashed CSS + JS bundles)
- * and injecting per-route SEO tags plus the visible static content block
- * inside #root. The React app replaces the block when it mounts.
- *
- * `noticeDetail` (optional): a notice row { id, title, content, category,
- * is_urgent, created_at } — when present, the page is built from the notice
- * itself instead of the static PAGES map (used for /notices/<id> fallbacks).
- */
-export function buildFallbackHtml(shellHtml, route, listFiller, noticeDetail = null) {
+// ═════════════════════════════════════════════════════════════════════════════
+// SHARED SEO HEAD NORMALISATION — one implementation, two callers
+// ═════════════════════════════════════════════════════════════════════════════
+// Callers:
+//   1. buildFallbackHtml()   → the static-fallback page (guaranteed floor)
+//   2. normalizeRenderedHead() → the Chromium-rendered page (full fidelity)
+//
+// WHY THIS MUST EXIST — "the 3 canonical tags" bug:
+//
+//   The SPA shell (index.html) ships a STATIC
+//   <link rel="canonical" href="https://…/"> for the HOMEPAGE.
+//   react-helmet-async does NOT remove pre-existing static tags from the
+//   document — it only manages the tags it created itself (the ones carrying
+//   data-rh="true"). So a Chromium-rendered page ends up carrying TWO
+//   canonicals: the shell's homepage one AND Helmet's correct per-route one.
+//
+//   Google sees two conflicting canonicals for the same URL. Its documented
+//   behaviour is to IGNORE conflicting canonicals — and in the worst case it
+//   picks the first one (the HOMEPAGE). Either way the message is "this page
+//   is a duplicate of /". Applied to every route of the site at once, that
+//   collapses the ENTIRE site into a single indexed page: no page can rank
+//   and Search Console reports the others as "Duplicate, Google chose
+//   different canonical". This is the single most damaging SEO defect in
+//   the build pipeline, and it is INVISIBLE on Vercel only because the
+//   Chromium phase is skipped there (the static fallback is used instead) —
+//   so it silently returns the moment the build runs anywhere with a browser.
+//
+//   The same duplication hit meta description (×2), og:url (×2), robots (×2)
+//   and the JSON-LD graph (×4..×9 blocks — several sharing the same @id, so
+//   Google sees several "different" organisations instead of one).
+//
+//   The fix is deterministic: strip every conflicting head tag, then inject
+//   EXACTLY ONE correct set for the route. After this, the SEO signals of a
+//   page are identical no matter which of the two paths produced the file.
+//
+//   Note on the strip patterns: index.html's documentation comment is
+//   reworded (no literal tag text) so a comment can never be mistaken for a
+//   real tag by these regexes.
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** Build the complete, per-route <head> block — exactly one of each tag. */
+function buildSeoHead(route, noticeDetail = null) {
   const page = noticeDetail ? getNoticeDetailMeta(noticeDetail) : PAGES[route];
-  if (!page || !shellHtml) return null;
+  if (!page) return null;
 
   const canonical = `${SITE_URL}${route === "/" ? "/" : route}`;
-  let html = noticeDetail ? buildNoticeContentHtml(noticeDetail) : buildContentHtml(route);
-  if (listFiller) html = listFiller(html);
-
   const jsonLd = noticeDetail ? buildNoticeDetailJsonLd(noticeDetail, route) : buildJsonLd(route);
-  const seoHead = `
+
+  return `
     <title>${escapeHtml(page.title)}</title>
     <meta name="description" content="${escapeHtml(page.description)}" />
     <link rel="canonical" href="${canonical}" />
@@ -654,6 +705,98 @@ export function buildFallbackHtml(shellHtml, route, listFiller, noticeDetail = n
     <meta name="twitter:title" content="${escapeHtml(page.title)}" />
     <meta name="twitter:description" content="${escapeHtml(page.description)}" />
     <script type="application/ld+json">${jsonLd}</script>`;
+}
+
+/** Remove every conflicting head tag (attribute-order agnostic). */
+function stripSeoHead(html) {
+  return html
+    .replace(/<meta\s+name=(["'])description\1[^>]*>/gi, "")
+    .replace(/<meta\s+property=(["'])og:(?:title|description|url|type|site_name|image)\1[^>]*>/gi, "")
+    .replace(/<meta\s+name=(["'])twitter:(?:card|title|description|image)\1[^>]*>/gi, "")
+    .replace(/<meta\s+name=(["'])robots\1[^>]*>/gi, "")
+    .replace(/<link\b[^>]*\brel=(["'])canonical\1[^>]*>/gi, "")
+    .replace(/<script\b[^>]*type=(["'])application\/ld\+json\1[^>]*>[\s\S]*?<\/script>/gi, "");
+}
+
+/**
+ * Normalise the <head> of an HTML document so it carries exactly ONE
+ * canonical / description / og:url / robots / JSON-LD block — the one that
+ * belongs to `route`.
+ *
+ * Works on both the SPA shell (static fallback) and a fully rendered
+ * Chromium page. The BODY is never touched, so the Chromium path keeps its
+ * complete React-rendered markup.
+ *
+ * @param {string} html        the document
+ * @param {string} route       the route the document represents
+ * @param {object|null} noticeDetail  notice row for /notices/<id> routes
+ * @returns {string|null} the normalised document, or null if it has no head
+ */
+export function applySeoHead(html, route, noticeDetail = null) {
+  if (!html) return null;
+
+  const canonical = `${SITE_URL}${route === "/" ? "/" : route}`;
+  let out = stripSeoHead(html);
+  const seoHead = buildSeoHead(route, noticeDetail);
+
+  if (!seoHead) {
+    // Unknown route (e.g. a notice detail whose row could not be loaded):
+    // keep the rendered title and body untouched and only guarantee ONE
+    // correct canonical. Removing the conflicting homepage canonical is the
+    // critical part; the rest of the head stays as rendered.
+    if (/<title>[\s\S]*?<\/title>/.test(out)) {
+      out = out.replace(
+        /<title>[\s\S]*?<\/title>/,
+        (m) => `${m}\n    <link rel="canonical" href="${canonical}" />`
+      );
+    } else if (/<head\b[^>]*>/i.test(out)) {
+      out = out.replace(/<head\b[^>]*>/i, (m) => `${m}<link rel="canonical" href="${canonical}" />`);
+    } else {
+      return null;
+    }
+    return out;
+  }
+
+  // Replacer FUNCTIONS are mandatory here: a plain string replacement would
+  // interpret $-sequences ($&, $', $`, $$) inside the JSON-LD/content and
+  // silently corrupt the page.
+  if (/<title>[\s\S]*?<\/title>/.test(out)) {
+    out = out.replace(/<title>[\s\S]*?<\/title>/, () => seoHead);
+  } else if (/<head\b[^>]*>/i.test(out)) {
+    // Document without a <title> — inject right after <head> instead.
+    out = out.replace(/<head\b[^>]*>/i, (m) => `${m}${seoHead}`);
+  } else {
+    return null; // no <head> and no <title> — not a usable document
+  }
+
+  return out;
+}
+
+/**
+ * Normalise a CHROMIUM-RENDERED page (the full-fidelity prerender output).
+ * Same guarantees as applySeoHead(), named separately so the call site in
+ * scripts/prerender-lib.mjs reads as what it does.
+ */
+export function normalizeRenderedHead(html, route, noticeDetail = null) {
+  return applySeoHead(html, route, noticeDetail);
+}
+
+/**
+ * Build the complete fallback HTML for one route by taking the BUILT shell
+ * (dist/index.html, which already references the hashed CSS + JS bundles)
+ * and injecting per-route SEO tags plus the visible static content block
+ * inside #root. The React app replaces the block when it mounts.
+ *
+ * `noticeDetail` (optional): a notice row { id, title, content, category,
+ * is_urgent, created_at } — when present, the page is built from the notice
+ * itself instead of the static PAGES map (used for /notices/<id> fallbacks).
+ */
+export function buildFallbackHtml(shellHtml, route, listFiller, noticeDetail = null) {
+  const page = noticeDetail ? getNoticeDetailMeta(noticeDetail) : PAGES[route];
+  if (!page || !shellHtml) return null;
+
+  let html = noticeDetail ? buildNoticeContentHtml(noticeDetail) : buildContentHtml(route);
+  if (listFiller) html = listFiller(html);
 
   const staticBlock = `
       <div class="ghss-seo-static" style="max-width:860px;margin:0 auto;padding:32px 20px;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#0f172a;background:#ffffff;line-height:1.75">
@@ -679,38 +822,13 @@ export function buildFallbackHtml(shellHtml, route, listFiller, noticeDetail = n
   //
   // The injection now targets the OPENING #root tag whatever it contains.
 
-  // 1) Drop the shell's generic head tags FIRST — seoHead (injected below)
-  //    carries the per-route versions, and leaving both would give crawlers
-  //    two conflicting descriptions / og: sets / robots directives, plus a
-  //    SECOND schema.org graph whose @ids differ by a trailing slash
-  //    ("…org/#organization" vs "…org#organization") — two organization
-  //    entities instead of one. Removal must happen BEFORE injection, or it
-  //    would strip seoHead's own tags.
-  //    Patterns are attribute-order-agnostic (/gi, [^>]*) so they ALSO clean
-  //    Helmet-injected tags (data-rh="true" variants) in the corner case
-  //    where the "shell" is actually a partially-rendered Chromium page
-  //    (some routes rendered, others fell back).
-  out = out
-    .replace(/<meta\s+name=(["'])description\1[^>]*>/gi, "")
-    .replace(/<meta\s+property=(["'])og:(?:title|description|url|type|site_name|image)\1[^>]*>/gi, "")
-    .replace(/<meta\s+name=(["'])twitter:(?:card|title|description|image)\1[^>]*>/gi, "")
-    .replace(/<meta\s+name=(["'])robots\1[^>]*>/gi, "")
-    .replace(/<link\b[^>]*\brel=(["'])canonical\1[^>]*>/gi, "")
-    .replace(/<script\b[^>]*type=(["'])application\/ld\+json\1[^>]*>[\s\S]*?<\/script>/gi, "");
+  // 1) Normalise the head (shared with the Chromium render path — see
+  //    applySeoHead / normalizeRenderedHead below). ONE implementation, so
+  //    the two prerender paths can never drift apart again.
+  out = applySeoHead(out, route, noticeDetail);
+  if (!out) return null;
 
-  // 2) Per-route head. Replacer FUNCTIONS are mandatory here: a plain string
-  //    replacement would interpret $-sequences ($&, $', $`, $$) inside the
-  //    JSON-LD/content and silently corrupt the page.
-  if (/<title>[\s\S]*?<\/title>/.test(out)) {
-    out = out.replace(/<title>[\s\S]*?<\/title>/, () => seoHead);
-  } else if (/<head\b[^>]*>/i.test(out)) {
-    // Shell without a <title> — inject right after <head> instead.
-    out = out.replace(/<head\b[^>]*>/i, (m) => `${m}${seoHead}`);
-  } else {
-    return null; // no <head> and no <title> — not a usable shell
-  }
-
-  // 3) Inject the static block inside #root, BEFORE the existing <noscript>
+  // 2) Inject the static block inside #root, BEFORE the existing <noscript>
   //    (kept for no-JS browsers). React replaces all #root children on
   //    mount, so real visitors still get the live interactive page.
   const rootOpenRe = /<div\b[^>]*\bid=(?:"root"|'root'|root)[^>]*>/i;

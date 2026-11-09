@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { useSchoolSettings } from "@/hooks/useSchoolSettings";
-import { SITE_URL, SITE_NAME } from "./SEO";
+import { SITE_URL, SITE_NAME, EMIS_CODE } from "./SEO";
 
 /**
  * Site-wide JSON-LD schemas: Organization, HighSchool (with full address),
@@ -44,6 +44,17 @@ const SiteSchema = () => {
     description:
       settings?.description ||
       "Government Higher Secondary School Ghallanai — quality education and excellence, District Mohmand, KPK Pakistan.",
+    // EMIS code — the official Government of Khyber Pakhtunkhwa identifier of
+    // this school. It is unique to this institution, so it is the strongest
+    // available signal that tells Google this site belongs to THAT school
+    // (and not to some other "government higher secondary school" in the
+    // district). It also matches the identical value the build-time static
+    // pages, the live crawler renderer and the machine-readable feeds emit,
+    // so all schema.org graphs describe ONE entity.
+    identifier: { "@type": "PropertyValue", name: "EMIS Code", value: EMIS_CODE },
+    additionalProperty: [
+      { "@type": "PropertyValue", name: "EMIS Code", value: EMIS_CODE },
+    ],
     address: {
       "@type": "PostalAddress",
       streetAddress: "Ghallanai",

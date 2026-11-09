@@ -35,6 +35,64 @@
 export const SITE_URL = "https://ghssghallanai.dpdns.org";
 export const SITE_NAME = "GHSS Ghallanai";
 
+// ── School identity ─────────────────────────────────────────────────────────
+// EMIS (Education Management Information System) code — the official
+// government identifier of this school. It is a strong, unique topical
+// token for the entity (no other school shares it), so it belongs in the
+// structured data, the meta layer and the machine-readable feeds: it is
+// what lets Google attach the site to the RIGHT school entity in the
+// Knowledge Panel instead of to a generic "higher secondary school".
+export const SCHOOL_EMIS_CODE = "60645";
+
+// Official Facebook page — the school's real, single page. This exact URL
+// MUST be identical in every schema.org graph the site emits (index.html,
+// SiteSchema.tsx, api/render.js, scripts/seo-page-content.mjs). A mismatch
+// makes Google see TWO different entities with the same name and refuse to
+// merge them, which weakens every Knowledge Panel signal.
+export const SCHOOL_FACEBOOK_URL = "https://www.facebook.com/share/19doja9mNr/";
+
+// ── Permanently REMOVED pages (410 Gone) ─────────────────────────────────────
+// These features were deleted from the site and will never come back:
+//   /gallery — the Photo Gallery was removed
+//   /duty    — the Duty Board was removed
+//   /notes   — the Notes/quiz section was removed
+//
+// WHY THEY MUST NOT REDIRECT (SEO):
+//   A removed page that 301/308-redirects to the HOMEPAGE is the single
+//   worst redirect pattern for Google:
+//     • every old URL becomes a second, duplicate "page" of the homepage,
+//     • Google classifies the homepage as duplicate/soft-404 content,
+//     • the homepage's ranking signals get diluted by dozens of inbound
+//       redirect URLs, and
+//     • Search Console reports the URL under "Page with redirect" — the
+//       exact exclusion reason this file exists to eliminate.
+//
+//   The correct answer for "this page is gone and there is no equivalent"
+//   is HTTP 410 Gone. It tells the search engines unambiguously: drop it
+//   from the index, stop spending crawl budget on it, and do not treat it
+//   as a redirect target.
+//
+//   NOTE: vercel.json's `redirects` array is applied by the platform BEFORE
+//   this middleware runs, so a redirect entry for any path listed here
+//   would silently shadow the 410. Do not re-add them.
+//
+//   A path that MOVED and still has an equivalent (e.g. /result-card →
+//   /results) is NOT listed here — it keeps its permanent redirect, which
+//   is the correct signal for a moved page and consolidates its ranking
+//   power onto the replacement.
+export const REMOVED_PATHS = ["/gallery", "/duty", "/notes"];
+
+/** True when the path is a permanently removed page (answer 410 Gone). */
+export function isRemovedPath(pathname) {
+  const p = normalizePath(pathname);
+  for (const removed of REMOVED_PATHS) {
+    if (p === removed) return true;
+    // A removed section also owns its sub-paths (/notes/anything).
+    if (p.startsWith(removed + "/")) return true;
+  }
+  return false;
+}
+
 // ── The public, indexable pages (the navbar destinations) ───────────────────
 // `label` is the navbar text; `path` is the canonical URL. These are the only
 // routes that appear in sitemap.xml, get a prerendered HTML file, and are

@@ -4,10 +4,7 @@
   "outputDirectory": "dist",
   "trailingSlash": false,
   "redirects": [
-    { "source": "/result-card", "destination": "/results", "permanent": true },
-    { "source": "/duty", "destination": "/", "permanent": true },
-    { "source": "/notes", "destination": "/", "permanent": true },
-    { "source": "/notes/:path*", "destination": "/", "permanent": true }
+    { "source": "/result-card", "destination": "/results", "permanent": true }
   ],
   "rewrites": [
     { "source": "/llms.txt", "destination": "/api/seo?kind=llms" },

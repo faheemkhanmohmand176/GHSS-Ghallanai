@@ -3,7 +3,7 @@ import { lazy, Suspense } from "react";
 import {
   GraduationCap, Target, Eye, MapPin, Calendar, Users, Award,
   History, ArrowRight, ShieldCheck, HeartHandshake,
-  BookOpen, Quote, ExternalLink,
+  BookOpen, Quote, ExternalLink, BadgeCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageLayout from "@/components/layout/PageLayout";
@@ -120,6 +120,10 @@ const About = () => {
             {[
               ...(settings?.established_year ? [{ icon: Calendar, label: `Est. ${settings.established_year}` }] : []),
               { icon: GraduationCap, label: "1st Year & 2nd Year (HSSC)" },
+              // EMIS code — the school's official government identifier.
+              // Shown visibly so visitors (and search engines reading the
+              // rendered text) can confirm this is the right school.
+              ...(settings?.emis_code ? [{ icon: BadgeCheck, label: `EMIS ${settings.emis_code}` }] : []),
               { icon: MapPin, label: settings?.address || "District Mohmand, KPK" },
             ].map(({ icon: Icon, label }) => (
               <span
@@ -174,6 +178,7 @@ const About = () => {
                     {[
                       { icon: MapPin, label: settings?.address || "District Mohmand" },
                       ...(settings?.established_year ? [{ icon: Calendar, label: `Est. ${settings.established_year}` }] : []),
+                      ...(settings?.emis_code ? [{ icon: BadgeCheck, label: `EMIS ${settings.emis_code}` }] : []),
                       { icon: GraduationCap, label: "1st Year & 2nd Year (HSSC)" },
                     ].map(({ icon: Icon, label }) => (
                       <span

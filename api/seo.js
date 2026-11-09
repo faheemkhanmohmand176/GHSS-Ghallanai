@@ -30,10 +30,13 @@ import { createClient } from "@supabase/supabase-js";
 // SHARED route list — the same one the middleware (404 decisions), the
 // prerender pipeline (which files to write) and api/render.js (what may be
 // rendered) use. See scripts/site-routes.mjs.
-import { PUBLIC_ROUTE_PATHS, classifyPath } from "../scripts/site-routes.mjs";
+import { PUBLIC_ROUTE_PATHS, classifyPath, SCHOOL_EMIS_CODE, SCHOOL_FACEBOOK_URL } from "../scripts/site-routes.mjs";
 
 const SITE_URL = "https://ghssghallanai.dpdns.org";
-const FACEBOOK_URL = "https://www.facebook.com/share/19doja9mNr/";
+// Shared with every other schema.org graph the site emits (index.html,
+// SiteSchema.tsx, api/render.js, scripts/seo-page-content.mjs) — a mismatch
+// makes Google see two different entities with the same name.
+const FACEBOOK_URL = SCHOOL_FACEBOOK_URL;
 const SITE_NAME = "GHSS Ghallanai";
 const SITE_DESC = "Government Higher Secondary School Ghallanai, District Mohmand, KPK Pakistan — latest notices and announcements.";
 
@@ -199,13 +202,14 @@ function buildLlmsTxt(s, admissionFiles = []) {
         )
         .join("\n")}\n`
     : "";
-  return `# ${s.school_name} — Government Higher Secondary School, District Mohmand
+  return `# ${s.school_name} — Government Higher Secondary School, District Mohmand (EMIS ${SCHOOL_EMIS_CODE})
 
-> Official website of Government Higher Secondary School (GHSS) Ghallanai, District Mohmand, Khyber Pakhtunkhwa (KPK), Pakistan — a government higher secondary school offering 1st Year and 2nd Year (HSSC — classes 11 and 12), affiliated with BISE Peshawar for board exams. The site provides online admission applications, exam results searchable by roll number, official merit lists of top position holders, downloadable exam roll number slips, official notices, free past papers, and teacher directory.
+> Official website of Government Higher Secondary School (GHSS) Ghallanai (EMIS code ${SCHOOL_EMIS_CODE}), District Mohmand, Khyber Pakhtunkhwa (KPK), Pakistan — a government higher secondary school offering 1st Year and 2nd Year (HSSC — classes 11 and 12), affiliated with BISE Peshawar for board exams. The site provides online admission applications, exam results searchable by roll number, official merit lists of top position holders, downloadable exam roll number slips, official notices, free past papers, and teacher directory.
 
 ## School facts
 
 - Full name: Government Higher Secondary School Ghallanai (also: ${s.school_name})
+- EMIS code: ${SCHOOL_EMIS_CODE} (Government of Khyber Pakhtunkhwa, Elementary & Secondary Education Department)
 - Location: Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan
 - Established: ${s.established}
 - Principal: ${s.principal || "(to be updated by the school office)"}

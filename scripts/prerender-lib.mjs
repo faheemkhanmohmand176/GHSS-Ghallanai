@@ -47,13 +47,17 @@ import {
   NAV_LINKS,
   getPageMeta,
   buildFallbackHtml,
+  normalizeRenderedHead,
 } from "./seo-page-content.mjs";
 // SHARED route list — the same one the middleware uses to decide what a 404
 // is, the sitemap generator uses to decide what to list, and api/render.js
 // uses to decide what it may render. One list, no drift.
-import { PUBLIC_ROUTE_PATHS } from "./site-routes.mjs";
+import { PUBLIC_ROUTE_PATHS, SCHOOL_EMIS_CODE } from "./site-routes.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Project root — the parent of scripts/. Used by the EMIS consistency check
+// to read src/components/seo/SEO.tsx from the browser bundle.
+const ROOT = path.resolve(__dirname, "..");
 
 // dist/ is normally next to the project root (this file lives in scripts/).
 // The cwd fallback covers exotic invocations where the script is copied or
@@ -227,26 +231,6 @@ function supabaseEnv() {
   };
 }
 
-async function fetchIds(table, limit) {
-  const { url, key } = supabaseEnv();
-  if (!url || !key) return [];
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(
-      `${url}/rest/v1/${table}?select=id&is_published=eq.true&order=created_at.desc&limit=${limit}`,
-      { headers: { apikey: key, Authorization: `Bearer ${key}` }, signal: controller.signal }
-    );
-    clearTimeout(timer);
-    if (!res.ok) return [];
-    const rows = await res.json();
-    if (!Array.isArray(rows)) return [];
-    return rows.map((r) => r.id).filter(Boolean);
-  } catch {
-    return [];
-  }
-}
-
 /**
  * Latest published items for the static fallback lists. Returns
  * { notices, library, stats } — empty values when the
@@ -399,7 +383,7 @@ async function launchBrowser() {
 }
 
 // ── Render one route to a static HTML file ──────────────────────────────────
-async function renderPage(context, route, outPath, originalPreloads) {
+async function renderPage(context, route, outPath, originalPreloads, noticeDetail = null) {
   const page = await context.newPage();
   try {
     try {
@@ -434,9 +418,27 @@ async function renderPage(context, route, outPath, originalPreloads) {
       });
     }, originalPreloads);
 
-    const html = await page.content();
-    if (!hasRenderedContent(html))
+    const rawHtml = await page.content();
+    if (!hasRenderedContent(rawHtml))
       throw new Error("rendered HTML has no real page content — skipping");
+
+    // ── SEO HEAD NORMALISATION (critical) ───────────────────────────────────
+    // A Chromium-rendered page carries BOTH the SPA shell's static
+    // <link rel="canonical" href="https://…/"> (the HOMEPAGE canonical) AND
+    // Helmet's correct per-route canonical — react-helmet-async only manages
+    // the tags it created (data-rh="true") and never removes pre-existing
+    // static ones. Two conflicting canonicals for the same URL make Google
+    // ignore the canonical (or pick the homepage one), which tells it "this
+    // page is a duplicate of /" — applied to every route at once, that
+    // collapses the whole site into one indexed page and blocks every
+    // ranking. The same duplication affected meta description (×2), og:url
+    // (×2), robots (×2) and the JSON-LD graph (×4..×9).
+    //
+    // normalizeRenderedHead() strips every conflicting tag and injects
+    // exactly ONE correct set for this route — the SAME function the static
+    // fallback uses, so both prerender paths emit identical SEO signals.
+    // The rendered BODY is never touched.
+    const html = normalizeRenderedHead(rawHtml, route, noticeDetail) || rawHtml;
 
     await mkdir(path.dirname(outPath), { recursive: true });
     await writeFile(outPath, html, "utf8");
@@ -557,11 +559,16 @@ function makeListFiller(lists) {
  * injection); the loud verification at the end of runPrerender() now makes
  * any future regression of this guarantee impossible to miss in build logs.
  */
-async function fillMissingRoutesWithStaticContent() {
+async function fillMissingRoutesWithStaticContent(pristineShell = "") {
   const shellPath = path.join(DIST, "index.html");
   if (!existsSync(shellPath)) return { filled: [], noticeFilled: 0, skipped: "dist/index.html missing" };
 
-  const shellHtml = await readFile(shellPath, "utf8");
+  // Use the PRISTINE shell (captured before the Chromium phase overwrote
+  // dist/index.html with the rendered homepage). Falling back to the file on
+  // disk is only correct when the Chromium phase never ran (Vercel) — on a
+  // builder WITH a browser it would inject the homepage's rendered body into
+  // every fallback page.
+  const shellHtml = pristineShell || (await readFile(shellPath, "utf8"));
   // Always fetch build-time data (library/notice lists + stats blocks).
   const lists = await fetchLatestLists(10);
 
@@ -655,6 +662,24 @@ export async function runPrerender(source = "cli") {
   const skipFallback = process.env.SEO_FALLBACK === "false" || process.env.SEO_FALLBACK === "0";
 
   // 2. Chromium phase — full-fidelity rendered pages.
+  //
+  //    PRISTINE SHELL CAPTURE (critical, and easy to get wrong):
+  //    The Chromium phase OVERWRITES dist/index.html with the fully rendered
+  //    HOMEPAGE. The static fallback phase (step 3) then needs a shell to
+  //    inject per-route content into — and if it reads dist/index.html at
+  //    that point it gets the RENDERED HOMEPAGE, so every fallback page
+  //    (e.g. /admission) silently inherits the homepage's rendered hero,
+  //    navigation and copy inside its own <body>. To a crawler that does
+  //    not run JavaScript that page then reads as the homepage plus a bit of
+  //    extra — duplicate content, and a second <h1> that is identical on
+  //    every URL.
+  //
+  //    So the PRISTINE shell (the built SPA shell, before any render) is
+  //    captured HERE, before the Chromium phase can touch it, and the
+  //    fallback phase always uses that copy. The result is identical on a
+  //    builder with a browser and on one without.
+  const pristineShellHtml = await readFile(path.join(DIST, "index.html"), "utf8").catch(() => "");
+
   let chromiumOk = 0;
   let chromiumFailed = 0;
   const server = await startServer();
@@ -696,7 +721,11 @@ export async function runPrerender(source = "cli") {
         return route.continue();
       });
 
-      const noticeIds = await fetchIds("notices", DETAIL_LIMIT);
+      // Full notice ROWS (not just ids) so the head normaliser can build the
+      // correct per-notice <title>/description/canonical/Article JSON-LD.
+      const noticeRows = await fetchNoticeDetails(DETAIL_LIMIT);
+      const noticeIds = noticeRows.map((r) => r.id).filter(Boolean);
+      const noticeById = new Map(noticeRows.map((r) => [r.id, r]));
       const routes = [
         ...STATIC_ROUTES,
         ...noticeIds.map((id) => `/notices/${id}`),
@@ -710,7 +739,9 @@ export async function runPrerender(source = "cli") {
         const outPath =
           route === "/" ? path.join(DIST, "index.html") : path.join(DIST, route.replace(/^\//, ""), "index.html");
         try {
-          const size = await renderPage(context, route, outPath, originalPreloads);
+          const noticeId = route.startsWith("/notices/") ? route.slice("/notices/".length) : null;
+          const noticeDetail = noticeId ? noticeById.get(noticeId) || null : null;
+          const size = await renderPage(context, route, outPath, originalPreloads, noticeDetail);
           chromiumOk++;
           if (STATIC_ROUTES.includes(route)) log.push(`  ✔ ${route} (${(size / 1024).toFixed(1)} KB)`);
         } catch (e) {
@@ -734,7 +765,7 @@ export async function runPrerender(source = "cli") {
     console.log("Prerender: static fallback skipped (SEO_FALLBACK=false).");
   } else {
     try {
-      const { filled, noticeFilled } = await fillMissingRoutesWithStaticContent();
+      const { filled, noticeFilled } = await fillMissingRoutesWithStaticContent(pristineShellHtml);
       fallbackCount = filled.length;
       noticeFallbackCount = noticeFilled || 0;
       if (fallbackCount > 0) {
@@ -782,6 +813,95 @@ export async function runPrerender(source = "cli") {
       );
     } else {
       console.log(`Prerender verification OK — ${STATIC_ROUTES.length} public routes carry real content.`);
+    }
+
+    // ── CANONICAL UNIQUENESS CHECK ─────────────────────────────────────────
+    // A page that carries MORE THAN ONE <link rel="canonical"> sends Google
+    // a contradictory signal: it ignores conflicting canonicals, or picks the
+    // wrong one. The SPA shell ships a static HOMEPAGE canonical and
+    // react-helmet-async never removes pre-existing static tags (it only
+    // manages the ones it created, the data-rh="true" ones), so a
+    // Chromium-rendered page used to end up with TWO canonicals — the
+    // homepage's and the route's. Applied to every route, that tells Google
+    // "every page here is a duplicate of /" and collapses the whole site
+    // into a single indexed page. normalizeRenderedHead() fixes it; this
+    // check proves the fix actually landed in the emitted files.
+    try {
+      const dupes = [];
+      for (const route of STATIC_ROUTES) {
+        const outPath =
+          route === "/"
+            ? path.join(DIST, "index.html")
+            : path.join(DIST, route.replace(/^\//, ""), "index.html");
+        const raw = await readFile(outPath, "utf8").catch(() => "");
+        if (!raw) continue;
+        // Strip HTML comments first: a comment may legitimately contain the
+        // text of a tag and must never be counted as a real tag.
+        const withoutComments = raw.replace(/<!--[\s\S]*?-->/g, "");
+        const canonicals = [...withoutComments.matchAll(/<link\b[^>]*\brel=(["'])canonical\1[^>]*>/gi)];
+        if (canonicals.length > 1) {
+          dupes.push(`  • ${route} — ${canonicals.length} canonical tags`);
+        }
+        // The canonical must point at THIS route, never at the homepage.
+        const href = (canonicals[0]?.[0] || "").match(/href=(["'])(.*?)\1/i)?.[2] || "";
+        const expected = `${SITE_URL}${route === "/" ? "/" : route}`;
+        if (href && href !== expected) {
+          dupes.push(`  • ${route} — canonical is "${href}", expected "${expected}"`);
+        }
+        // EXACTLY ONE <h1> per page. Two or more means the page is carrying
+        // content that belongs to another URL — in practice the homepage's
+        // rendered hero leaking into a fallback page, or the generic
+        // <noscript> heading. Either way the URL announces a heading that is
+        // identical on every page of the site, which is the "all these pages
+        // are the same page" signal that gets a site classified as duplicate
+        // content.
+        const h1s = (withoutComments.match(/<h1[\s>]/gi) || []).length;
+        if (h1s !== 1) {
+          dupes.push(`  • ${route} — ${h1s} <h1> elements (expected exactly 1)`);
+        }
+      }
+      if (dupes.length) {
+        console.error(
+          "\n⛔⛔⛔ CANONICAL / H1 CHECK FAILED ⛔⛔⛔\n" +
+            "These prerendered pages carry a conflicting or wrong canonical, " +
+            "or more than one <h1>:\n" +
+            dupes.join("\n") +
+            "\nGoogle would treat the whole site as a duplicate of the homepage." +
+            "\nFix scripts/seo-page-content.mjs (applySeoHead) BEFORE deploying." +
+            "\n⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔\n"
+        );
+      } else {
+        console.log(`Canonical + H1 check OK — every route has exactly one, correct canonical and exactly one <h1>.`);
+      }
+    } catch (e) {
+      console.warn(`Canonical check could not run: ${e?.message || e}`);
+    }
+
+    // ── EMIS CODE CONSISTENCY CHECK ────────────────────────────────────────
+    // The EMIS code appears in TWO places: scripts/site-routes.mjs (the
+    // build-time source of truth used by every server-side surface) and
+    // src/components/seo/SEO.tsx (the browser bundle, which cannot import
+    // the .mjs scripts). If they ever drift, the site would tell Google two
+    // different identifiers for the same school. Fail the check loudly.
+    try {
+      const seoSrc = await readFile(path.join(ROOT, "src", "components", "seo", "SEO.tsx"), "utf8").catch(() => "");
+      const m = seoSrc.match(/EMIS_CODE\s*=\s*["']([^"']+)["']/);
+      if (!m) {
+        console.warn("Canonical/EMIS check: could not find EMIS_CODE in src/components/seo/SEO.tsx.");
+      } else if (m[1] !== SCHOOL_EMIS_CODE) {
+        console.error(
+          "\n⛔⛔⛔ EMIS CODE MISMATCH ⛔⛔⛔\n" +
+            `  scripts/site-routes.mjs  SCHOOL_EMIS_CODE = "${SCHOOL_EMIS_CODE}"\n` +
+            `  src/components/seo/SEO.tsx  EMIS_CODE = "${m[1]}"\n` +
+            "The two must be identical — otherwise the site advertises two" +
+            "\ndifferent identifiers for the same school. Fix before deploying." +
+            "\n⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔\n"
+        );
+      } else {
+        console.log(`EMIS check OK — every layer advertises EMIS ${SCHOOL_EMIS_CODE}.`);
+      }
+    } catch (e) {
+      console.warn(`EMIS check could not run: ${e?.message || e}`);
     }
 
     // ── Cross-list consistency: router vs. shared route list ───────────────

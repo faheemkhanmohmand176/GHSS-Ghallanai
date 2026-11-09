@@ -24,6 +24,8 @@ export interface SchoolSettings {
   principal_name: string | null;
   principal_message: string | null;
   principal_photo_url: string | null;
+  /** Official Government of Khyber Pakhtunkhwa EMIS code (GHSS Ghallanai = 60645). */
+  emis_code: string | null;
 }
 
 export const fallbackSettings: SchoolSettings = {
@@ -52,6 +54,11 @@ export const fallbackSettings: SchoolSettings = {
   principal_name: null,
   principal_message: null,
   principal_photo_url: null,
+  // EMIS code is a FIXED official identifier — unlike the statistics above,
+  // it is never "0" until the dashboard is filled in, so the fallback
+  // carries the real value. It is also emitted as a constant by the
+  // schema.org graph, so the two can never disagree.
+  emis_code: "60645",
 };
 
 export function safeMediaUrl(url: string | null | undefined): string | null {
@@ -163,7 +170,15 @@ function writeCache(s: SchoolSettings) {
   }
 }
 
+// `emis_code` requires migration 32. If the database has not run it yet,
+// PostgREST answers 400 for the whole select — so the direct read falls
+// back to the pre-32 column list and the site keeps working on an
+// un-migrated database instead of breaking every page that shows the
+// school profile.
 export const SETTINGS_COLUMNS =
+  "id, school_name, tagline, description, about_text, logo_url, banner_url, address, phone, email, established_year, total_students, total_teachers, pass_percentage, board_results, location_lat, location_lng, principal_name, principal_message, principal_photo_url, emis_code";
+
+export const SETTINGS_COLUMNS_LEGACY =
   "id, school_name, tagline, description, about_text, logo_url, banner_url, address, phone, email, established_year, total_students, total_teachers, pass_percentage, board_results, location_lat, location_lng, principal_name, principal_message, principal_photo_url";
 
 /** Called by the admin right after a REAL, confirmed save. Puts the row the
@@ -186,11 +201,25 @@ export function applySavedSettings(
 }
 
 async function fetchSettings(client: typeof supabase) {
-  const { data, error } = await client
+  let { data, error } = await client
     .from("school_settings")
     .select(SETTINGS_COLUMNS)
     .eq("id", 1)
     .single();
+
+  // Unknown column (migration 32 not applied on this database yet) → retry
+  // with the legacy column list so the page still renders.
+  if (error && /column|schema|PGRST/i.test(error.message || "")) {
+    const retry = await client
+      .from("school_settings")
+      .select(SETTINGS_COLUMNS_LEGACY)
+      .eq("id", 1)
+      .single();
+    if (!retry.error) {
+      data = { ...(retry.data as object), emis_code: "60645" } as typeof data;
+      error = null;
+    }
+  }
 
   if (error) throw error;
 

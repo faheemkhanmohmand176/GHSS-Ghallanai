@@ -14,7 +14,7 @@
     <title>GHSS Ghallanai — Government Higher Secondary School, District Mohmand KPK</title>
 
     <!-- Canonical for the homepage.
-         Every prerendered route gets its own <link rel="canonical"> from
+         Every prerendered route gets its own canonical link from
          scripts/seo-page-content.mjs, but the raw SPA shell (dist/index.html)
          had none — so a crawler that does not execute JavaScript saw a
          homepage with a title and a description but no canonical signal.
@@ -22,8 +22,18 @@
          makes the signal present in the FIRST byte of HTML as well.
          The trailing slash form matches the prerendered pages exactly, so
          the homepage never appears as two URLs (/ and /index.html — the latter
-         is 308-redirected to / by the middleware). -->
+         is 308-redirected to / by the middleware).
+         NOTE: this comment deliberately spells the tag out in words. A literal
+         tag string inside an HTML comment is matched by the head-normalising
+         regexes in scripts/seo-page-content.mjs and would silently corrupt
+         the comment. -->
     <link rel="canonical" href="https://ghssghallanai.dpdns.org/" />
+
+    <!-- Keywords: the EMIS code (60645) is the school's unique government
+         identifier. Including it here — and in the structured data below —
+         lets Google connect this site to the RIGHT school entity instead of
+         to a generic "government higher secondary school" in the district. -->
+    <meta name="keywords" content="GHSS Ghallanai, Government Higher Secondary School Ghallanai, EMIS 60645, Ghallanai school, District Mohmand school, KPK school, HSSC 1st Year 2nd Year, BISE Peshawar, admission, results, merit list, roll number slip" />
 
     <!-- Static description/OG fallback — React Helmet overwrites these per
          route once JS runs, so a real visitor never sees this version; it
@@ -64,6 +74,10 @@
           "alternateName": "GHSS Ghallanai",
           "url": "https://ghssghallanai.dpdns.org",
           "description": "Government Higher Secondary School Ghallanai — quality education and excellence, District Mohmand, KPK Pakistan.",
+          "identifier": { "@type": "PropertyValue", "name": "EMIS Code", "value": "60645" },
+          "additionalProperty": [
+            { "@type": "PropertyValue", "name": "EMIS Code", "value": "60645" }
+          ],
           "address": {
             "@type": "PostalAddress",
             "streetAddress": "Ghallanai",
@@ -261,15 +275,25 @@
       <!-- Static fallback content — read only by crawlers/browsers that do
            NOT execute JavaScript (many "weak" AI bots, some link-preview
            tools). Once React mounts, this is removed from the DOM and never
-           seen by a normal visitor. Public school facts only. -->
+           seen by a normal visitor. Public school facts only.
+
+           NOTE ON THE HEADING TAG: this is deliberately a <p><strong>, NOT an
+           <h1>. On a prerendered page the crawler-readable content block
+           (scripts/seo-page-content.mjs) already carries the page's single,
+           route-specific <h1>. A second <h1> here would be IDENTICAL on every
+           page of the site, so every URL would announce the same heading —
+           exactly the "all of these pages are the homepage" signal that
+           makes a site look like duplicate content to a crawler that does not
+           run JavaScript. One <h1> per page, and it describes THAT page. -->
       <noscript>
-        <h1>GHSS Ghallanai — Government Higher Secondary School, District Mohmand, KPK</h1>
+        <p><strong>GHSS Ghallanai — Government Higher Secondary School, District Mohmand, KPK</strong></p>
         <p>
           Government Higher Secondary School Ghallanai is a public government higher secondary school
           in Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan,
           offering 1st Year and 2nd Year (HSSC — classes 11 and 12) and
           affiliated with BISE Peshawar for board examinations.
         </p>
+        <p>EMIS code: 60645 · Established 1975 · 1st Year and 2nd Year only</p>
         <p>
           <a href="/admission">Admission</a> ·
           <a href="/results">Results</a> ·

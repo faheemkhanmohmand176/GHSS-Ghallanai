@@ -230,11 +230,26 @@ const FETCHERS = {
   },
 
   // School settings row (id=1). Same column list as useSchoolSettings.
+  //
+  // SELF-HEALING: `emis_code` arrives with migration 32. On a database that
+  // has not run it yet, PostgREST answers 400 (unknown column) and this kind
+  // would fail for EVERY visitor — falling back to per-visitor direct
+  // Supabase queries, the exact load this cache exists to prevent. The
+  // fetcher therefore retries once with the CORE column list that exists in
+  // the oldest schema, so the cache keeps working either way.
   async settings() {
-    const rows = await sb(
-      `school_settings?select=id,school_name,tagline,description,about_text,logo_url,banner_url,address,phone,email,established_year,total_students,total_teachers,pass_percentage,board_results,location_lat,location_lng,principal_name,principal_message,principal_photo_url` +
-      `&id=eq.1&limit=1`,
-    );
+    const FULL = `id,school_name,tagline,description,about_text,logo_url,banner_url,address,phone,email,established_year,total_students,total_teachers,pass_percentage,board_results,location_lat,location_lng,principal_name,principal_message,principal_photo_url,emis_code`;
+    const CORE = `id,school_name,tagline,description,about_text,logo_url,banner_url,address,phone,email,established_year,total_students,total_teachers,pass_percentage,board_results,location_lat,location_lng,principal_name,principal_message,principal_photo_url`;
+    let rows;
+    try {
+      rows = await sb(`school_settings?select=${FULL}&id=eq.1&limit=1`);
+    } catch (e) {
+      // 400 = unknown column (migration 32 not applied yet); a 5xx/timeout
+      // would fail on the core list too — rethrow so the caller gets its
+      // normal 502 fallback.
+      if (!/→ 400/.test(String(e && e.message))) throw e;
+      rows = await sb(`school_settings?select=${CORE}&id=eq.1&limit=1`);
+    }
     return rows?.[0] ?? null;
   },
 
