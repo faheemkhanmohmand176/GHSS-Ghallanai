@@ -349,7 +349,7 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
 
       {/* Mobile bottom bar */}
       <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 border-t border-border/70 shadow-[0_-8px_24px_-16px_hsl(var(--primary)/0.28)] transition-transform duration-300 ease-out ${bottomHidden ? "translate-y-full" : "translate-y-0"}`} style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <div className="flex items-center justify-around py-1.5">
+        <div className="flex items-center justify-around py-1">
           {bottomBarItems.map(item => {
             const isActive = activeTab === item.id;
             return (
@@ -357,18 +357,18 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 aria-label={item.label}
-                className={`admin-dock-item relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-2 min-w-[3.4rem] rounded-lg transition-all duration-200 ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                className={`admin-dock-item relative flex flex-col items-center justify-center gap-0.5 px-2 py-1 min-w-[3.1rem] rounded-lg transition-all duration-200 ${isActive ? "text-primary" : "text-muted-foreground"}`}
                 aria-current={isActive ? "page" : undefined}
               >
-                {isActive && <span aria-hidden className="absolute -top-1.5 h-1 w-7 rounded-full bg-[hsl(43_89%_58%)] shadow-[0_0_10px_hsl(43_89%_58%/0.8)]" />}
-                <NavIcon id={item.id} className={`h-[22px] w-[22px] transition-transform duration-200 ${isActive ? "scale-110" : "opacity-90"}`} />
-                <span className={`admin-dock-label text-[11px] font-semibold tracking-wide leading-none ${isActive ? "text-primary" : ""}`}>{item.short}</span>
+                {isActive && <span aria-hidden className="absolute -top-1 h-[3px] w-6 rounded-full bg-[hsl(43_89%_58%)] shadow-[0_0_10px_hsl(43_89%_58%/0.8)]" />}
+                <NavIcon id={item.id} className={`h-[17px] w-[17px] transition-transform duration-200 ${isActive ? "scale-110" : "opacity-90"}`} />
+                <span className={`admin-dock-label text-[9.5px] font-semibold tracking-wide leading-none ${isActive ? "text-primary" : ""}`}>{item.short}</span>
               </button>
             );
           })}
-          <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" className="admin-dock-item flex flex-col items-center gap-0.5 p-2 min-w-[3.25rem] text-muted-foreground">
-            <Menu className="h-5 w-5" strokeWidth={1.8} aria-hidden />
-            <span className="text-[11px] font-semibold tracking-wide leading-none">Menu</span>
+          <button onClick={() => setSidebarOpen(true)} aria-label="Open menu" className="admin-dock-item flex flex-col items-center gap-0.5 px-2 py-1 min-w-[3.1rem] text-muted-foreground">
+            <Menu className="h-[17px] w-[17px]" strokeWidth={1.8} aria-hidden />
+            <span className="text-[9.5px] font-semibold tracking-wide leading-none">Menu</span>
           </button>
         </div>
       </div>
