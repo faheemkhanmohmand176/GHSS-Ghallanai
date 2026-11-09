@@ -46,6 +46,8 @@ const sanitizeInput = (str: string): string => {
     .trim();
 };
 
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Name validation - allow letters, spaces, hyphens, apostrophes
 const NAME_REGEX = /^[a-zA-Z\s\-'\u0600-\u06FF]{2,100}$/;
@@ -111,6 +113,13 @@ const Contact = () => {
       errors.name = "Name is required";
     } else if (!NAME_REGEX.test(form.name.trim())) {
       errors.name = "Please enter a valid name (letters only)";
+    }
+
+    // Email validation
+    if (!form.email.trim()) {
+      errors.email = "Email is required";
+    } else if (!EMAIL_REGEX.test(form.email.trim())) {
+      errors.email = "Please enter a valid email address";
     }
 
     // Message validation
@@ -182,7 +191,7 @@ const Contact = () => {
     // SECURITY FIX: Sanitize all inputs
     const sanitizedForm = {
       name: sanitizeInput(form.name),
-      email: sanitizeInput(displayEmail),
+      email: sanitizeInput(form.email),
       subject: sanitizeInput(form.subject),
       message: sanitizeInput(form.message)
     };
@@ -425,7 +434,7 @@ const Contact = () => {
                 </motion.div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Name Field - With Validation */}
                     <div className="space-y-1.5">
                       <Label htmlFor="contact-name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -453,6 +462,32 @@ const Contact = () => {
                       )}
                     </div>
 
+                    {/* Email Field - With Validation */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="contact-email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Email Address <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="contact-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={form.email}
+                        onChange={set("email")}
+                        required
+                        maxLength={254}
+                        autoComplete="email"
+                        className={`h-11 rounded-xl bg-background transition-shadow focus:ring-2 focus:ring-gold/50 focus:border-gold/60 ${
+                          validationErrors.email ? 'border-destructive' : ''
+                        }`}
+                        aria-invalid={!!validationErrors.email}
+                        aria-describedby={validationErrors.email ? "email-error" : undefined}
+                      />
+                      {validationErrors.email && (
+                        <p id="email-error" className="text-xs text-destructive flex items-center gap-1 mt-1">
+                          <AlertTriangle className="w-3 h-3" />{validationErrors.email}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Subject Field - Optional but Sanitized */}
