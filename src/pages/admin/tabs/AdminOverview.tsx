@@ -117,7 +117,7 @@ const KpiTile = ({
     />
     <div className="relative flex items-start justify-between">
       <span className={`grid h-10 w-10 place-items-center rounded-xl ring-1 ring-inset ${tone.chip} ${tone.ring}`}>
-        <Icon className="h-6 w-6 drop-shadow-sm" aria-hidden="true" />
+        <Icon className="h-5 w-5" aria-hidden="true" />
       </span>
       <ArrowUpRight
         className="h-4 w-4 text-muted-foreground/40 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary"
@@ -141,7 +141,7 @@ const SectionHeader = ({
 }: { icon: React.ElementType; title: string; subtitle?: string }) => (
   <div className="mb-3.5 flex items-center gap-2.5 sm:mb-4">
     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted/60 ring-1 ring-inset ring-border/70">
-      <Icon className="h-[22px] w-[22px]" aria-hidden="true" />
+      <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
     </span>
     <div className="min-w-0">
       <h3 className="truncate text-[15px] font-bold leading-tight tracking-tight text-foreground">{title}</h3>
@@ -361,7 +361,7 @@ const AdminOverview = () => {
               className="group flex items-center gap-3 rounded-2xl border border-border/80 bg-card p-3 shadow-card transition-[box-shadow,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-elevated"
             >
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted/60 ring-1 ring-inset ring-border/70 transition-transform group-hover:scale-105">
-                <a.icon className="h-6 w-6 drop-shadow-sm" aria-hidden="true" />
+                <a.icon className="h-5 w-5" aria-hidden="true" />
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-[13px] font-bold leading-tight text-foreground">{a.label}</span>
@@ -406,7 +406,7 @@ const AdminOverview = () => {
                 return (
                   <li key={item.id + i} className="relative flex items-center gap-3 rounded-xl px-1.5 py-2.5 transition-colors hover:bg-secondary/50">
                     <span className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full ring-4 ring-card ${chip}`}>
-                      <Icon className="h-5 w-5" aria-hidden="true" />
+                      <Icon className="h-4 w-4" aria-hidden="true" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -452,7 +452,7 @@ const AdminOverview = () => {
         <dl className="grid gap-x-4 gap-y-3.5 p-4 sm:grid-cols-2 sm:p-5">
           {identity.map((row) => (
             <div key={row.label} className="flex min-w-0 items-start gap-2.5">
-              <row.Icon className="mt-[1px] h-5 w-5 shrink-0" aria-hidden="true" />
+              <row.Icon className="mt-[2px] h-4 w-4 shrink-0" aria-hidden="true" />
               <div className="min-w-0">
                 <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{row.label}</dt>
                 <dd className="mt-0.5 break-words text-[13px] font-medium leading-snug text-foreground">{row.value}</dd>
