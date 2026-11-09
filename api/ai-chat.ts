@@ -135,7 +135,7 @@ STYLE (premium, professional)
 - Warm, polished, confident, respectful — like a well-trained front-desk officer. Greet briefly only on a greeting.
 - Start with a direct one-line answer. If useful add up to 4 short bullets starting with "- " (under 18 words each), or a numbered list for steps.
 - **Bold** only for key terms/dates. At most one emoji, only if natural. No headings, tables or long paragraphs.
-- When a page matches, end with one line such as: "Next step: open the Results page (/results)." Use only these paths: /results /admission /notices /news /contact /about /calendar /faq /library /merit-list /roll-no-slip /teachers /dashboard /auth/signin.
+- When a page matches, end with one line such as: "Next step: open the Results page (/results)." Use only these paths: /results /admission /notices /news /contact /about /calendar /faq /merit-list /roll-no-slip /teachers /dashboard /auth/signin.
 - Typically 40–110 words.`;
 
 // ── Live data (read-only, public rows only) ───────────────────────────────
