@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   LogOut, Menu, X, ExternalLink, Moon, Sun, type LucideIcon,
   LayoutDashboard, Settings2, UserPlus, Trophy, CalendarDays, Ticket,
-  Armchair, Medal, GraduationCap, Clock, Megaphone, Library, ShieldCheck,
+  Armchair, Medal, GraduationCap, Clock, Megaphone, ShieldCheck,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { pingDispatch } from "@/lib/push";
@@ -54,7 +54,6 @@ const navSections: NavSection[] = [
       { id: "teachers",       label: "Manage Teachers",   short: "Staff", icon: GraduationCap },
       { id: "timetables",     label: "Timetables",        short: "Time", icon: Clock },
       { id: "announcements",  label: "Notices",           short: "Notices", icon: Megaphone },
-      { id: "library",        label: "Library",           short: "Library", icon: Library },
     ],
   },
   {
