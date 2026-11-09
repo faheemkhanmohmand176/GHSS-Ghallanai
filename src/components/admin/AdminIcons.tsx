@@ -1,294 +1,73 @@
 /**
- * Full-colour, emoji-style SVG icons for the admin dashboard.
- * Each icon is a self-contained 24×24 SVG (flat gradients, soft outline) so it
- * keeps its real colours in light AND dark mode — no CSS colour needed.
+ * Real emoji artwork for the admin dashboard (📝 📅 🏆 ⏰ 📢 📚 …).
+ * Graphics: Twemoji (https://github.com/jdecked/twemoji) — © Twitter, Inc and
+ * other contributors, licensed CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+ * The paths contain no gradient ids, so many copies can be on one page safely
+ * (even inside hidden sidebars) and they never turn white / invisible.
+ *
  * Usage: <AdminIcon name="admissions" className="h-5 w-5" />
  */
 import type { SVGProps } from "react";
 
 type P = SVGProps<SVGSVGElement>;
-const base = { viewBox: "0 0 24 24", fill: "none", xmlns: "http://www.w3.org/2000/svg", "aria-hidden": true, focusable: false } as const;
 
-// ── 🏠 Overview — dashboard tiles ───────────────────────────────────────────
-const Overview = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-ov-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4ADE80"/><stop offset="1" stopColor="#16A34A"/></linearGradient>
-      <linearGradient id="ai-ov-b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FCD34D"/><stop offset="1" stopColor="#F59E0B"/></linearGradient>
-      <linearGradient id="ai-ov-c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#60A5FA"/><stop offset="1" stopColor="#2563EB"/></linearGradient>
-      <linearGradient id="ai-ov-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#F9A8D4"/><stop offset="1" stopColor="#EC4899"/></linearGradient>
-    </defs>
-    <rect x="2.5" y="2.5" width="8.6" height="10.2" rx="2.2" fill="url(#ai-ov-a)"/>
-    <rect x="12.9" y="2.5" width="8.6" height="6" rx="2.2" fill="url(#ai-ov-b)"/>
-    <rect x="12.9" y="10.3" width="8.6" height="11.2" rx="2.2" fill="url(#ai-ov-c)"/>
-    <rect x="2.5" y="14.5" width="8.6" height="7" rx="2.2" fill="url(#ai-ov-d)"/>
-    <path d="M4.5 5h4.6M4.5 7.6h3" stroke="#fff" strokeOpacity=".75" strokeWidth="1.2" strokeLinecap="round"/>
-  </svg>
-);
+const make = (body: string) => {
+  const Icon = (p: P) => (
+    <svg viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" {...p} dangerouslySetInnerHTML={{ __html: body }} />
+  );
+  return Icon;
+};
 
-// ── ⚙️ Settings — gear ──────────────────────────────────────────────────────
-const Settings = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-st-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#CBD5E1"/><stop offset=".55" stopColor="#94A3B8"/><stop offset="1" stopColor="#64748B"/></linearGradient>
-    </defs>
-    <path d="M12 1.8l1.6.2.5 2.4 1.9.8 2.1-1.3 2.2 2.2-1.3 2.1.8 1.9 2.4.5.2 1.6v0l-.2 1.6-2.4.5-.8 1.9 1.3 2.1-2.2 2.2-2.1-1.3-1.9.8-.5 2.4-1.6.2-1.6-.2-.5-2.4-1.9-.8-2.1 1.3-2.2-2.2 1.3-2.1-.8-1.9-2.4-.5L1.8 12l.2-1.6 2.4-.5.8-1.9-1.3-2.1 2.2-2.2 2.1 1.3 1.9-.8.5-2.4z" fill="url(#ai-st-a)" stroke="#475569" strokeWidth=".7" strokeLinejoin="round"/>
-    <circle cx="12" cy="12" r="4" fill="#F8FAFC" stroke="#475569" strokeWidth=".8"/>
-    <circle cx="12" cy="12" r="1.9" fill="#F59E0B"/>
-  </svg>
-);
-
-// ── 📝 Admissions — notepad + pencil ───────────────────────────────────────
-const Admissions = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-ad-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFFFFF"/><stop offset="1" stopColor="#E0F2FE"/></linearGradient>
-      <linearGradient id="ai-ad-b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FCD34D"/><stop offset="1" stopColor="#F59E0B"/></linearGradient>
-    </defs>
-    <rect x="3.2" y="3.2" width="14.4" height="17.8" rx="2.2" fill="url(#ai-ad-a)" stroke="#0EA5E9" strokeWidth="1.1"/>
-    <rect x="3.2" y="3.2" width="14.4" height="3.6" rx="2.2" fill="#38BDF8"/>
-    <circle cx="6.6" cy="3.6" r="1" fill="#0369A1"/><circle cx="10.4" cy="3.6" r="1" fill="#0369A1"/><circle cx="14.2" cy="3.6" r="1" fill="#0369A1"/>
-    <path d="M6.2 10.4h8M6.2 13.2h8M6.2 16h4.4" stroke="#7DD3FC" strokeWidth="1.2" strokeLinecap="round"/>
-    <path d="M20.7 9.3l-8 8-.9 3.2 3.2-.9 8-8a1.8 1.8 0 000-2.5l-.2-.2a1.8 1.8 0 00-2.1.4z" fill="url(#ai-ad-b)" stroke="#B45309" strokeWidth=".8" strokeLinejoin="round"/>
-    <path d="M18.6 11.4l1.7 1.7" stroke="#B45309" strokeWidth=".8"/>
-    <path d="M11.8 17.3l-.9 3.2 3.2-.9z" fill="#FDE68A" stroke="#B45309" strokeWidth=".6" strokeLinejoin="round"/>
-    <path d="M11.2 19.3l-.3 1.2 1.2-.3z" fill="#334155"/>
-  </svg>
-);
-
-// ── 🏆 Results — trophy ─────────────────────────────────────────────────────
-const Results = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-rs-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEF08A"/><stop offset=".5" stopColor="#FACC15"/><stop offset="1" stopColor="#D97706"/></linearGradient>
-    </defs>
-    <path d="M7 4.2H3.6v2.2c0 2.4 1.6 4.2 4 4.5M17 4.2h3.4v2.2c0 2.4-1.6 4.2-4 4.5" stroke="#D97706" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
-    <path d="M6.6 2.6h10.8v6.6c0 3.4-2.4 5.8-5.4 5.8s-5.4-2.4-5.4-5.8z" fill="url(#ai-rs-a)" stroke="#B45309" strokeWidth=".9" strokeLinejoin="round"/>
-    <path d="M9 4.4v4.8c0 1.4.6 2.4 1.4 3" stroke="#fff" strokeOpacity=".65" strokeWidth="1.2" strokeLinecap="round"/>
-    <rect x="10.6" y="15" width="2.8" height="3" fill="#D97706"/>
-    <path d="M7.4 21.4v-1.2c0-.7.6-1.2 1.2-1.2h6.8c.7 0 1.2.5 1.2 1.2v1.2z" fill="#92400E"/>
-    <path d="M12 5.2l.9 1.8 2 .3-1.4 1.4.3 2-1.8-.9-1.8.9.3-2-1.4-1.4 2-.3z" fill="#FFF7D6" stroke="#B45309" strokeWidth=".4"/>
-  </svg>
-);
-
-// ── 📅 Exam Date Sheet — calendar ───────────────────────────────────────────
-const DateSheet = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-dt-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFFFFF"/><stop offset="1" stopColor="#F1F5F9"/></linearGradient>
-      <linearGradient id="ai-dt-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#F87171"/><stop offset="1" stopColor="#DC2626"/></linearGradient>
-    </defs>
-    <rect x="2.8" y="4" width="18.4" height="17.2" rx="2.6" fill="url(#ai-dt-a)" stroke="#CBD5E1" strokeWidth="1"/>
-    <path d="M2.8 6.6A2.6 2.6 0 015.4 4h13.2a2.6 2.6 0 012.6 2.6V9H2.8z" fill="url(#ai-dt-b)"/>
-    <rect x="7" y="2" width="2.2" height="4.4" rx="1.1" fill="#475569"/><rect x="14.8" y="2" width="2.2" height="4.4" rx="1.1" fill="#475569"/>
-    <g fill="#94A3B8"><rect x="5.6" y="11" width="2.6" height="2.2" rx=".6"/><rect x="10.7" y="11" width="2.6" height="2.2" rx=".6"/><rect x="15.8" y="11" width="2.6" height="2.2" rx=".6"/><rect x="5.6" y="15.4" width="2.6" height="2.2" rx=".6"/><rect x="15.8" y="15.4" width="2.6" height="2.2" rx=".6"/></g>
-    <rect x="10.4" y="14.9" width="3.2" height="3.2" rx="1" fill="#16A34A"/>
-  </svg>
-);
-
-// ── 🎫 Exam Roll Numbers — ticket ───────────────────────────────────────────
-const Rolls = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-rl-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#C4B5FD"/><stop offset="1" stopColor="#7C3AED"/></linearGradient>
-    </defs>
-    <path d="M2.4 7.4A1.8 1.8 0 014.2 5.6h15.6a1.8 1.8 0 011.8 1.8v2.2a2.4 2.4 0 000 4.8v2.2a1.8 1.8 0 01-1.8 1.8H4.2a1.8 1.8 0 01-1.8-1.8v-2.2a2.4 2.4 0 000-4.8z" fill="url(#ai-rl-a)" stroke="#5B21B6" strokeWidth=".9" strokeLinejoin="round"/>
-    <path d="M15 6.4v11.2" stroke="#EDE9FE" strokeWidth="1.2" strokeDasharray="1.6 1.6"/>
-    <path d="M5.8 9.6h6.4M5.8 12h6.4M5.8 14.4h4" stroke="#fff" strokeWidth="1.3" strokeLinecap="round"/>
-    <path d="M17.6 9.8l.7 1.4 1.5.2-1.1 1.1.3 1.5-1.4-.7-1.4.7.3-1.5-1.1-1.1 1.5-.2z" fill="#FDE047"/>
-  </svg>
-);
-
-// ── 🪑 Exam Seating — chair ─────────────────────────────────────────────────
-const Seating = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-sc-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FDBA74"/><stop offset="1" stopColor="#EA580C"/></linearGradient>
-      <linearGradient id="ai-sc-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FB923C"/><stop offset="1" stopColor="#C2410C"/></linearGradient>
-    </defs>
-    <rect x="6" y="2.6" width="12" height="9" rx="2.6" fill="url(#ai-sc-a)" stroke="#9A3412" strokeWidth=".9"/>
-    <path d="M9 5.4v3.4M12 5.4v3.4M15 5.4v3.4" stroke="#fff" strokeOpacity=".6" strokeWidth="1.1" strokeLinecap="round"/>
-    <rect x="4.4" y="11.6" width="15.2" height="4" rx="1.8" fill="url(#ai-sc-b)" stroke="#9A3412" strokeWidth=".9"/>
-    <path d="M7 15.6l-1.4 5.6M17 15.6l1.4 5.6M9.6 15.6v5.6M14.4 15.6v5.6" stroke="#7C2D12" strokeWidth="1.5" strokeLinecap="round"/>
-  </svg>
-);
-
-// ── 🏅 Merit List — medal ───────────────────────────────────────────────────
-const Merit = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-mr-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FEF08A"/><stop offset=".55" stopColor="#FACC15"/><stop offset="1" stopColor="#CA8A04"/></linearGradient>
-    </defs>
-    <path d="M6.2 1.8h4.2l2.1 6.2H8.4z" fill="#EF4444"/>
-    <path d="M17.8 1.8h-4.2L11.5 8h4.2z" fill="#2563EB"/>
-    <path d="M10.4 1.8h3.2l-1.6 4.8z" fill="#F8FAFC" fillOpacity=".7"/>
-    <circle cx="12" cy="15" r="7" fill="url(#ai-mr-a)" stroke="#A16207" strokeWidth="1"/>
-    <circle cx="12" cy="15" r="4.9" fill="#FDE047" stroke="#CA8A04" strokeWidth=".8"/>
-    <path d="M12 11.5l1.1 2.3 2.5.3-1.8 1.7.5 2.5-2.3-1.2-2.3 1.2.5-2.5-1.8-1.7 2.5-.3z" fill="#F59E0B" stroke="#B45309" strokeWidth=".5" strokeLinejoin="round"/>
-  </svg>
-);
-
-// ── 🎓 Teachers — graduation cap ────────────────────────────────────────────
-const Teachers = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-tc-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#475569"/><stop offset="1" stopColor="#0F172A"/></linearGradient>
-    </defs>
-    <path d="M6.2 11.2v4.4c0 1.6 2.6 3 5.8 3s5.8-1.4 5.8-3v-4.4L12 14z" fill="#1E293B" stroke="#0F172A" strokeWidth=".8" strokeLinejoin="round"/>
-    <path d="M12 3.4L1.6 8.6 12 13.8l10.4-5.2z" fill="url(#ai-tc-a)" stroke="#0F172A" strokeWidth=".9" strokeLinejoin="round"/>
-    <path d="M12 5.4l6.4 3.2L12 11.8 5.6 8.6z" fill="#fff" fillOpacity=".12"/>
-    <path d="M20.2 9.6v6" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round"/>
-    <circle cx="20.2" cy="17" r="1.5" fill="#F59E0B" stroke="#B45309" strokeWidth=".6"/>
-  </svg>
-);
-
-// ── ⏰ Timetables — alarm clock ─────────────────────────────────────────────
-const Timetables = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-tt-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#F87171"/><stop offset="1" stopColor="#B91C1C"/></linearGradient>
-    </defs>
-    <path d="M4.2 7.2a4 4 0 015.6-2.8L6.6 8zM19.8 7.2a4 4 0 00-5.6-2.8L17.4 8z" fill="#FBBF24" stroke="#B45309" strokeWidth=".8" strokeLinejoin="round"/>
-    <circle cx="12" cy="13.2" r="8" fill="url(#ai-tt-a)" stroke="#7F1D1D" strokeWidth=".9"/>
-    <circle cx="12" cy="13.2" r="6.1" fill="#FFFBEB" stroke="#FCA5A5" strokeWidth=".8"/>
-    <path d="M12 8.8v4.6l3 1.9" stroke="#334155" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-    <circle cx="12" cy="13.4" r="1" fill="#DC2626"/>
-    <path d="M6.2 20.4l-1.4 1.4M17.8 20.4l1.4 1.4" stroke="#7F1D1D" strokeWidth="1.6" strokeLinecap="round"/>
-  </svg>
-);
-
-// ── 📢 Notices — megaphone ──────────────────────────────────────────────────
-const Notices = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-nt-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FCA5A5"/><stop offset="1" stopColor="#DC2626"/></linearGradient>
-      <linearGradient id="ai-nt-b" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#FDE68A"/><stop offset="1" stopColor="#F59E0B"/></linearGradient>
-    </defs>
-    <path d="M3 9.4a1.8 1.8 0 011.8-1.8h3.4l8.6-4.4v15.6l-8.6-4.4H4.8A1.8 1.8 0 013 12.6z" fill="url(#ai-nt-a)" stroke="#991B1B" strokeWidth=".9" strokeLinejoin="round"/>
-    <path d="M8.2 7.6v8.8" stroke="#991B1B" strokeWidth=".8"/>
-    <path d="M5.8 16.6l1 4.2a1 1 0 001 .8h1.6a1 1 0 001-1.2l-.8-3.4z" fill="url(#ai-nt-b)" stroke="#B45309" strokeWidth=".8" strokeLinejoin="round"/>
-    <path d="M18.6 8.4a5 5 0 010 6.4M20.8 6.4a8 8 0 010 10.4" stroke="#F59E0B" strokeWidth="1.6" strokeLinecap="round"/>
-  </svg>
-);
-
-// ── 📚 Library — stacked books ──────────────────────────────────────────────
-const Library = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-lb-a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#34D399"/><stop offset="1" stopColor="#059669"/></linearGradient>
-      <linearGradient id="ai-lb-b" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#60A5FA"/><stop offset="1" stopColor="#1D4ED8"/></linearGradient>
-      <linearGradient id="ai-lb-c" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#FBBF24"/><stop offset="1" stopColor="#D97706"/></linearGradient>
-    </defs>
-    <rect x="2.6" y="16" width="18.8" height="5" rx="1.3" fill="url(#ai-lb-c)" stroke="#92400E" strokeWidth=".8"/>
-    <rect x="4.2" y="10.6" width="16" height="5" rx="1.3" fill="url(#ai-lb-b)" stroke="#1E3A8A" strokeWidth=".8"/>
-    <rect x="3.2" y="5.2" width="17.4" height="5" rx="1.3" fill="url(#ai-lb-a)" stroke="#065F46" strokeWidth=".8"/>
-    <path d="M6 7.7h6.4M6.6 13.1h5.6M5.4 18.5h7" stroke="#fff" strokeOpacity=".75" strokeWidth="1.1" strokeLinecap="round"/>
-    <rect x="15.4" y="17.2" width="3.6" height="2.6" rx=".7" fill="#FEF3C7" stroke="#B45309" strokeWidth=".5"/>
-    <rect x="15.6" y="11.8" width="3.2" height="2.2" rx=".7" fill="#DBEAFE" stroke="#1E3A8A" strokeWidth=".5"/>
-    <rect x="15.2" y="6.4" width="3.6" height="2.2" rx=".7" fill="#D1FAE5" stroke="#065F46" strokeWidth=".5"/>
-    <path d="M17.4 2.6v3" stroke="#DC2626" strokeWidth="1.6" strokeLinecap="round"/>
-  </svg>
-);
-
-// ── 🛡️ Users — shield with person ───────────────────────────────────────────
-const Users = (p: P) => (
-  <svg {...base} {...p}>
-    <defs>
-      <linearGradient id="ai-us-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#5EEAD4"/><stop offset="1" stopColor="#0F766E"/></linearGradient>
-    </defs>
-    <path d="M12 1.8l8.2 3v6.2c0 5.2-3.4 9.2-8.2 11.2-4.8-2-8.2-6-8.2-11.2V4.8z" fill="url(#ai-us-a)" stroke="#115E59" strokeWidth=".9" strokeLinejoin="round"/>
-    <path d="M12 3.6l6.4 2.3v5c0 4.2-2.6 7.4-6.4 9.2z" fill="#fff" fillOpacity=".14"/>
-    <circle cx="12" cy="9.6" r="2.7" fill="#FFF" stroke="#115E59" strokeWidth=".6"/>
-    <path d="M6.9 16.3c.7-2.5 2.7-3.8 5.1-3.8s4.4 1.3 5.1 3.8c-1.4 1.8-3.1 3.1-5.1 4.1-2-1-3.7-2.3-5.1-4.1z" fill="#FFF" stroke="#115E59" strokeWidth=".6" strokeLinejoin="round"/>
-  </svg>
-);
-
-// ── Extra icons for the Overview dashboard ─────────────────────────────────
-const Bell = (p: P) => (
-  <svg {...base} {...p}>
-    <defs><linearGradient id="ai-bl-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FDE68A"/><stop offset="1" stopColor="#F59E0B"/></linearGradient></defs>
-    <path d="M12 2.6a1.4 1.4 0 011.4 1.4v.6a6 6 0 014.4 5.8v3.6l1.8 2.4a1 1 0 01-.8 1.6H5.2a1 1 0 01-.8-1.6l1.8-2.4V10.4a6 6 0 014.4-5.8V4A1.4 1.4 0 0112 2.6z" fill="url(#ai-bl-a)" stroke="#B45309" strokeWidth=".9" strokeLinejoin="round"/>
-    <path d="M9.4 19.4a2.6 2.6 0 005.2 0z" fill="#B45309"/>
-    <path d="M8.4 10.2a3.6 3.6 0 012-3" stroke="#fff" strokeOpacity=".8" strokeWidth="1.2" strokeLinecap="round"/>
-  </svg>
-);
-const Clipboard = (p: P) => (
-  <svg {...base} {...p}>
-    <defs><linearGradient id="ai-cb-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFFFFF"/><stop offset="1" stopColor="#EDE9FE"/></linearGradient></defs>
-    <rect x="4.2" y="4" width="15.6" height="17.6" rx="2.4" fill="url(#ai-cb-a)" stroke="#7C3AED" strokeWidth="1.1"/>
-    <rect x="8.2" y="2" width="7.6" height="4.4" rx="1.4" fill="#A78BFA" stroke="#5B21B6" strokeWidth=".8"/>
-    <path d="M7.6 10.6l1.2 1.2 2-2.2M7.6 15.2l1.2 1.2 2-2.2" stroke="#16A34A" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12.8 10.8h4M12.8 15.4h4" stroke="#C4B5FD" strokeWidth="1.4" strokeLinecap="round"/>
-  </svg>
-);
-const Document = (p: P) => (
-  <svg {...base} {...p}>
-    <defs><linearGradient id="ai-dc-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFFFFF"/><stop offset="1" stopColor="#FEF3C7"/></linearGradient></defs>
-    <path d="M6 2.6h8l5 5v12.2a1.8 1.8 0 01-1.8 1.8H6a1.8 1.8 0 01-1.8-1.8V4.4A1.8 1.8 0 016 2.6z" fill="url(#ai-dc-a)" stroke="#D97706" strokeWidth="1.1" strokeLinejoin="round"/>
-    <path d="M14 2.6v3.6a1.4 1.4 0 001.4 1.4H19" fill="#FCD34D" stroke="#D97706" strokeWidth=".9" strokeLinejoin="round"/>
-    <path d="M7.6 12h8.8M7.6 15h8.8M7.6 18h5" stroke="#FBBF24" strokeWidth="1.4" strokeLinecap="round"/>
-  </svg>
-);
-const Books = Library;
-const Sparkle = (p: P) => (
-  <svg {...base} {...p}>
-    <defs><linearGradient id="ai-sp-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FDE68A"/><stop offset="1" stopColor="#F59E0B"/></linearGradient></defs>
-    <path d="M10 2.6l1.9 5.5 5.5 1.9-5.5 1.9L10 17.4l-1.9-5.5L2.6 10l5.5-1.9z" fill="url(#ai-sp-a)" stroke="#B45309" strokeWidth=".8" strokeLinejoin="round"/>
-    <path d="M18 14l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z" fill="#F472B6" stroke="#BE185D" strokeWidth=".5" strokeLinejoin="round"/>
-  </svg>
-);
-const Pulse = (p: P) => (
-  <svg {...base} {...p}>
-    <defs><linearGradient id="ai-pl-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FB7185"/><stop offset="1" stopColor="#E11D48"/></linearGradient></defs>
-    <rect x="2.4" y="3.4" width="19.2" height="17.2" rx="3.2" fill="#FFF1F2" stroke="#FDA4AF" strokeWidth="1"/>
-    <path d="M4.2 12.6h3.6l2-5.2 3.4 9.4 2.2-6.2 1.2 2h3.2" stroke="url(#ai-pl-a)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-const Alert = (p: P) => (
-  <svg {...base} {...p}>
-    <defs><linearGradient id="ai-al-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FDE047"/><stop offset="1" stopColor="#F59E0B"/></linearGradient></defs>
-    <path d="M10.7 3.8a1.5 1.5 0 012.6 0l8.2 14.6a1.5 1.5 0 01-1.3 2.2H3.8a1.5 1.5 0 01-1.3-2.2z" fill="url(#ai-al-a)" stroke="#B45309" strokeWidth="1" strokeLinejoin="round"/>
-    <path d="M12 9v5" stroke="#7C2D12" strokeWidth="1.9" strokeLinecap="round"/><circle cx="12" cy="17" r="1.1" fill="#7C2D12"/>
-  </svg>
-);
-const Location = (p: P) => (
-  <svg {...base} {...p}>
-    <defs><linearGradient id="ai-lc-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FCA5A5"/><stop offset="1" stopColor="#DC2626"/></linearGradient></defs>
-    <path d="M12 21.4c-4.4-4.4-6.8-7.6-6.8-10.9a6.8 6.8 0 0113.6 0c0 3.3-2.4 6.5-6.8 10.9z" fill="url(#ai-lc-a)" stroke="#991B1B" strokeWidth=".9" strokeLinejoin="round"/>
-    <circle cx="12" cy="10.4" r="2.6" fill="#fff"/>
-  </svg>
-);
-const Phone = (p: P) => (
-  <svg {...base} {...p}>
-    <defs><linearGradient id="ai-ph-a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4ADE80"/><stop offset="1" stopColor="#15803D"/></linearGradient></defs>
-    <path d="M5.2 2.8l3.2-.8a1.6 1.6 0 011.9 1l1 2.8a1.6 1.6 0 01-.5 1.8l-1.5 1.1a12 12 0 005.4 5.4l1.1-1.5a1.6 1.6 0 011.8-.5l2.8 1a1.6 1.6 0 011 1.9l-.8 3.2a2 2 0 01-2 1.5C9.8 20 4 14.2 3.7 4.8a2 2 0 011.5-2z" fill="url(#ai-ph-a)" stroke="#14532D" strokeWidth=".9" strokeLinejoin="round"/>
-  </svg>
-);
-const Mail = (p: P) => (
-  <svg {...base} {...p}>
-    <defs><linearGradient id="ai-ml-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFFFFF"/><stop offset="1" stopColor="#DBEAFE"/></linearGradient></defs>
-    <rect x="2.4" y="5" width="19.2" height="14" rx="2.4" fill="url(#ai-ml-a)" stroke="#2563EB" strokeWidth="1.1"/>
-    <path d="M3.2 6.6l8.8 6.4 8.8-6.4" stroke="#2563EB" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-const School = (p: P) => (
-  <svg {...base} {...p}>
-    <defs><linearGradient id="ai-sh-a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FDE68A"/><stop offset="1" stopColor="#F59E0B"/></linearGradient></defs>
-    <path d="M12 2.4L2.6 8h18.8z" fill="#EF4444" stroke="#991B1B" strokeWidth=".9" strokeLinejoin="round"/>
-    <rect x="3.6" y="8" width="16.8" height="2" fill="#FFF" stroke="#CBD5E1" strokeWidth=".6"/>
-    <g fill="url(#ai-sh-a)" stroke="#B45309" strokeWidth=".6"><rect x="5" y="10.4" width="2.6" height="7.6" rx=".6"/><rect x="10.7" y="10.4" width="2.6" height="7.6" rx=".6"/><rect x="16.4" y="10.4" width="2.6" height="7.6" rx=".6"/></g>
-    <rect x="2.6" y="18" width="18.8" height="3.2" rx=".9" fill="#94A3B8" stroke="#475569" strokeWidth=".7"/>
-  </svg>
-);
+const I_overview = make("<path fill=\"#A0041E\" d=\"M9.344 14.702h-2c-.276 0-.5-.224-.5-.5v-7c0-.276.224-.5.5-.5h2c.276 0 .5.224.5.5v7c0 .276-.224.5-.5.5z\"/><path fill=\"#FFE8B6\" d=\"M5 16L18 3l13 13v17H5z\"/><path fill=\"#FFCC4D\" d=\"M18 16h1v16h-1z\"/><path fill=\"#66757F\" d=\"M31 17c-.256 0-.512-.098-.707-.293L18 4.414 5.707 16.707c-.391.391-1.023.391-1.414 0s-.391-1.023 0-1.414l13-13c.391-.391 1.023-.391 1.414 0l13 13c.391.391.391 1.023 0 1.414-.195.195-.451.293-.707.293z\"/><path fill=\"#66757F\" d=\"M18 17c-.256 0-.512-.098-.707-.293-.391-.391-.391-1.023 0-1.414l6.5-6.5c.391-.391 1.023-.391 1.414 0s.391 1.023 0 1.414l-6.5 6.5c-.195.195-.451.293-.707.293z\"/><path fill=\"#C1694F\" d=\"M10 26h4v6h-4z\"/><path fill=\"#55ACEE\" d=\"M10 17h4v4h-4zm12.5 0h4v4h-4zm0 9h4v4h-4z\"/><path fill=\"#5C913B\" d=\"M33.5 33.5c0 .828-.672 1.5-1.5 1.5H4c-.828 0-1.5-.672-1.5-1.5S3.172 32 4 32h28c.828 0 1.5.672 1.5 1.5z\"/>");
+const I_settings = make("<path fill=\"#66757F\" d=\"M34 15h-3.362c-.324-1.369-.864-2.651-1.582-3.814l2.379-2.379c.781-.781.781-2.048 0-2.829l-1.414-1.414c-.781-.781-2.047-.781-2.828 0l-2.379 2.379C23.65 6.225 22.369 5.686 21 5.362V2c0-1.104-.896-2-2-2h-2c-1.104 0-2 .896-2 2v3.362c-1.369.324-2.651.864-3.814 1.582L8.808 4.565c-.781-.781-2.048-.781-2.828 0L4.565 5.979c-.781.781-.781 2.048-.001 2.829l2.379 2.379C6.225 12.35 5.686 13.632 5.362 15H2c-1.104 0-2 .896-2 2v2c0 1.104.896 2 2 2h3.362c.324 1.368.864 2.65 1.582 3.813l-2.379 2.379c-.78.78-.78 2.048.001 2.829l1.414 1.414c.78.78 2.047.78 2.828 0l2.379-2.379c1.163.719 2.445 1.258 3.814 1.582V34c0 1.104.896 2 2 2h2c1.104 0 2-.896 2-2v-3.362c1.368-.324 2.65-.864 3.813-1.582l2.379 2.379c.781.781 2.047.781 2.828 0l1.414-1.414c.781-.781.781-2.048 0-2.829l-2.379-2.379c.719-1.163 1.258-2.445 1.582-3.814H34c1.104 0 2-.896 2-2v-2C36 15.896 35.104 15 34 15zM18 26c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z\"/>");
+const I_admissions = make("<path fill=\"#CCD6DD\" d=\"M31 32c0 2.209-1.791 4-4 4H5c-2.209 0-4-1.791-4-4V4c0-2.209 1.791-4 4-4h22c2.209 0 4 1.791 4 4v28z\"/><path fill=\"#99AAB5\" d=\"M27 24c0 .553-.447 1-1 1H6c-.552 0-1-.447-1-1 0-.553.448-1 1-1h20c.553 0 1 .447 1 1zm-16 4c0 .553-.448 1-1 1H6c-.552 0-1-.447-1-1 0-.553.448-1 1-1h4c.552 0 1 .447 1 1zM27 8c0 .552-.447 1-1 1H6c-.552 0-1-.448-1-1s.448-1 1-1h20c.553 0 1 .448 1 1zm0 4c0 .553-.447 1-1 1H6c-.552 0-1-.447-1-1 0-.553.448-1 1-1h20c.553 0 1 .447 1 1zm0 4c0 .553-.447 1-1 1H6c-.552 0-1-.447-1-1 0-.553.448-1 1-1h20c.553 0 1 .447 1 1zm0 4c0 .553-.447 1-1 1H6c-.552 0-1-.447-1-1 0-.553.448-1 1-1h20c.553 0 1 .447 1 1z\"/><path fill=\"#66757F\" d=\"M31 6.272c-.827-.535-1.837-.579-2.521-.023l-.792.646-1.484 1.211-.1.08-2.376 1.938-11.878 9.686c-.437.357-.793 1.219-1.173 2.074-.378.85-.969 2.852-1.443 4.391-.148.25-1.065 1.846-.551 2.453.52.615 2.326.01 2.568-.076 1.626-.174 3.731-.373 4.648-.58.924-.211 1.854-.395 2.291-.752.008-.006.01-.018.017-.023l11.858-9.666.792-.646.144-.118V6.272z\"/><path fill=\"#D99E82\" d=\"M18.145 22.526s-1.274-1.881-2.117-2.553c-.672-.843-2.549-2.116-2.549-2.116-.448-.446-1.191-.48-1.629-.043-.437.438-.793 1.366-1.173 2.291-.472 1.146-1.276 4.154-1.768 5.752-.083.272.517-.45.503-.21-.01.187.027.394.074.581l-.146.159.208.067c.025.082.05.154.068.21l.159-.146c.187.047.394.084.58.074.24-.014-.483.587-.21.503 1.598-.493 4.607-1.296 5.752-1.768.924-.381 1.854-.736 2.291-1.174.439-.435.406-1.178-.043-1.627z\"/><path fill=\"#EA596E\" d=\"M25.312 4.351c-.876.875-.876 2.293 0 3.168l3.167 3.168c.876.874 2.294.874 3.168 0l3.169-3.168c.874-.875.874-2.293 0-3.168l-3.169-3.168c-.874-.875-2.292-.875-3.168 0l-3.167 3.168z\"/><path fill=\"#FFCC4D\" d=\"M11.849 17.815l3.17 3.17 3.165 3.166 11.881-11.879-6.337-6.336-11.879 11.879z\"/><path fill=\"#292F33\" d=\"M11.298 26.742s-2.06 1.133-2.616.576c-.557-.558.581-2.611.581-2.611s1.951.036 2.035 2.035z\"/><path fill=\"#CCD6DD\" d=\"M23.728 5.935l3.96-3.96 6.336 6.337-3.96 3.96z\"/><path fill=\"#99AAB5\" d=\"M26.103 3.558l.792-.792 6.336 6.335-.792.792zM24.52 5.142l.791-.791 6.336 6.335-.792.792z\"/>");
+const I_results = make("<path fill=\"#FFAC33\" d=\"M5.123 5h6C12.227 5 13 4.896 13 6V4c0-1.104-.773-2-1.877-2h-8c-2 0-3.583 2.125-3 5 0 0 1.791 9.375 1.917 9.958C2.373 18.5 4.164 20 6.081 20h6.958c1.105 0-.039-1.896-.039-3v-2c0 1.104-.773 2-1.877 2h-4c-1.104 0-1.833-1.042-2-2S3.539 7.667 3.539 7.667C3.206 5.75 4.018 5 5.123 5zm25.812 0h-6C23.831 5 22 4.896 22 6V4c0-1.104 1.831-2 2.935-2h8c2 0 3.584 2.125 3 5 0 0-1.633 9.419-1.771 10-.354 1.5-2.042 3-4 3h-7.146C21.914 20 22 18.104 22 17v-2c0 1.104 1.831 2 2.935 2h4c1.104 0 1.834-1.042 2-2s1.584-7.333 1.584-7.333C32.851 5.75 32.04 5 30.935 5zM20.832 22c0-6.958-2.709 0-2.709 0s-3-6.958-3 0-3.291 10-3.291 10h12.292c-.001 0-3.292-3.042-3.292-10z\"/><path fill=\"#FFCC4D\" d=\"M29.123 6.577c0 6.775-6.77 18.192-11 18.192-4.231 0-11-11.417-11-18.192 0-5.195 1-6.319 3-6.319 1.374 0 6.025-.027 8-.027l7-.001c2.917-.001 4 .684 4 6.347z\"/><path fill=\"#C1694F\" d=\"M27 33c0 1.104.227 2-.877 2h-16C9.018 35 9 34.104 9 33v-1c0-1.104 1.164-2 2.206-2h13.917c1.042 0 1.877.896 1.877 2v1z\"/><path fill=\"#C1694F\" d=\"M29 34.625c0 .76.165 1.375-1.252 1.375H8.498C7.206 36 7 35.385 7 34.625v-.25C7 33.615 7.738 33 8.498 33h19.25c.759 0 1.252.615 1.252 1.375v.25z\"/>");
+const I_exam_date_sheet = make("<path fill=\"#E0E7EC\" d=\"M36 32c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v23z\"/><path d=\"M23.657 19.12H17.87c-1.22 0-1.673-.791-1.673-1.56 0-.791.429-1.56 1.673-1.56h8.184c1.154 0 1.628 1.04 1.628 1.628 0 .452-.249.927-.52 1.492l-5.607 11.395c-.633 1.266-.882 1.717-1.899 1.717-1.244 0-1.877-.949-1.877-1.605 0-.271.068-.474.226-.791l5.652-10.716zM10.889 19h-.5c-1.085 0-1.538-.731-1.538-1.5 0-.792.565-1.5 1.538-1.5h2.015c.972 0 1.515.701 1.515 1.605V30.47c0 1.13-.558 1.763-1.53 1.763s-1.5-.633-1.5-1.763V19z\" fill=\"#66757F\"/><path fill=\"#DD2F45\" d=\"M34 0h-3.277c.172.295.277.634.277 1 0 1.104-.896 2-2 2s-2-.896-2-2c0-.366.105-.705.277-1H8.723C8.895.295 9 .634 9 1c0 1.104-.896 2-2 2s-2-.896-2-2c0-.366.105-.705.277-1H2C.896 0 0 .896 0 2v11h36V2c0-1.104-.896-2-2-2z\"/><path d=\"M13.182 4.604c0-.5.32-.78.75-.78.429 0 .749.28.749.78v5.017h1.779c.51 0 .73.38.72.72-.02.33-.28.659-.72.659h-2.498c-.49 0-.78-.319-.78-.819V4.604zm-6.91 0c0-.5.32-.78.75-.78s.75.28.75.78v3.488c0 .92.589 1.649 1.539 1.649.909 0 1.529-.769 1.529-1.649V4.604c0-.5.319-.78.749-.78s.75.28.75.78v3.568c0 1.679-1.38 2.949-3.028 2.949-1.669 0-3.039-1.25-3.039-2.949V4.604zM5.49 9.001c0 1.679-1.069 2.119-1.979 2.119-.689 0-1.839-.27-1.839-1.14 0-.269.23-.609.56-.609.4 0 .75.37 1.199.37.56 0 .56-.52.56-.84V4.604c0-.5.32-.78.749-.78.431 0 .75.28.75.78v4.397z\" fill=\"#F5F8FA\"/><path d=\"M32 10c0 .552.447 1 1 1s1-.448 1-1-.447-1-1-1-1 .448-1 1m0-3c0 .552.447 1 1 1s1-.448 1-1-.447-1-1-1-1 .448-1 1m-3 3c0 .552.447 1 1 1s1-.448 1-1-.447-1-1-1-1 .448-1 1m0-3c0 .552.447 1 1 1s1-.448 1-1-.447-1-1-1-1 .448-1 1m-3 3c0 .552.447 1 1 1s1-.448 1-1-.447-1-1-1-1 .448-1 1m0-3c0 .552.447 1 1 1s1-.448 1-1-.447-1-1-1-1 .448-1 1m-3 0c0 .552.447 1 1 1s1-.448 1-1-.447-1-1-1-1 .448-1 1m0 3c0 .552.447 1 1 1s1-.448 1-1-.447-1-1-1-1 .448-1 1\" fill=\"#F4ABBA\"/>");
+const I_exam_rolls = make("<path fill=\"#CCD6DD\" d=\"M34.768 10.814l-2.736-2.737-4.108-4.106-2.738-2.738c-1.512-1.512-3.963-1.512-5.433-.041l-5.91 5.911c.082.301.157.589.157.897 0 1.104-.896 2-2 2-.308 0-.596-.075-.857-.2l-9.91 9.911c-1.512 1.513-1.512 3.963 0 5.476l2.738 2.737 4.106 4.107 2.737 2.737c1.512 1.512 3.964 1.512 5.476 0l9.911-9.91c-.126-.261-.201-.55-.201-.858 0-1.104.896-2 2-2 .308 0 .597.075.857.2l5.91-5.911c1.512-1.512 1.512-3.964.001-5.475zM16 14c-1.104 0-2-.896-2-2s.896-2 2-2 2 .896 2 2-.896 2-2 2zm4 4c-1.104 0-2-.896-2-2s.896-2 2-2 2 .896 2 2-.896 2-2 2zm4 4c-1.104 0-2-.896-2-2s.896-2 2-2 2 .896 2 2-.896 2-2 2z\"/><path fill=\"#99AAB5\" d=\"M11 30c-.256 0-.512-.098-.707-.293-.391-.391-.391-1.023 0-1.414l4-4c.391-.391 1.023-.391 1.414 0s.391 1.023 0 1.414l-4 4c-.195.195-.451.293-.707.293zm-3-3c-.256 0-.512-.098-.707-.293-.391-.391-.391-1.023 0-1.414l7-7c.391-.391 1.023-.391 1.414 0s.391 1.023 0 1.414l-7 7C8.512 26.902 8.256 27 8 27zm-3-3c-.256 0-.512-.098-.707-.293-.391-.391-.391-1.023 0-1.414l7-7c.391-.391 1.023-.391 1.414 0s.391 1.023 0 1.414l-7 7C5.512 23.902 5.256 24 5 24zM20.397 6.783c-.245-.534-.229-1.179.204-1.611.45-.45 1.059-.467 1.61-.204l6.277 2.951c.186.084.322.187.381.246.331.331.289.832-.025 1.146-.355.356-.721.348-1.06.178l-1.051-.543-2.357 2.357.534 1.043c.179.347.187.712-.161 1.06-.34.339-.883.373-1.222.034-.136-.136-.194-.28-.22-.339l-2.91-6.318zm3.172 2.985l1.611-1.611-3.248-1.671-.017.017 1.654 3.265z\"/>");
+const I_exam_seating = make("<path fill=\"#A4523A\" d=\"M12 20c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2s2-.9 2-2V22c0-1.1-.9-2-2-2zm18 0c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2s2-.9 2-2V22c0-1.1-.9-2-2-2z\"/><path fill=\"#C1694F\" d=\"M13 2h16v8H13z\"/><path fill=\"#C1694F\" d=\"M16 9h2v13h-2zm4 0h2v13h-2zm4 0h2v13h-2zM7 23c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2s2-.9 2-2v-9c0-1.1-.9-2-2-2z\"/><path fill=\"#C1694F\" d=\"M25 21c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2s2-.9 2-2V23c0-1.1-.9-2-2-2zM12 0c-1.1 0-2 .9-2 2v20h4V2c0-1.1-.9-2-2-2zm18 0c-1.1 0-2 .9-2 2v20h4V2c0-1.1-.9-2-2-2z\"/><path fill=\"#A4523A\" d=\"M14 2h1v8h-1zm14 8h-1V2h1z\"/><path fill=\"#D99E82\" d=\"M30.769 20H10.341c-.223 0-.442.061-.633.175l-5.954 3.041s22.726 2.418 24.726 2.418l3.029-2.265c.309-.232.491-.597.491-.985v-1.153c0-.68-.551-1.231-1.231-1.231z\"/><path fill=\"#A4523A\" d=\"M16 10h2v1h-2zM5 26h4v1H5zm18 0h4v1h-4zm-3-16h2v1h-2zm4 0h2v1h-2z\"/><path fill=\"#C1694F\" d=\"M27.44 26H4.56C3.698 26 3 25.328 3 24.5S3.698 23 4.56 23h22.88c.862 0 1.56.672 1.56 1.5s-.698 1.5-1.56 1.5z\"/>");
+const I_merit_list = make("<path fill=\"#55ACEE\" d=\"M18 8l-7-8H0l14 17 11.521-4.75z\"/><path fill=\"#3B88C3\" d=\"M25 0l-7 8 5.39 7.312 1.227-1.489L36 0z\"/><path fill=\"#FFAC33\" d=\"M23.26 16.026c.08-.217.131-.448.131-.693 0-1.104-.896-2-2-2h-6.667c-1.105 0-2 .896-2 2 0 .245.05.476.131.693-3.258 1.826-5.464 5.307-5.464 9.307C7.391 31.224 12.166 36 18.058 36c5.891 0 10.667-4.776 10.667-10.667-.001-4-2.206-7.481-5.465-9.307z\"/><circle fill=\"#FFD983\" cx=\"18.058\" cy=\"25.333\" r=\"8\"/><path fill=\"#FFAC33\" d=\"M21.278 30.634c-.142 0-.284-.044-.406-.131L18 28.444l-2.871 2.059c-.245.175-.573.175-.816-.003-.243-.176-.345-.489-.255-.774l1.071-3.456-2.845-2.005c-.242-.178-.342-.492-.25-.778.093-.285.358-.479.659-.481l3.524-.005 1.122-3.37c.095-.285.361-.477.662-.477.3 0 .567.192.662.477l1.103 3.37 3.542.005c.301.002.567.196.659.481.093.286-.008.599-.25.778l-2.846 2.005 1.071 3.456c.092.286-.012.598-.254.774-.123.09-.267.134-.41.134z\"/>");
+const I_teachers = make("<path fill=\"#31373D\" d=\"M24 14H12s-5 6-5 10 11 11 11 11 11-7 11-11-5-10-5-10z\"/><path fill=\"#292F33\" d=\"M19.64 1.28c-.901-.704-2.377-.704-3.278 0L1.639 12.776c-.901.704-.901 1.856 0 2.56l14.722 11.495c.902.704 2.377.704 3.278 0l14.722-11.495c.902-.704.902-1.856 0-2.56L19.64 1.28z\"/><path fill=\"#394146\" d=\"M19.64 1.28c-.901-.704-2.377-.704-3.278 0L1.639 12.776c-.901.704-.901 1.856 0 2.56l14.722 11.495c.901.704 2.377.704 3.278 0l14.723-11.495c.901-.704.901-1.856 0-2.56L19.64 1.28z\"/><path fill=\"#FCAB40\" d=\"M8 25s-2 2-2 3v6s0 2 2 2 2-2 2-2v-6c0-1-2-3-2-3z\"/><circle fill=\"#FDD888\" cx=\"8\" cy=\"26\" r=\"3\"/><path fill=\"#FCAB40\" d=\"M8.001 27c-.552 0-1-.447-1-1v-3.958c-.042-.634.187-2.036 1.317-2.884l9.022-7.91c.416-.365 1.048-.323 1.411.093.364.415.322 1.047-.093 1.411l-9.08 7.958C8.974 21.166 9 21.982 9 21.99L9.002 26c0 .553-.448 1-1.001 1z\"/><circle fill=\"#31373D\" cx=\"18\" cy=\"13\" r=\"3\"/>");
+const I_timetables = make("<path fill=\"#FFCC4D\" d=\"M20 6.042c0 1.112-.903 2.014-2 2.014s-2-.902-2-2.014V2.014C16 .901 16.903 0 18 0s2 .901 2 2.014v4.028z\"/><path fill=\"#FFAC33\" d=\"M9.18 36c-.224 0-.452-.052-.666-.159-.736-.374-1.035-1.28-.667-2.027l8.94-18.127c.252-.512.768-.835 1.333-.835s1.081.323 1.333.835l8.941 18.127c.368.747.07 1.653-.666 2.027-.736.372-1.631.07-1.999-.676L18.121 19.74l-7.607 15.425c-.262.529-.788.835-1.334.835z\"/><path fill=\"#58595B\" d=\"M18.121 20.392c-.263 0-.516-.106-.702-.295L3.512 5.998c-.388-.394-.388-1.031 0-1.424s1.017-.393 1.404 0L18.121 17.96 31.324 4.573c.389-.393 1.017-.393 1.405 0 .388.394.388 1.031 0 1.424l-13.905 14.1c-.187.188-.439.295-.703.295z\"/><path fill=\"#DD2E44\" d=\"M34.015 19.385c0 8.898-7.115 16.111-15.894 16.111-8.777 0-15.893-7.213-15.893-16.111 0-8.9 7.116-16.113 15.893-16.113 8.778-.001 15.894 7.213 15.894 16.113z\"/><path fill=\"#E6E7E8\" d=\"M30.041 19.385c0 6.674-5.335 12.084-11.92 12.084-6.583 0-11.919-5.41-11.919-12.084C6.202 12.71 11.538 7.3 18.121 7.3c6.585-.001 11.92 5.41 11.92 12.085z\"/><path fill=\"#FFCC4D\" d=\"M30.04 1.257c-1.646 0-3.135.676-4.214 1.77l8.429 8.544C35.333 10.478 36 8.968 36 7.299c0-3.336-2.669-6.042-5.96-6.042zm-24.08 0c1.645 0 3.135.676 4.214 1.77l-8.429 8.544C.667 10.478 0 8.968 0 7.299c0-3.336 2.668-6.042 5.96-6.042z\"/><path fill=\"#414042\" d=\"M23 20h-5c-.552 0-1-.447-1-1v-9c0-.552.448-1 1-1s1 .448 1 1v8h4c.553 0 1 .448 1 1 0 .553-.447 1-1 1z\"/>");
+const I_announcements = make("<path fill=\"#BE1931\" d=\"M12.908 30.75c-.276 2.209-2.291 3-4.5 3s-3.776-1.791-3.5-4l1-9c.276-2.209 2.291-4 4.5-4s6.468 0 3.5 4-1 10-1 10z\"/><path fill=\"#CCD6DD\" d=\"M35.825 14.75c0 6.902-1.544 12.5-3.45 12.5-1.905 0-20.45-5.598-20.45-12.5 0-6.903 18.545-12.5 20.45-12.5 1.906 0 3.45 5.597 3.45 12.5z\"/><ellipse fill=\"#66757F\" cx=\"32.375\" cy=\"14.75\" rx=\"3.45\" ry=\"12.5\"/><path fill=\"#DD2E44\" d=\"M17.925 21.75l-14-1c-5 0-5-12 0-12l14-1c-3 3-3 11 0 14z\"/><ellipse fill=\"#99AAB5\" cx=\"31.325\" cy=\"14.75\" rx=\"1.5\" ry=\"4.348\"/>");
+const I_library = make("<path fill=\"#553788\" d=\"M15 31c0 2.209-.791 4-3 4H5c-4 0-4-14 0-14h7c2.209 0 3 1.791 3 4v6z\"/><path fill=\"#9266CC\" d=\"M34 33h-1V23h1c.553 0 1-.447 1-1s-.447-1-1-1H10c-4 0-4 14 0 14h24c.553 0 1-.447 1-1s-.447-1-1-1z\"/><path fill=\"#CCD6DD\" d=\"M34.172 33H11c-2 0-2-10 0-10h23.172c1.104 0 1.104 10 0 10z\"/><path fill=\"#99AAB5\" d=\"M11.5 25h23.35c-.135-1.175-.36-2-.678-2H11c-1.651 0-1.938 6.808-.863 9.188C9.745 29.229 10.199 25 11.5 25z\"/><path fill=\"#269\" d=\"M12 8c0 2.209-1.791 4-4 4H4C0 12 0 1 4 1h4c2.209 0 4 1.791 4 4v3z\"/><path fill=\"#55ACEE\" d=\"M31 10h-1V3h1c.553 0 1-.447 1-1s-.447-1-1-1H7C3 1 3 12 7 12h24c.553 0 1-.447 1-1s-.447-1-1-1z\"/><path fill=\"#CCD6DD\" d=\"M31.172 10H8c-2 0-2-7 0-7h23.172c1.104 0 1.104 7 0 7z\"/><path fill=\"#99AAB5\" d=\"M8 5h23.925c-.114-1.125-.364-2-.753-2H8C6.807 3 6.331 5.489 6.562 7.5 6.718 6.142 7.193 5 8 5z\"/><path fill=\"#F4900C\" d=\"M20 17c0 2.209-1.791 4-4 4H6c-4 0-4-9 0-9h10c2.209 0 4 1.791 4 4v1z\"/><path fill=\"#FFAC33\" d=\"M35 19h-1v-5h1c.553 0 1-.447 1-1s-.447-1-1-1H15c-4 0-4 9 0 9h20c.553 0 1-.447 1-1s-.447-1-1-1z\"/><path fill=\"#CCD6DD\" d=\"M35.172 19H16c-2 0-2-5 0-5h19.172c1.104 0 1.104 5 0 5z\"/><path fill=\"#99AAB5\" d=\"M16 16h19.984c-.065-1.062-.334-2-.812-2H16c-1.274 0-1.733 2.027-1.383 3.5.198-.839.657-1.5 1.383-1.5z\"/>");
+const I_users = make("<path fill=\"#55ACEE\" d=\"M29 20.729v-1.963c1-1.03 2.914-2.89 3.391-5.273.142.079.055.13.213.13.758 0 1.256-.983 1.256-2.197 0-1.194-.656-2.161-1.399-2.191.143-.516.212-1.206.212-2.092 0-2.956-2.549-6.505-8.253-6.505-5.068 0-8.244 3.549-8.244 6.505 0 .858.051 1.562.142 2.107-.697.105-1.247 1.033-1.247 2.175 0 1.214.614 2.197 1.373 2.197.157 0-.069-.051.072-.13.477 2.384 2.484 4.243 3.484 5.274v1.847c-4 .492-7 2.628-7 4.765v.81c0 .812.823.812 1.634.812h18.73c.813 0 1.636 0 1.636-.812v-.81c0-2.001-3-3.997-6-4.649z\"/><path fill=\"#269\" d=\"M17 28.729v-1.963c1-1.03 2.914-2.89 3.391-5.273.142.079.055.13.213.13.758 0 1.256-.983 1.256-2.197 0-1.194-.656-2.161-1.399-2.191.143-.516.212-1.206.212-2.092 0-2.956-2.549-6.505-8.253-6.505-5.069 0-8.244 3.549-8.244 6.505 0 .858.051 1.562.142 2.107-.697.105-1.247 1.033-1.247 2.175 0 1.214.614 2.197 1.373 2.197.157 0-.069-.051.072-.13C4.993 23.876 7 25.735 8 26.766v1.847c-4 .492-7 2.628-7 4.765v.811C1 35 1.823 35 2.634 35h18.73c.813 0 1.636 0 1.636-.812v-.811c0-2-3-3.996-6-4.648z\"/>");
+const I_bell = make("<path fill=\"#FFAC33\" d=\"M28 13c0 11 5 10 5 15 0 0 0 2-2 2H5c-2 0-2-2-2-2 0-5 5-4 5-15C8 7.478 12.477 3 18 3s10 4.478 10 10z\"/><circle fill=\"#FFAC33\" cx=\"18\" cy=\"3\" r=\"3\"/><path fill=\"#FFAC33\" d=\"M18 36c2.209 0 4-1.791 4-4h-8c0 2.209 1.791 4 4 4z\"/>");
+const I_clipboard = make("<path fill=\"#C1694F\" d=\"M32 34c0 1.104-.896 2-2 2H6c-1.104 0-2-.896-2-2V7c0-1.104.896-2 2-2h24c1.104 0 2 .896 2 2v27z\"/><path fill=\"#FFF\" d=\"M29 32c0 .553-.447 1-1 1H8c-.552 0-1-.447-1-1V9c0-.552.448-1 1-1h20c.553 0 1 .448 1 1v23z\"/><path fill=\"#CCD6DD\" d=\"M25 3h-4c0-1.657-1.343-3-3-3s-3 1.343-3 3h-4c-1.104 0-2 .896-2 2v5h18V5c0-1.104-.896-2-2-2z\"/><circle fill=\"#292F33\" cx=\"18\" cy=\"3\" r=\"2\"/><path fill=\"#99AAB5\" d=\"M20 14c0 .552-.447 1-1 1h-9c-.552 0-1-.448-1-1s.448-1 1-1h9c.553 0 1 .448 1 1zm7 4c0 .552-.447 1-1 1H10c-.552 0-1-.448-1-1s.448-1 1-1h16c.553 0 1 .448 1 1zm0 4c0 .553-.447 1-1 1H10c-.552 0-1-.447-1-1 0-.553.448-1 1-1h16c.553 0 1 .447 1 1zm0 4c0 .553-.447 1-1 1H10c-.552 0-1-.447-1-1 0-.553.448-1 1-1h16c.553 0 1 .447 1 1zm0 4c0 .553-.447 1-1 1h-9c-.552 0-1-.447-1-1 0-.553.448-1 1-1h9c.553 0 1 .447 1 1z\"/>");
+const I_document = make("<path fill=\"#E1E8ED\" d=\"M32.415 9.586l-9-9C23.054.225 22.553 0 22 0c-1.104 0-1.999.896-2 2 0 .552.224 1.053.586 1.415l-3.859 3.859 9 9 3.859-3.859c.362.361.862.585 1.414.585 1.104 0 2.001-.896 2-2 0-.552-.224-1.052-.585-1.414z\"/><path fill=\"#CCD6DD\" d=\"M22 0H7C4.791 0 3 1.791 3 4v28c0 2.209 1.791 4 4 4h22c2.209 0 4-1.791 4-4V11h-9c-1 0-2-1-2-2V0z\"/><path fill=\"#99AAB5\" d=\"M22 0h-2v9c0 2.209 1.791 4 4 4h9v-2h-9c-1 0-2-1-2-2V0zm-5 8c0 .552-.448 1-1 1H8c-.552 0-1-.448-1-1s.448-1 1-1h8c.552 0 1 .448 1 1zm0 4c0 .552-.448 1-1 1H8c-.552 0-1-.448-1-1s.448-1 1-1h8c.552 0 1 .448 1 1zm12 4c0 .552-.447 1-1 1H8c-.552 0-1-.448-1-1s.448-1 1-1h20c.553 0 1 .448 1 1zm0 4c0 .553-.447 1-1 1H8c-.552 0-1-.447-1-1 0-.553.448-1 1-1h20c.553 0 1 .447 1 1zm0 4c0 .553-.447 1-1 1H8c-.552 0-1-.447-1-1 0-.553.448-1 1-1h20c.553 0 1 .447 1 1zm0 4c0 .553-.447 1-1 1H8c-.552 0-1-.447-1-1 0-.553.448-1 1-1h20c.553 0 1 .447 1 1z\"/>");
+const I_books = make("<path fill=\"#553788\" d=\"M15 31c0 2.209-.791 4-3 4H5c-4 0-4-14 0-14h7c2.209 0 3 1.791 3 4v6z\"/><path fill=\"#9266CC\" d=\"M34 33h-1V23h1c.553 0 1-.447 1-1s-.447-1-1-1H10c-4 0-4 14 0 14h24c.553 0 1-.447 1-1s-.447-1-1-1z\"/><path fill=\"#CCD6DD\" d=\"M34.172 33H11c-2 0-2-10 0-10h23.172c1.104 0 1.104 10 0 10z\"/><path fill=\"#99AAB5\" d=\"M11.5 25h23.35c-.135-1.175-.36-2-.678-2H11c-1.651 0-1.938 6.808-.863 9.188C9.745 29.229 10.199 25 11.5 25z\"/><path fill=\"#269\" d=\"M12 8c0 2.209-1.791 4-4 4H4C0 12 0 1 4 1h4c2.209 0 4 1.791 4 4v3z\"/><path fill=\"#55ACEE\" d=\"M31 10h-1V3h1c.553 0 1-.447 1-1s-.447-1-1-1H7C3 1 3 12 7 12h24c.553 0 1-.447 1-1s-.447-1-1-1z\"/><path fill=\"#CCD6DD\" d=\"M31.172 10H8c-2 0-2-7 0-7h23.172c1.104 0 1.104 7 0 7z\"/><path fill=\"#99AAB5\" d=\"M8 5h23.925c-.114-1.125-.364-2-.753-2H8C6.807 3 6.331 5.489 6.562 7.5 6.718 6.142 7.193 5 8 5z\"/><path fill=\"#F4900C\" d=\"M20 17c0 2.209-1.791 4-4 4H6c-4 0-4-9 0-9h10c2.209 0 4 1.791 4 4v1z\"/><path fill=\"#FFAC33\" d=\"M35 19h-1v-5h1c.553 0 1-.447 1-1s-.447-1-1-1H15c-4 0-4 9 0 9h20c.553 0 1-.447 1-1s-.447-1-1-1z\"/><path fill=\"#CCD6DD\" d=\"M35.172 19H16c-2 0-2-5 0-5h19.172c1.104 0 1.104 5 0 5z\"/><path fill=\"#99AAB5\" d=\"M16 16h19.984c-.065-1.062-.334-2-.812-2H16c-1.274 0-1.733 2.027-1.383 3.5.198-.839.657-1.5 1.383-1.5z\"/>");
+const I_sparkle = make("<path fill=\"#FFAC33\" d=\"M34.347 16.893l-8.899-3.294-3.323-10.891c-.128-.42-.517-.708-.956-.708-.439 0-.828.288-.956.708l-3.322 10.891-8.9 3.294c-.393.146-.653.519-.653.938 0 .418.26.793.653.938l8.895 3.293 3.324 11.223c.126.424.516.715.959.715.442 0 .833-.291.959-.716l3.324-11.223 8.896-3.293c.391-.144.652-.518.652-.937 0-.418-.261-.792-.653-.938z\"/><path fill=\"#FFCC4D\" d=\"M14.347 27.894l-2.314-.856-.9-3.3c-.118-.436-.513-.738-.964-.738-.451 0-.846.302-.965.737l-.9 3.3-2.313.856c-.393.145-.653.52-.653.938 0 .418.26.793.653.938l2.301.853.907 3.622c.112.444.511.756.97.756.459 0 .858-.312.97-.757l.907-3.622 2.301-.853c.393-.144.653-.519.653-.937 0-.418-.26-.793-.653-.937zM10.009 6.231l-2.364-.875-.876-2.365c-.145-.393-.519-.653-.938-.653-.418 0-.792.26-.938.653l-.875 2.365-2.365.875c-.393.146-.653.52-.653.938 0 .418.26.793.653.938l2.365.875.875 2.365c.146.393.52.653.938.653.418 0 .792-.26.938-.653l.875-2.365 2.365-.875c.393-.146.653-.52.653-.938 0-.418-.26-.792-.653-.938z\"/>");
+const I_pulse = make("<path fill=\"#CCD6DD\" d=\"M31 2H5C3.343 2 2 3.343 2 5v26c0 1.657 1.343 3 3 3h26c1.657 0 3-1.343 3-3V5c0-1.657-1.343-3-3-3z\"/><path fill=\"#E1E8ED\" d=\"M31 1H5C2.791 1 1 2.791 1 5v26c0 2.209 1.791 4 4 4h26c2.209 0 4-1.791 4-4V5c0-2.209-1.791-4-4-4zm0 2c1.103 0 2 .897 2 2v4h-6V3h4zm-4 16h6v6h-6v-6zm0-2v-6h6v6h-6zM25 3v6h-6V3h6zm-6 8h6v6h-6v-6zm0 8h6v6h-6v-6zM17 3v6h-6V3h6zm-6 8h6v6h-6v-6zm0 8h6v6h-6v-6zM3 5c0-1.103.897-2 2-2h4v6H3V5zm0 6h6v6H3v-6zm0 8h6v6H3v-6zm2 14c-1.103 0-2-.897-2-2v-4h6v6H5zm6 0v-6h6v6h-6zm8 0v-6h6v6h-6zm12 0h-4v-6h6v4c0 1.103-.897 2-2 2z\"/><path fill=\"#DD2E44\" d=\"M4.998 33c-.32 0-.645-.076-.946-.239-.973-.523-1.336-1.736-.813-2.709l7-13c.299-.557.845-.939 1.47-1.031.626-.092 1.258.118 1.705.565l6.076 6.076 9.738-18.59c.512-.978 1.721-1.357 2.699-.843.979.512 1.356 1.721.844 2.7l-11 21c-.295.564-.841.953-1.47 1.05-.627.091-1.266-.113-1.716-.563l-6.1-6.099-5.724 10.631C6.4 32.619 5.71 33 4.998 33z\"/>");
+const I_alert = make("<path fill=\"#FFCC4D\" d=\"M2.653 35C.811 35-.001 33.662.847 32.027L16.456 1.972c.849-1.635 2.238-1.635 3.087 0l15.609 30.056c.85 1.634.037 2.972-1.805 2.972H2.653z\"/><path fill=\"#231F20\" d=\"M15.583 28.953c0-1.333 1.085-2.418 2.419-2.418 1.333 0 2.418 1.085 2.418 2.418 0 1.334-1.086 2.419-2.418 2.419-1.334 0-2.419-1.085-2.419-2.419zm.186-18.293c0-1.302.961-2.108 2.232-2.108 1.241 0 2.233.837 2.233 2.108v11.938c0 1.271-.992 2.108-2.233 2.108-1.271 0-2.232-.807-2.232-2.108V10.66z\"/>");
+const I_location = make("<ellipse fill=\"#292F33\" cx=\"18\" cy=\"34.5\" rx=\"4\" ry=\"1.5\"/><path fill=\"#99AAB5\" d=\"M14.339 10.725S16.894 34.998 18.001 35c1.106.001 3.66-24.275 3.66-24.275h-7.322z\"/><circle fill=\"#DD2E44\" cx=\"18\" cy=\"8\" r=\"8\"/>");
+const I_phone = make("<path fill=\"#31373D\" d=\"M34.06 26.407l-3.496-3.496c-1.93-1.93-5.06-1.93-6.989 0-.719.718-1.167 1.603-1.351 2.528-5.765-1.078-11.372-6.662-11.721-11.653.947-.176 1.854-.627 2.586-1.36 1.93-1.93 1.93-5.06 0-6.99L9.594 1.94c-1.93-1.93-5.06-1.93-6.99 0-10.486 10.486 20.97 41.942 31.456 31.456 1.929-1.929 1.929-5.059 0-6.989z\"/>");
+const I_mail = make("<path fill=\"#CCD6DD\" d=\"M36 27c0 2.209-1.791 4-4 4H4c-2.209 0-4-1.791-4-4V9c0-2.209 1.791-4 4-4h28c2.209 0 4 1.791 4 4v18z\"/><path fill=\"#99AAB5\" d=\"M11.95 17.636L.637 28.949c-.027.028-.037.063-.06.091.34.57.814 1.043 1.384 1.384.029-.023.063-.033.09-.06L13.365 19.05c.39-.391.39-1.023 0-1.414-.392-.391-1.024-.391-1.415 0M35.423 29.04c-.021-.028-.033-.063-.06-.09L24.051 17.636c-.392-.391-1.024-.391-1.415 0s-.391 1.023 0 1.414l11.313 11.314c.026.026.062.037.09.06.571-.34 1.044-.814 1.384-1.384\"/><path fill=\"#99AAB5\" d=\"M32 5H4C1.791 5 0 6.791 0 9v1.03l14.528 14.496c1.894 1.893 4.988 1.893 6.884 0L36 10.009V9c0-2.209-1.791-4-4-4z\"/><path fill=\"#E1E8ED\" d=\"M32 5H4C2.412 5 1.051 5.934.405 7.275l14.766 14.767c1.562 1.562 4.096 1.562 5.657 0L35.595 7.275C34.949 5.934 33.589 5 32 5z\"/><path fill=\"#66757F\" d=\"M15 9.27c0-.73.365-1.27 1-1.27h3.62c.839 0 1.174.49 1.174 1 0 .496-.349 1-1.035 1h-2.708v2h2.533c.716 0 1.065.489 1.065 1 0 .496-.366 1-1.065 1h-2.533v2h2.84c.699 0 1.037.489 1.037 1 0 .496-.353 1-1.037 1h-3.766C15.482 18 15 17.469 15 16.812V9.27z\"/>");
+const I_school = make("<path fill=\"#FFCC4D\" d=\"M36 34c0 1.104-.896 2-2 2H2c-1.104 0-2-.896-2-2V15c0-1.104.896-2 2-2h32c1.104 0 2 .896 2 2v19z\"/><path fill=\"#6D6E71\" d=\"M34 13H2c-1.104 0-2 .896-2 2h36c0-1.104-.896-2-2-2z\"/><path fill=\"#3B88C3\" d=\"M2 24h32v4H2zm0-6h32v4H2zm0 12h32v4H2z\"/><path fill=\"#FFCC4D\" d=\"M28 17h2v18h-2z\"/><path fill=\"#FFE8B6\" d=\"M22 0H6C4.896 0 4 .896 4 2v34h20V2c0-1.104-.896-2-2-2z\"/><path fill=\"#808285\" d=\"M22 0H6C4.896 0 4 .896 4 2h20c0-1.104-.896-2-2-2z\"/><path fill=\"#55ACEE\" d=\"M6 18h16v4H6zm0 6h16v4H6zm0 6h16v4H6z\"/><path fill=\"#FFE8B6\" d=\"M10 7h2v29h-2zm6 0h2v29h-2z\"/><path fill=\"#269\" d=\"M12 30h4v6h-4z\"/><circle fill=\"#A7A9AC\" cx=\"14\" cy=\"9\" r=\"6\"/><circle fill=\"#E6E7E8\" cx=\"14\" cy=\"9\" r=\"4\"/><path fill=\"#A0041E\" d=\"M17 10h-3c-.552 0-1-.448-1-1V4c0-.552.448-1 1-1s1 .448 1 1v4h2c.552 0 1 .448 1 1s-.448 1-1 1z\"/>");
 
 export const ADMIN_ICONS = {
-  overview: Overview, settings: Settings, admissions: Admissions, results: Results,
-  "exam-date-sheet": DateSheet, "exam-rolls": Rolls, "exam-seating": Seating,
-  "merit-list": Merit, teachers: Teachers, timetables: Timetables,
-  announcements: Notices, library: Library, users: Users,
-  // overview extras
-  bell: Bell, clipboard: Clipboard, document: Document, books: Books, sparkle: Sparkle,
-  pulse: Pulse, alert: Alert, location: Location, phone: Phone, mail: Mail, school: School,
+  overview: I_overview,
+  settings: I_settings,
+  admissions: I_admissions,
+  results: I_results,
+  "exam-date-sheet": I_exam_date_sheet,
+  "exam-rolls": I_exam_rolls,
+  "exam-seating": I_exam_seating,
+  "merit-list": I_merit_list,
+  teachers: I_teachers,
+  timetables: I_timetables,
+  announcements: I_announcements,
+  library: I_library,
+  users: I_users,
+  bell: I_bell,
+  clipboard: I_clipboard,
+  document: I_document,
+  books: I_books,
+  sparkle: I_sparkle,
+  pulse: I_pulse,
+  alert: I_alert,
+  location: I_location,
+  phone: I_phone,
+  mail: I_mail,
+  school: I_school,
 } as const;
 
 export type AdminIconName = keyof typeof ADMIN_ICONS;
