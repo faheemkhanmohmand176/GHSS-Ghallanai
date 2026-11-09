@@ -1337,3 +1337,59 @@ a.lux-chip:hover { border-color: hsl(38 80% 40% / .6); }
 /* richer hero ink + softer lift on the shared cards */
 .card-lift { transition: transform .28s ease, box-shadow .28s ease; }
 .card-lift:hover { transform: translateY(-4px); }
+
+/* ═════════════════════════════════════════════════════════════════════════
+   LUXE DEEP — Home hero: deep emerald + deep gold (modern, premium).
+   Scoped to .lux-hero-deep so About / Contact keep their own hero.
+   ═════════════════════════════════════════════════════════════════════════ */
+.lux-hero-deep {
+  isolation: isolate;
+  background:
+    radial-gradient(70% 55% at 100% 0%, hsl(42 85% 52% / .30), transparent 62%),
+    radial-gradient(60% 50% at 0% 100%, hsl(160 60% 30% / .45), transparent 65%),
+    linear-gradient(165deg, hsl(160 64% 6%) 0%, hsl(157 56% 11%) 48%, hsl(152 48% 17%) 100%);
+}
+.dark .lux-hero-deep {
+  background:
+    radial-gradient(70% 55% at 100% 0%, hsl(42 80% 48% / .24), transparent 62%),
+    radial-gradient(60% 50% at 0% 100%, hsl(160 55% 24% / .4), transparent 65%),
+    linear-gradient(165deg, hsl(160 60% 4%) 0%, hsl(157 52% 8%) 55%, hsl(152 44% 12%) 100%);
+}
+/* concentric gold rings — pure CSS decoration */
+.lux-hero-deep::before, .lux-hero-deep::after {
+  content: ""; position: absolute; z-index: -1; border-radius: 9999px; pointer-events: none;
+  border: 1px solid hsl(42 80% 58% / .22);
+  box-shadow: 0 0 0 38px hsl(42 80% 58% / .035), 0 0 0 39px hsl(42 80% 58% / .12), 0 0 0 82px hsl(42 80% 58% / .02);
+}
+.lux-hero-deep::before { width: 440px; height: 440px; top: -170px; right: -190px; }
+.lux-hero-deep::after  { width: 300px; height: 300px; bottom: -130px; left: -140px; }
+
+.lux-hero-deep .lux-grid {
+  background-image:
+    linear-gradient(hsl(42 70% 70% / .07) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(42 70% 70% / .07) 1px, transparent 1px);
+}
+.lux-hero-deep .lux-ink  { color: #fff; }
+.lux-hero-deep .lux-soft { color: hsl(0 0% 100% / .80); }
+.lux-hero-deep .lux-gold-text {
+  background: linear-gradient(135deg, hsl(42 90% 62%), hsl(46 95% 78%) 50%, hsl(40 88% 56%));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lux-hero-deep .lux-chip {
+  border-color: hsl(42 80% 60% / .38);
+  background: hsl(0 0% 100% / .07);
+  color: hsl(45 60% 92%);
+  box-shadow: 0 10px 24px -14px #000, inset 0 1px 0 hsl(0 0% 100% / .08);
+}
+.lux-hero-deep .lux-btn-ink {
+  color: hsl(160 60% 8%);
+  background: linear-gradient(180deg, hsl(44 92% 66%), hsl(38 86% 48%));
+  box-shadow: 0 14px 28px -12px hsl(42 90% 45% / .7), inset 0 1px 0 hsl(0 0% 100% / .45);
+}
+.lux-hero-deep .lux-btn-ink:hover { filter: brightness(1.06); box-shadow: 0 18px 32px -12px hsl(42 90% 45% / .85), inset 0 1px 0 hsl(0 0% 100% / .5); }
+.lux-hero-deep .lux-btn-line {
+  color: #fff; background: hsl(0 0% 100% / .06);
+  border-color: hsl(42 80% 62% / .5);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.lux-hero-deep .lux-btn-line:hover { background: hsl(42 85% 58% / .16); border-color: hsl(42 90% 66%); }
