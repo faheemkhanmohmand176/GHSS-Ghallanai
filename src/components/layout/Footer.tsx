@@ -21,7 +21,6 @@ const footerLinks = {
     { to: "/results",       label: "Results" },
     { to: "/merit-list",    label: "Merit List" },
     { to: "/roll-no-slip",  label: "Roll No. Slip" },
-    { to: "/library",       label: "Library" },
   ],
 };
 
