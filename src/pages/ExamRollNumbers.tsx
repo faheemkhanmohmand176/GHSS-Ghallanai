@@ -373,8 +373,8 @@ const ExamRollNumbers = () => {
       <PageBanner
         variant="premium"
         compact
+        hideCrumbs
         eyebrow="GHSS Ghallanai"
-        icon={<Hash className="w-5 h-5 md:w-6 md:h-6" />}
         title="Roll No. Slip"
         subtitle="Find your exam roll number and download your admit card"
       />
