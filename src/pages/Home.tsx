@@ -1,3 +1,4 @@
+import { fetchResultSchedule } from "@/lib/resultSchedule";
 import { m, useInView, useScroll, useTransform, useSpring, useReducedMotion } from "framer-motion";
 import { useRef, useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
@@ -24,7 +25,6 @@ import NoticePollCard from "@/components/shared/NoticePollCard";
 import TextToSpeechPlayer from "@/components/shared/TextToSpeechPlayer";
 import type { Notice } from "@/hooks/useNotices";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { cachedOrDirect } from "@/lib/publicData";
 import { armAutoPublish } from "@/lib/autoPublish";
 import DailyQuoteCard from "@/components/shared/DailyQuoteCard";
@@ -771,16 +771,12 @@ function useSchoolScheduledPublish() {
       const data = await cachedOrDirect<
         { class: string; exam_type: string; year: number; publish_at: string }[]
       >("result-schedule", {}, async () => {
-        const now = new Date().toISOString();
-        const { data, error } = await supabase
-          .from("results")
-          .select("class, exam_type, year, publish_at")
-          .eq("is_published", false)
-          .not("publish_at", "is", null)
-          .gt("publish_at", now)
-          .order("publish_at", { ascending: true });
-        if (error) throw error;
-        return (data ?? []) as { class: string; exam_type: string; year: number; publish_at: string }[];
+        // SECURITY: see src/lib/resultSchedule.ts — the publish schedule is
+        // public, the unpublished RESULTS are not. This used to be a direct
+        // read of the `results` table, which only worked because that table
+        // had a blanket SELECT policy exposing every held-back result.
+        const rows = await fetchResultSchedule("upcoming");
+        return rows as { class: string; exam_type: string; year: number; publish_at: string }[];
       });
       if (!data || data.length === 0) return [];
       // Group by publish_at so "All Classes At Once" schedules collapse

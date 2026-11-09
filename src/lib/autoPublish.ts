@@ -24,6 +24,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { markPublishBust } from "@/lib/publicData";
+import { fetchResultSchedule } from "@/lib/resultSchedule";
 
 const ENDPOINT = "/api/auto-publish-results";
 // How long before zero the browser calls the (waiting) endpoint. Covers a
@@ -94,15 +95,19 @@ async function directPublish(): Promise<number> {
 }
 
 // How many rows are still scheduled-but-due (i.e. not yet published)?
+//
+// SECURITY: this used to be a direct COUNT on the `results` table filtered
+// to is_published = false. That only worked because the table carried a
+// blanket SELECT policy — the same policy that exposed every held-back
+// result to the entire internet. The schedule is now read through
+// public.result_schedule('due'), which returns the schedule columns only.
+//
+// A failed read returns null (unknown), never 0 — the caller must not
+// conclude "nothing is pending" from a network error.
 async function pendingDueCount(): Promise<number | null> {
   try {
-    const { count, error } = await supabase
-      .from("results")
-      .select("id", { count: "exact", head: true })
-      .eq("is_published", false)
-      .not("publish_at", "is", null)
-      .lte("publish_at", new Date(serverNow() + 250).toISOString());
-    return error ? null : (count ?? 0);
+    const rows = await fetchResultSchedule("due");
+    return rows.length;
   } catch { return null; }
 }
 

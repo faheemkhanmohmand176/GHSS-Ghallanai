@@ -63,6 +63,9 @@ function TrackApplication() {
   const [result, setResult] = useState<TrackResult | null>(null);
   const [failed, setFailed] = useState(false);
   const [failDetail, setFailDetail] = useState("");
+  // A human-readable reason from the server (e.g. the tracker rate limit).
+  // Empty = a generic failure, and the old wording is used unchanged.
+  const [failMessage, setFailMessage] = useState("");
   const [showAllTimeline, setShowAllTimeline] = useState(false);
 
   // Open the connection to the database while the visitor is still typing, so
@@ -79,11 +82,11 @@ function TrackApplication() {
     e?.preventDefault();
     const q = trackingId.replace(/\s+/g, "").trim();
     if (!q) { toast.error("Please enter your Tracking ID."); return; }
-    setSearching(true); setSearched(q); setResult(null); setFailed(false); setFailDetail(""); setShowAllTimeline(false);
+    setSearching(true); setSearched(q); setResult(null); setFailed(false); setFailDetail(""); setFailMessage(""); setShowAllTimeline(false);
     try {
       const res = (await interApi.track(q)) as unknown as TrackResult & { error?: string; detail?: string };
       if (res?.ok) setResult(res);
-      else if (res?.error) { setFailed(true); setFailDetail(typeof res.detail === "string" ? res.detail : ""); }   // a real error, not "not found"
+      else if (res?.error) { setFailed(true); setFailDetail(typeof res.detail === "string" ? res.detail : ""); setFailMessage(String(res.error)); }   // a real error, not "not found"
       // NOTE: an unknown Tracking ID returns { ok:false } with NO error string.
     } catch {
       setFailed(true);
@@ -215,11 +218,15 @@ function TrackApplication() {
               <div className="mx-auto flex max-w-md flex-col items-center rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-5 text-center">
                 <XCircle className="h-6 w-6 text-amber-600" />
                 <p className="mt-2 text-sm font-semibold text-foreground">
-                  {failed ? "Could not check right now" : "No application found"}
+                  {failed ? (failMessage || "Could not check right now") : "No application found"}
                 </p>
                 <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
                   {failed
-                    ? (failDetail ? "The lookup service reported a problem." : "Please check your connection and try again.")
+                    ? (failDetail
+                        ? "The lookup service reported a problem."
+                        : failMessage
+                          ? "Please wait a few minutes and try again."
+                          : "Please check your connection and try again.")
                     : <>No match for <span className="font-mono font-bold text-foreground">{searched}</span>. Check the Tracking ID on your challan, then try again.</>}
                 </p>
                 {failed && failDetail && (

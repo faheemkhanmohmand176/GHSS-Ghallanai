@@ -13,9 +13,9 @@
  * auto-publish watcher already uses, just grouped down to "what's the very 
  * next publish moment" for display purposes.
  */
+import { fetchResultSchedule } from "@/lib/resultSchedule";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 import { cachedOrDirect } from "@/lib/publicData";
 
 export interface ResultsSchedule {
@@ -54,16 +54,13 @@ export function useResultsCountdown() {
       const data = await cachedOrDirect<
         { class: string; exam_type: string | null; year: number | null; publish_at: string }[]
       >("result-schedule", {}, async () => {
-        const now = new Date().toISOString();
-        const { data, error } = await supabase
-          .from("results")
-          .select("class, exam_type, year, publish_at")
-          .eq("is_published", false)
-          .not("publish_at", "is", null)
-          .gt("publish_at", now)
-          .order("publish_at", { ascending: true });
-        if (error) throw error;
-        return (data ?? []) as { class: string; exam_type: string | null; year: number | null; publish_at: string }[];
+        // SECURITY: the schedule is read through public.result_schedule(),
+        // a SECURITY DEFINER function that returns ONLY class / exam_type /
+        // year / publish_at. Reading the `results` table directly for the
+        // unpublished rows would require a blanket SELECT policy on that
+        // table — which would also expose every held-back result (marks,
+        // student ids, the "hidden top 3") to the whole internet.
+        return await fetchResultSchedule("upcoming");
       });
       if (!data || data.length === 0) return [];
       const byPublishAt = new Map<string, ResultsSchedule>();

@@ -459,6 +459,36 @@ GRANT  EXECUTE ON FUNCTION public.inter_admin_export() TO authenticated, service
 -- Re-assert the bulk grants of migration 24 so a re-run of any earlier
 -- hardening script cannot lock the public flow out of anything, and so the
 -- functions added above get the same treatment as their siblings.
+--
+-- ─────────────────────────────────────────────────────────────────────────────
+-- SECURITY FIX (Nov 2026) — this loop used to be the ROOT CAUSE of the
+-- payment bypass, so it had to be rewritten, not just worked around.
+--
+-- The OLD version granted EXECUTE to `anon` for EVERY inter_* function
+-- except a short exclusion list. Migration 23 had deliberately revoked
+-- `inter_safepay_apply` and `inter_payment_context` from anon and granted
+-- them to service_role only — and because THIS file runs AFTER 23, the loop
+-- silently undid that revoke. An anonymous visitor could then call the
+-- "mark this application as paid" function directly, bypassing the Safepay
+-- webhook and its HMAC-SHA512 signature check. `inter_apply` was re-opened
+-- the same way, which bypassed the Turnstile captcha on the auth-gateway.
+--
+-- The NEW version is ALLOW-LIST based (default-deny):
+--   1. revoke EXECUTE from PUBLIC / anon / authenticated for every
+--      inter_* function, for EVERY overload (a function with a DEFAULT
+--      argument exists in pg_proc once per arity, and an explicit
+--      "REVOKE ... ON FUNCTION f(a,b,c)" only covers one of them — which
+--      is how `inter_track` stayed reachable through its 2-arg form);
+--   2. grant the PUBLIC surface (the applicant portal + the public
+--      catalogue + the public tracker) to anon;
+--   3. grant the ADMIN surface (inter_admin_*, inter_is_admin) to
+--      authenticated — each of them checks the role inside;
+--   4. leave everything else to service_role only.
+--
+-- Migration 33 applies exactly this state to the live database; keeping
+-- this file in sync means a re-run of migration 27 can never re-open the
+-- bypass.
+-- ─────────────────────────────────────────────────────────────────────────────
 DO $$
 DECLARE r record;
 BEGIN
@@ -467,16 +497,30 @@ BEGIN
       FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
      WHERE n.nspname = 'public' AND p.proname LIKE 'inter\_%'
   LOOP
-    IF r.proname LIKE 'inter\_admin\_%' OR r.proname = 'inter_is_admin'
-       OR r.proname IN ('inter_random_suffix') THEN
-      EXECUTE format('REVOKE EXECUTE ON FUNCTION public.%I(%s) FROM PUBLIC, anon', r.proname, r.args);
-      EXECUTE format('GRANT  EXECUTE ON FUNCTION public.%I(%s) TO authenticated, service_role', r.proname, r.args);
-    ELSIF r.proname IN ('inter_register','inter_login') THEN
-      NULL;
-    ELSIF r.proname = 'inter_track' THEN
-      NULL;
-    ELSE
+    -- 1) default-deny, for every overload of every inter_* function
+    EXECUTE format('REVOKE EXECUTE ON FUNCTION public.%I(%s) FROM PUBLIC, anon, authenticated', r.proname, r.args);
+
+    -- 2) the PUBLIC surface
+    IF r.proname = ANY (ARRAY[
+         'inter_session_state','inter_logout','inter_save_personal',
+         'inter_save_ssc','inter_check_quota','inter_draft_check_quota',
+         'inter_submit_application','inter_edit_application',
+         'inter_proceed_payment','inter_application_detail',
+         'inter_programs_list','inter_ucs_list','inter_merit_lists_public',
+         'inter_merit_list_view','inter_subject_groups_list',
+         'inter_admission_open','inter_track_by_id'
+       ]) THEN
       EXECUTE format('GRANT EXECUTE ON FUNCTION public.%I(%s) TO anon, authenticated, service_role', r.proname, r.args);
+
+    -- 3) the ADMIN surface — the role check lives inside each function
+    ELSIF r.proname LIKE 'inter\_admin\_%' OR r.proname = 'inter_is_admin' THEN
+      EXECUTE format('GRANT EXECUTE ON FUNCTION public.%I(%s) TO authenticated, service_role', r.proname, r.args);
+
+    -- 4) everything else (inter_apply, inter_safepay_apply,
+    --    inter_payment_context, inter_random_suffix, …) stays service_role
+    --    only — that is the whole point of this fix.
+    ELSE
+      EXECUTE format('GRANT EXECUTE ON FUNCTION public.%I(%s) TO service_role', r.proname, r.args);
     END IF;
   END LOOP;
 END $$;
