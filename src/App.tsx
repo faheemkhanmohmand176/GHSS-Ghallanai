@@ -88,7 +88,6 @@ const About            = lazyWithRetry(() => import("./pages/About"));
 const Teachers         = lazyWithRetry(() => import("./pages/Teachers"));
 const Notices          = lazyWithRetry(() => import("./pages/Notices"));
 const Results          = lazyWithRetry(() => import("./pages/Results"));
-const Library          = lazyWithRetry(() => import("./pages/Library"));
 const SignIn           = lazyWithRetry(() => import("./pages/auth/SignIn"));
 const ForgotPassword   = lazyWithRetry(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword    = lazyWithRetry(() => import("./pages/auth/ResetPassword"));
@@ -256,7 +255,6 @@ const App = () => (
                 <Route path="/search"               element={<Search />} />
                 <Route path="/results"              element={<Results />} />
                 <Route path="/merit-list"           element={<MeritList />} />
-                <Route path="/library"              element={<Library />} />
                 <Route path="/auth/signin"          element={<SignIn />} />
                 <Route path="/auth/forgot-password" element={<ForgotPassword />} />
                 <Route path="/auth/reset-password"  element={<ResetPassword />} />
