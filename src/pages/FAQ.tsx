@@ -83,6 +83,7 @@ const FAQ = () => {
   return (
     <PageLayout>
       <PageBanner
+        hideCrumbs
         title="Frequently Asked Questions"
         subtitle="Quick answers about admissions, results, notes, school information and using this website"
       />
