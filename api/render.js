@@ -183,7 +183,7 @@ async function fetchSchoolProfile() {
     tagline: s.tagline || "Excellence in Education",
     description:
       s.description ||
-      "Official website of Government Higher Secondary School Ghallanai — online admissions, exam results, notices, digital library and more for 1st Year and 2nd Year.",
+      "Official website of Government Higher Secondary School Ghallanai — online admissions, exam results, notices and more for 1st Year and 2nd Year.",
     // Real statistics from the admin dashboard (shown to AI crawlers so they
     // never read misleading "0+" placeholders — only values the school set).
     total_students: typeof s.total_students === "number" ? s.total_students : null,
@@ -277,27 +277,6 @@ async function fetchTeachers(limit = 50) {
     qualification: t.qualification || null,
     experience: t.experience || null,
     bio: t.bio || null,
-  }));
-}
-
-async function fetchLibraryFiles(limit = 20) {
-  const rows = await safeQuery("library_files", (sb) =>
-    sb
-      .from("library_files")
-      .select("id, title, description, category, class, subject, file_url, file_type, created_at")
-      .order("created_at", { ascending: false })
-      .limit(limit)
-  );
-  return rows.map((f) => ({
-    id: f.id,
-    title: f.title,
-    description: f.description || null,
-    category: f.category || null,
-    class: f.class || null,
-    subject: f.subject || null,
-    file_type: f.file_type || null,
-    download_url: f.file_url || null,
-    added_at: f.created_at,
   }));
 }
 
@@ -510,7 +489,6 @@ const SECTION_FETCHERS = {
   admissionFiles: fetchAdmissionFiles,
   notices: () => fetchNotices(20),
   teachers: () => fetchTeachers(50),
-  library: () => fetchLibraryFiles(20),
   meritLists: () => fetchMeritLists(10),
   rollSlips: () => fetchRollSlipSessions(10),
   exams: fetchExamInfo,
@@ -529,7 +507,6 @@ const ROUTE_SECTIONS = {
   "/merit-list":      ["school", "exams", "meritLists"],
   "/roll-no-slip":    ["school", "exams", "rollSlips"],
   "/teachers":        ["school", "teachers"],
-  "/library":         ["school", "library"],
   "/faq":             ["school"],
   "/about":           ["school"],
   "/contact":         ["school"],
@@ -586,7 +563,6 @@ async function getLiveSiteData(sections) {
   data.admissionFiles = data.admissionFiles || [];
   data.notices = data.notices || [];
   data.teachers = data.teachers || [];
-  data.library = data.library || [];
   data.meritLists = data.meritLists || [];
   data.rollSlips = data.rollSlips || [];
   data.exams = data.exams || { published_exams: [], grading: {} };
@@ -773,7 +749,7 @@ function admissionFilesHtml(admissionFiles) {
  */
 function liveSections(route, data, bisep = null) {
   const parts = [];
-  const { admission, admissionFiles, notices, exams, teachers, library, meritLists, rollSlips, school } = data;
+  const { admission, admissionFiles, notices, exams, teachers, meritLists, rollSlips, school } = data;
 
   switch (true) {
     case route === "/": {
@@ -945,22 +921,6 @@ function liveSections(route, data, bisep = null) {
       }
       break;
     }
-    case route === "/library": {
-      if (library.length) {
-        parts.push("<h2>Latest downloadable materials (live)</h2>");
-        parts.push(
-          `<ul>${library
-            .map(
-              (f) =>
-                `<li><a href="${esc(f.download_url || "/library")}">${esc(f.title)}</a>${f.class ? ` — ${esc(f.class)}` : ""}${f.subject ? ` · ${esc(f.subject)}` : ""}${f.category ? ` · ${esc(f.category)}` : ""}${f.description ? `<br><span class="meta">${esc(f.description.slice(0, 220))}</span>` : ""}</li>`
-            )
-            .join("")}</ul>`
-        );
-      } else {
-        parts.push(`<p class="meta">No downloadable materials have been added to the library yet. When the school uploads books, past papers or admission forms they will be listed here.</p>`);
-      }
-      break;
-    }
     case route === "/faq": {
       // Grouped Q&A — the full FAQ with every answer inline.
       const byCat = new Map();
@@ -1069,7 +1029,7 @@ function jsonLdFor(route, data, detail, pageName) {
   //    trail that replaces the bare URL in the search snippet). Maps each
   //    route to its section + page name; detail routes use the item's title.
   //    Drives BreadcrumbList schema for /about, /contact, /notices,
-  //    /results, /merit-list, /roll-no-slip, /teachers, /library,
+  //    /results, /merit-list, /roll-no-slip, /teachers,
   //    /faq, /admission, /notices/<id>.
   const BREADCRUMB_MAP = {
     "/about":        ["Our School",      "About"],
@@ -1081,7 +1041,6 @@ function jsonLdFor(route, data, detail, pageName) {
     "/roll-no-slip": ["Results",         "Roll No. Slip"],
     "/admission":    ["Admissions",      "Apply for Admission"],
     "/teachers":     ["Our School",      "Teachers"],
-    "/library":      ["Academics",       "Library"],
   };
   let breadcrumbItems = null;
   if (BREADCRUMB_MAP[route]) {
@@ -1148,7 +1107,6 @@ const PAGES_GUIDE = [
   { path: "/roll-no-slip", purpose: "Exam roll number slips — a student picks their class and types their full name to view, download (PDF with QR code) or share their own slip; a live countdown shows while a release is scheduled" },
   { path: "/notices", purpose: "Official notices — exams, holidays, fee deadlines, parent-teacher meetings" },
   { path: "/teachers", purpose: "Teaching staff directory" },
-  { path: "/library", purpose: "Downloadable books and past papers (each item links to its file)" },
   { path: "/contact", purpose: "Contact details, map, WhatsApp and contact form" },
   { path: "/about", purpose: "School history, mission and vision" },
   { path: "/faq", purpose: "Frequently asked questions — admissions, results, contact, website usage" },
@@ -1244,7 +1202,6 @@ async function aiDataHandler(req, res) {
     // ── Latest content (live, newest first) ─────────────────────────────────
     latest_notices: data.notices,
     teachers: data.teachers,
-    library: data.library,
 
     // ── Merit lists (public rankings — the /merit-list page data) ───────────
     merit_lists: {
