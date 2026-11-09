@@ -48,7 +48,7 @@ const Teachers = () => {
 
   return (
     <PageLayout>
-      <PageBanner title="Our Teachers" subtitle="Dedicated educators shaping the future" />
+      <PageBanner title="Our Teachers" subtitle="Dedicated educators shaping the future" hideCrumbs />
 
       <section className="py-16">
         <div className="container mx-auto px-4">
