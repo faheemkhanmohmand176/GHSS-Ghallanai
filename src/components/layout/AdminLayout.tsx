@@ -117,13 +117,13 @@ const NavBtn = memo(({ item, activeTab, onTabChange, onItemClick }: NavBtnProps)
       <span
         aria-hidden
         className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all duration-200",
           isActive
             ? "bg-white/95 ring-1 ring-inset ring-white/40 shadow-sm"
             : "bg-muted/60 ring-1 ring-inset ring-border/60 group-hover:bg-muted",
         )}
       >
-        <NavIcon id={item.id} className="h-[19px] w-[19px]" />
+        <NavIcon id={item.id} className="h-[17px] w-[17px]" />
       </span>
       <span className="admin-nav-label min-w-0 flex-1 text-left leading-tight break-words">{item.label}</span>
       <span
@@ -362,7 +362,7 @@ const AdminLayout = ({ activeTab, onTabChange, children }: AdminLayoutProps) => 
                 aria-current={isActive ? "page" : undefined}
               >
                 {isActive && <span aria-hidden className="absolute -top-1.5 h-1 w-7 rounded-full bg-[hsl(43_89%_58%)] shadow-[0_0_10px_hsl(43_89%_58%/0.8)]" />}
-                <NavIcon id={item.id} className={`h-[26px] w-[26px] transition-transform duration-200 ${isActive ? "scale-110 drop-shadow" : "opacity-90"}`} />
+                <NavIcon id={item.id} className={`h-[22px] w-[22px] transition-transform duration-200 ${isActive ? "scale-110" : "opacity-90"}`} />
                 <span className={`admin-dock-label text-[11px] font-semibold tracking-wide leading-none ${isActive ? "text-primary" : ""}`}>{item.short}</span>
               </button>
             );
