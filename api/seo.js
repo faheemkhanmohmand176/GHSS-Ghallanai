@@ -225,10 +225,9 @@ function buildLlmsTxt(s, admissionFiles = []) {
 - [Roll No. Slip](${SITE_URL}/roll-no-slip): Exam roll number slips — a student picks their class and types their full name to view, download (PDF with QR code) or share their own slip; a live countdown shows while a release is scheduled
 - [Notices](${SITE_URL}/notices): Official school notices — holidays, exam schedules, fee deadlines, parent-teacher meetings
 - [Teachers](${SITE_URL}/teachers): Teaching staff directory with subjects and qualifications
-- [Library](${SITE_URL}/library): Downloadable study materials, books, past papers and forms — each item links to its file
 - [Contact](${SITE_URL}/contact): Contact details, embedded map, WhatsApp and contact form
 - [About](${SITE_URL}/about): School history, mission, vision and staff overview
-- [FAQ](${SITE_URL}/faq): Complete frequently-asked-questions page — admissions, documents, tracking, results, grading, library, contact and website usage
+- [FAQ](${SITE_URL}/faq): Complete frequently-asked-questions page — admissions, documents, tracking, results, grading, contact and website usage
 
 ## Results
 
@@ -313,7 +312,6 @@ const SITEMAP_META = {
   "/merit-list":   { changefreq: "daily",   priority: "0.9", dbSource: { table: "merit_lists",       column: "created_at" } },
   "/roll-no-slip": { changefreq: "daily",   priority: "0.9", dbSource: { table: "exam_roll_sessions", column: "created_at" } },
   "/teachers":     { changefreq: "monthly", priority: "0.8", dbSource: { table: "teachers",          column: "created_at" } },
-  "/library":      { changefreq: "weekly",  priority: "0.8", dbSource: { table: "library_files",      column: "created_at" } },
   "/faq":          { changefreq: "monthly", priority: "0.8" },
 };
 
