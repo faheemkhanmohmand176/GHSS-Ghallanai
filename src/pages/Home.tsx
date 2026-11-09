@@ -1041,13 +1041,13 @@ const Home = () => {
           The visible countdown banner now lives only on /results. */}
       <HomeResultsBanner />
 
-      {/* ══ 2. HERO — ivory · ink · gold (premium, light) ══ */}
-      <section id="hero-section" className="lux-hero relative md:min-h-[88vh] flex items-start md:items-center overflow-hidden">
+      {/* ══ 2. HERO — deep emerald · deep gold (premium) ══ */}
+      <section id="hero-section" className="lux-hero lux-hero-deep relative md:min-h-[88vh] flex items-start md:items-center overflow-hidden">
         <div className="absolute inset-0 lux-grid" aria-hidden="true" />
-        <div className="luxe-blob w-[340px] h-[340px] -top-24 -right-20 bg-[hsl(42_90%_60%/.30)]" aria-hidden="true" />
-        <div className="luxe-blob w-[300px] h-[300px] bottom-10 -left-24 bg-[hsl(152_55%_45%/.18)]" style={{ animationDelay: "-7s" }} aria-hidden="true" />
+        <div className="luxe-blob w-[340px] h-[340px] -top-24 -right-20 bg-[hsl(42_90%_55%/.22)]" aria-hidden="true" />
+        <div className="luxe-blob w-[300px] h-[300px] bottom-10 -left-24 bg-[hsl(152_60%_40%/.25)]" style={{ animationDelay: "-7s" }} aria-hidden="true" />
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(40_80%_45%)] to-transparent opacity-70" aria-hidden="true" />
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background to-transparent" aria-hidden="true" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[hsl(42_85%_58%)] to-transparent" aria-hidden="true" />
 
         <div className="container mx-auto px-5 sm:px-6 relative z-10 pt-9 pb-20 md:pt-6 md:pb-28">
           <div className="grid grid-cols-1 gap-10 items-center">
