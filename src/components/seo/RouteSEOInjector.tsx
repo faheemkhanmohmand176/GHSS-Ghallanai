@@ -90,26 +90,12 @@ const admissionFAQSchema = {
   ],
 };
 
-/** Library schema */
-const librarySchema = {
-  "@context": "https://schema.org",
-  "@type": "Library",
-  name: "GHSS Ghallanai Library",
-  description:
-    "Digital library of Government Higher Secondary School Ghallanai — textbooks, past papers, notes and educational resources for all classes.",
-  url: `${SITE_URL}/library`,
-  containedInPlace: {
-    "@type": "HighSchool",
-    "@id": `${SITE_URL}#organization`,
-  },
-};
-
 const ROUTES: RouteSEO[] = [
   {
     pattern: "/",
     title: "GHSS Ghallanai — Government Higher Secondary School, District Mohmand KPK",
     description:
-      "Government Higher Secondary School Ghallanai, District Mohmand, KPK Pakistan. Quality education, notices, results, library and admissions.",
+      "Government Higher Secondary School Ghallanai, District Mohmand, KPK Pakistan. Quality education, notices, results and admissions.",
     keywords:
       "GHSS Ghallanai, Government Higher Secondary School Ghallanai, Mohmand school, KPK school, school admission, school notices, school results Pakistan",
     hasUrdu: true,
@@ -328,15 +314,6 @@ const ROUTES: RouteSEO[] = [
     breadcrumbs: () => [baseBreadcrumb, { name: "Merit List", path: "/merit-list" }],
   },
   {
-    pattern: "/library",
-    title: "Library — GHSS Ghallanai | Books & Past Papers",
-    description:
-      "Access the digital library of GHSS Ghallanai — books, past papers and educational resources for all classes.",
-    keywords: "school library, digital library, past papers, books, GHSS Ghallanai library",
-    breadcrumbs: () => [baseBreadcrumb, { name: "Library", path: "/library" }],
-    jsonLd: () => librarySchema,
-  },
-  {
     pattern: "/contact",
     title: "Contact GHSS Ghallanai — Address, Phone & Email | District Mohmand",
     description:
@@ -422,7 +399,7 @@ const ROUTES: RouteSEO[] = [
     pattern: "/faq",
     title: "FAQ — Frequently Asked Questions | GHSS Ghallanai",
     description:
-      "Frequently asked questions about GHSS Ghallanai: admission procedure and documents, application tracking, results and grading, BISE Peshawar board exams, library, contact details and how to install the website as an app.",
+      "Frequently asked questions about GHSS Ghallanai: admission procedure and documents, application tracking, results and grading, BISE Peshawar board exams, contact details and how to install the website as an app.",
     keywords:
       "GHSS Ghallanai FAQ, school admission questions, how to apply GHSS Ghallanai, admission documents, result check roll number, BISE Peshawar result, school contact Mohmand, GHSS Ghallanai help",
     breadcrumbs: () => [baseBreadcrumb, { name: "FAQ", path: "/faq" }],
