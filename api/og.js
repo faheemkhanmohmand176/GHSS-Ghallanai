@@ -433,11 +433,10 @@ const ROUTES = [
   { pattern: "/notices", title: "School Notices & Announcements — GHSS Ghallanai", description: "Browse the latest school notices, urgent announcements, academic updates and event information from Government Higher Secondary School Ghallanai." },
   { pattern: "/results", title: "BISE Peshawar Result — HSSC Result, BISEP Result, Peshawar Board Result | GHSS Ghallanai", description: "Check BISE Peshawar Result by roll number — HSSC Result (1st Year & 2nd Year), BISEP Result, Peshawar Board Result, Annual-I & Annual-II exams. Fast, free, mobile-friendly BISE Peshawar board result lookup powered by GHSS Ghallanai." },
   { pattern: "/merit-list", title: "Merit List — Official School Exam Rankings | GHSS Ghallanai", description: "Official GHSS Ghallanai merit list — top position holders of every exam, class-wise and whole-school rankings with marks, percentages and grades." },
-  { pattern: "/library", title: "Library — GHSS Ghallanai | Books & Past Papers", description: "Access the digital library of GHSS Ghallanai — books, past papers and educational resources for all classes." },
   { pattern: "/weather", title: "Weather — District Mohmand KPK | GHSS Ghallanai", description: "Live weather forecast for Ghallanai and District Mohmand, KPK — temperature, conditions and outlook for the school community." },
   { pattern: "/contact", title: "Contact GHSS Ghallanai — Address, Phone & Email | District Mohmand", description: "Contact Government Higher Secondary School Ghallanai, District Mohmand, KPK. Find our address, phone number, email, WhatsApp and location map. Reach out for admissions, queries and feedback." },
   { pattern: "/admission", title: "Admissions Open — GHSS Ghallanai | Apply Online District Mohmand", description: "Apply for admission at Government Higher Secondary School Ghallanai — eligibility, fee structure, required documents and online application form." },
-  { pattern: "/search", title: "Search — GHSS Ghallanai", description: "Search across notices, teachers and library files at Government Higher Secondary School Ghallanai." },
+  { pattern: "/search", title: "Search — GHSS Ghallanai", description: "Search across notices and teachers at Government Higher Secondary School Ghallanai." },
   // Dynamic / nested routes — generic but on-brand previews.
   { pattern: /^\/notices\/.+$/, title: "School Notice — GHSS Ghallanai", description: "Read the full school notice from Government Higher Secondary School Ghallanai.", type: "article" },
 ];
