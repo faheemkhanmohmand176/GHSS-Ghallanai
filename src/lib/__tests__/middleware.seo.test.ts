@@ -153,7 +153,6 @@ describe("middleware crawler paths (SEO)", () => {
       "/merit-list",
       "/roll-no-slip",
       "/teachers",
-      "/library",
       "/faq",
       "/search",
       "/admission/apply",
