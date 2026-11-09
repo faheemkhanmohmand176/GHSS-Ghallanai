@@ -43,7 +43,7 @@ const Notices = () => {
 
   return (
     <PageLayout>
-      <PageBanner variant="premium" eyebrow="Official Announcements" icon={<Bell className="w-6 h-6" />} title="Notice Board" subtitle="Stay updated with school announcements" />
+      <PageBanner variant="premium" hideCrumbs eyebrow="Official Announcements" title="Notice Board" subtitle="Stay updated with school announcements" />
 
       {/* ══════════════════════════════════════════
           SECTION — Notices (editorial dispatch style)
