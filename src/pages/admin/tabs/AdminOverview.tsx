@@ -20,12 +20,11 @@ const useAdminStats = () =>
     queryFn: async () => {
       const head = { count: "exact" as const, head: true };
       const [
-        teachers, notices, library, users, results,
+        teachers, notices, users, results,
         pendingUsers, admissions, pendingAdmissions,
       ] = await Promise.all([
         supabase.from("teachers").select("id", head),
         supabase.from("notices").select("id", head),
-        supabase.from("library_files").select("id", head),
         supabase.from("profiles").select("id", head),
         supabase.from("results").select("id", head),
         supabase.from("profiles").select("id", head).eq("status", "pending"),
@@ -35,7 +34,6 @@ const useAdminStats = () =>
       return {
         teachers: teachers.count ?? 0,
         notices: notices.count ?? 0,
-        library: library.count ?? 0,
         users: users.count ?? 0,
         results: results.count ?? 0,
         pendingUsers: pendingUsers.count ?? 0,
@@ -212,7 +210,6 @@ const AdminOverview = () => {
   ];
   const contentTiles = [
     { to: "/admin?tab=announcements", label: "Notices",        value: stats?.notices, icon: AI.announcements, tone: TONES.amber },
-    { to: "/admin?tab=library",       label: "Library Files",  value: stats?.library, icon: AI.library,   tone: TONES.cyan },
   ];
 
   /* Shortcuts only point at pages that have NO tile above. */
