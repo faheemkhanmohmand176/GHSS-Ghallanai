@@ -1,3 +1,15 @@
+-- ═════════════════════════════════════════════════════════════════════
+-- MIGRATION 05 — Content & communications tables
+-- ═════════════════════════════════════════════════════════════════════
+-- Consolidated, in the ORIGINAL run order, from these source files
+-- (content copied verbatim, nothing removed or edited):
+--   • 04_content_communications_tables.sql
+-- Run the 19 files in numeric order (01 → 19). Any 'Run AFTER <old file
+-- number>' remarks inside the original text are kept as history only.
+-- ═════════════════════════════════════════════════════════════════════
+
+
+-- ▼▼▼ BEGIN original file: 04_content_communications_tables.sql ▼▼▼
 -- ═══════════════════════════════════════════════════════════════════════
 -- FILE 04 — Content & Communications Tables
 -- ═══════════════════════════════════════════════════════════════════════
@@ -882,3 +894,4 @@ ALTER TABLE public.user_messages ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE public.videos ENABLE ROW LEVEL SECURITY;
+-- ▲▲▲ END original file: 04_content_communications_tables.sql ▲▲▲

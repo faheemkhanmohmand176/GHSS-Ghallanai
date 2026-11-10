@@ -1,3 +1,15 @@
+-- ═════════════════════════════════════════════════════════════════════
+-- MIGRATION 04 — Admissions, exams & fees tables
+-- ═════════════════════════════════════════════════════════════════════
+-- Consolidated, in the ORIGINAL run order, from these source files
+-- (content copied verbatim, nothing removed or edited):
+--   • 03_admissions_exams_fees_tables.sql
+-- Run the 19 files in numeric order (01 → 19). Any 'Run AFTER <old file
+-- number>' remarks inside the original text are kept as history only.
+-- ═════════════════════════════════════════════════════════════════════
+
+
+-- ▼▼▼ BEGIN original file: 03_admissions_exams_fees_tables.sql ▼▼▼
 -- ═══════════════════════════════════════════════════════════════════════
 -- FILE 03 — Admissions, Exams & Fees Tables
 -- ═══════════════════════════════════════════════════════════════════════
@@ -1923,3 +1935,4 @@ ALTER TABLE public.results ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE public.student_charges ENABLE ROW LEVEL SECURITY;
+-- ▲▲▲ END original file: 03_admissions_exams_fees_tables.sql ▲▲▲

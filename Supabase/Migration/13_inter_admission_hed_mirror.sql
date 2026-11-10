@@ -1,3 +1,15 @@
+-- ═════════════════════════════════════════════════════════════════════
+-- MIGRATION 13 — Inter admission system (HED mirror)
+-- ═════════════════════════════════════════════════════════════════════
+-- Consolidated, in the ORIGINAL run order, from these source files
+-- (content copied verbatim, nothing removed or edited):
+--   • 20_inter_admission_hed_mirror.sql
+-- Run the 19 files in numeric order (01 → 19). Any 'Run AFTER <old file
+-- number>' remarks inside the original text are kept as history only.
+-- ═════════════════════════════════════════════════════════════════════
+
+
+-- ▼▼▼ BEGIN original file: 20_inter_admission_hed_mirror.sql ▼▼▼
 -- ═══════════════════════════════════════════════════════════════════════
 -- FILE 20 — Inter Admission System — Safe SQL
 -- ═══════════════════════════════════════════════════════════════════════
@@ -1674,3 +1686,4 @@ BEGIN
     RETURN jsonb_build_object('ok', true);
 END;
 $$;
+-- ▲▲▲ END original file: 20_inter_admission_hed_mirror.sql ▲▲▲

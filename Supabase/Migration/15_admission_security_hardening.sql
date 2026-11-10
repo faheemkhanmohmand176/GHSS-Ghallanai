@@ -1,3 +1,15 @@
+-- ═════════════════════════════════════════════════════════════════════
+-- MIGRATION 15 — Admission security hardening
+-- ═════════════════════════════════════════════════════════════════════
+-- Consolidated, in the ORIGINAL run order, from these source files
+-- (content copied verbatim, nothing removed or edited):
+--   • 24_admission_security_hardening.sql
+-- Run the 19 files in numeric order (01 → 19). Any 'Run AFTER <old file
+-- number>' remarks inside the original text are kept as history only.
+-- ═════════════════════════════════════════════════════════════════════
+
+
+-- ▼▼▼ BEGIN original file: 24_admission_security_hardening.sql ▼▼▼
 -- ═══════════════════════════════════════════════════════════════════════
 -- 24_admission_security_hardening.sql
 -- Run AFTER 23_safepay_online_payment.sql.  SAFE TO RE-RUN (idempotent).
@@ -1009,3 +1021,4 @@ END $$;
 -- columns exist on the table so any SELECT * includes them.
 
 -- done.
+-- ▲▲▲ END original file: 24_admission_security_hardening.sql ▲▲▲

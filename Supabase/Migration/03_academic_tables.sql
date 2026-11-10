@@ -1,3 +1,15 @@
+-- ═════════════════════════════════════════════════════════════════════
+-- MIGRATION 03 — Academic tables (attendance, timetable, notes, quizzes)
+-- ═════════════════════════════════════════════════════════════════════
+-- Consolidated, in the ORIGINAL run order, from these source files
+-- (content copied verbatim, nothing removed or edited):
+--   • 02_academic_tables.sql
+-- Run the 19 files in numeric order (01 → 19). Any 'Run AFTER <old file
+-- number>' remarks inside the original text are kept as history only.
+-- ═════════════════════════════════════════════════════════════════════
+
+
+-- ▼▼▼ BEGIN original file: 02_academic_tables.sql ▼▼▼
 -- ═══════════════════════════════════════════════════════════════════════
 -- FILE 02 — Academic Tables (Attendance, Timetable, Notes, Quizzes)
 -- ═══════════════════════════════════════════════════════════════════════
@@ -2422,3 +2434,4 @@ ALTER TABLE public.timetable_overrides ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE public.timetables ENABLE ROW LEVEL SECURITY;
+-- ▲▲▲ END original file: 02_academic_tables.sql ▲▲▲

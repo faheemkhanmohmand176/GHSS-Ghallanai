@@ -1,3 +1,15 @@
+-- ═════════════════════════════════════════════════════════════════════
+-- MIGRATION 01 — Extensions, storage buckets & storage RLS
+-- ═════════════════════════════════════════════════════════════════════
+-- Consolidated, in the ORIGINAL run order, from these source files
+-- (content copied verbatim, nothing removed or edited):
+--   • 00_extensions_storage_buckets.sql
+-- Run the 19 files in numeric order (01 → 19). Any 'Run AFTER <old file
+-- number>' remarks inside the original text are kept as history only.
+-- ═════════════════════════════════════════════════════════════════════
+
+
+-- ▼▼▼ BEGIN original file: 00_extensions_storage_buckets.sql ▼▼▼
 -- ═══════════════════════════════════════════════════════════════════════
 -- FILE 00 — Extensions, Storage Buckets & Storage RLS Policies
 -- ═══════════════════════════════════════════════════════════════════════
@@ -285,3 +297,4 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('videos', 'videos', true)
 
 
 INSERT INTO storage.buckets (id, name, public) VALUES ('admissions', 'admissions', true) ON CONFLICT (id) DO NOTHING;
+-- ▲▲▲ END original file: 00_extensions_storage_buckets.sql ▲▲▲

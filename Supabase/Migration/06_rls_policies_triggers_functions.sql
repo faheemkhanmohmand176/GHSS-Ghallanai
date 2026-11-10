@@ -1,3 +1,15 @@
+-- ═════════════════════════════════════════════════════════════════════
+-- MIGRATION 06 — RLS policies, triggers & functions
+-- ═════════════════════════════════════════════════════════════════════
+-- Consolidated, in the ORIGINAL run order, from these source files
+-- (content copied verbatim, nothing removed or edited):
+--   • 05_rls_policies_triggers_functions.sql
+-- Run the 19 files in numeric order (01 → 19). Any 'Run AFTER <old file
+-- number>' remarks inside the original text are kept as history only.
+-- ═════════════════════════════════════════════════════════════════════
+
+
+-- ▼▼▼ BEGIN original file: 05_rls_policies_triggers_functions.sql ▼▼▼
 -- ═══════════════════════════════════════════════════════════════════════
 -- FILE 05 — Row-Level Security Policies, Triggers & Functions
 -- ═══════════════════════════════════════════════════════════════════════
@@ -5706,3 +5718,4 @@ DROP POLICY IF EXISTS videos_public_read ON public.videos;
 
 
 CREATE POLICY videos_public_read ON public.videos FOR SELECT USING ((is_published = true));
+-- ▲▲▲ END original file: 05_rls_policies_triggers_functions.sql ▲▲▲

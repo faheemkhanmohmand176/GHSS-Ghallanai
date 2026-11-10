@@ -1,3 +1,15 @@
+-- ═════════════════════════════════════════════════════════════════════
+-- MIGRATION 02 — Core school tables (identity, operations, settings)
+-- ═════════════════════════════════════════════════════════════════════
+-- Consolidated, in the ORIGINAL run order, from these source files
+-- (content copied verbatim, nothing removed or edited):
+--   • 01_core_school_tables.sql
+-- Run the 19 files in numeric order (01 → 19). Any 'Run AFTER <old file
+-- number>' remarks inside the original text are kept as history only.
+-- ═════════════════════════════════════════════════════════════════════
+
+
+-- ▼▼▼ BEGIN original file: 01_core_school_tables.sql ▼▼▼
 -- ═══════════════════════════════════════════════════════════════════════
 -- FILE 01 — Core School Tables (Identity, Operations, Settings)
 -- ═══════════════════════════════════════════════════════════════════════
@@ -1143,3 +1155,4 @@ DROP POLICY IF EXISTS "videos storage admin write" ON storage.objects;
 CREATE POLICY "videos storage admin write" ON storage.objects FOR INSERT WITH CHECK (((bucket_id = 'videos'::text) AND (auth.role() = 'authenticated'::text) AND (EXISTS ( SELECT 1
    FROM public.profiles p
   WHERE ((p.id = auth.uid()) AND (p.role = 'admin'::text))))));
+-- ▲▲▲ END original file: 01_core_school_tables.sql ▲▲▲
