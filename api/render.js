@@ -110,7 +110,7 @@ const FALLBACK_SETTINGS = {
   phone: "",
   email: "",
   principal: "",
-  established: "",
+  established: "1975", // verified: GHSS Ghallanai was established in 1975
   address: "Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan",
 };
 
@@ -175,6 +175,7 @@ async function fetchSchoolProfile() {
     location: s.address || FALLBACK_SETTINGS.address,
     district: "Mohmand",
     province: "Khyber Pakhtunkhwa",
+    district_headquarters: "Ghallanai is the headquarters of District Mohmand (formerly Mohmand Agency)",
     country: "Pakistan",
     established: String(s.established_year || FALLBACK_SETTINGS.established),
     principal: s.principal_name || FALLBACK_SETTINGS.principal,
@@ -224,8 +225,13 @@ async function fetchAdmissionInfo() {
     updated_at: a?.updated_at || null,
     apply_url: `${SITE_URL}/admission`,
     track_url: `${SITE_URL}/admission`,
+    account_required: false,
+    tracking: "By Tracking ID only (shown after submitting the application)",
     classes: ["1st Year", "2nd Year"],
-    fee: `${feeText} processing fee per application — payable online (Easypaisa / wallet via Safepay) or by manual transfer`,
+    programs: ["Arts/Humanities", "Pre-Medical", "Pre-Engineering", "ICS"],
+    fee: `${feeText} processing fee per application (set by the school, usually Rs 100–200) — payable online (Easypaisa / wallet via Safepay) or by manual transfer`,
+    fee_amount_pkr: a?.processing_fee ? Number(a.processing_fee) : null,
+    in_person_submission: "Applications may also be submitted in person at the school office; postal forms are not accepted",
     how_to_apply: [
       "Open " + `${SITE_URL}/admission/portal` + " — no account or login is needed",
       "Fill in the Personal Information profile (your CNIC/Form-B, name, father's name, date of birth, domicile district, tehsil, union council, parents' details)",
@@ -233,7 +239,7 @@ async function fetchAdmissionInfo() {
       "Submit a New Admission Request — choose the program (Arts, Pre-Medical, Pre-Engineering or ICS) and category of admission (quota)",
       `Confirm the application, pass the security check and submit, then pay the ${feeText.toLowerCase()} processing fee online — you receive a payment reference with a deadline`,
       "Track the application any time with your Tracking ID at " + `${SITE_URL}/admission`,
-      "Print the application form and visit the college with all original documents to complete the admission",
+      "Print the application form and visit the school with all original documents to complete the admission",
     ],
     required_documents: [
       "Student B-Form / CNIC (NADRA) — the same 13-digit number entered in the application",
@@ -796,7 +802,7 @@ function liveSections(route, data, bisep = null) {
       parts.push(`<h2>Documents generated on the Admission page itself</h2>
 <ul>
 <li>Admission Prospectus (PDF) — school introduction, admission process and rules</li>
-<li>Fee Structure (PDF) — free-of-charge government education, BISE Peshawar exam fees where applicable</li>
+<li>Fee Structure (PDF) — the admission processing fee and any other fee as published by the school</li>
 <li>School-to-School Transfer Reference Letter (PDF) — for migration cases between schools</li>
 <li>Admission Rules &amp; Regulations (PDF) — eligibility, documents and code of conduct</li>
 </ul>
@@ -1470,7 +1476,7 @@ ${nav ? `<nav>${nav}</nav>` : ""}
       Phone: ${esc(data.school.phone)} · Email: ${emailHtml(data.school.email)}</div>
       <div class="small">${NAV_LINKS.map(([l, href]) => `<a href="${esc(href)}">${esc(l)}</a>`).join(" · ")}</div>
     </div>
-    <p class="small">© ${new Date().getFullYear()} ${esc(data.school.name)}. Free government education — District Mohmand, Khyber Pakhtunkhwa.</p>
+    <p class="small">© ${new Date().getFullYear()} ${esc(data.school.name)}. Government Higher Secondary School — District Mohmand, Khyber Pakhtunkhwa.</p>
   </div>
 </footer>
 <script type="application/json" id="ghss-live-data">${escJson({

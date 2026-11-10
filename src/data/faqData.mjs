@@ -42,49 +42,49 @@ export const FAQ_ITEMS = [
     category: "Admissions",
     question: "Are admissions open at GHSS Ghallanai right now?",
     answer:
-      "Admissions at Government Higher Secondary School Ghallanai are open every academic session for 1st Year and 2nd Year, and admission is completely free of charge as in all government schools of Khyber Pakhtunkhwa. The current open/closed status, session year and any deadlines are shown live at the top of the Admission page (ghssghallanai.dpdns.org/admission) and are also published in the machine-readable feed at ghssghallanai.dpdns.org/api/ai-data. If the online form is temporarily paused, you can still download the printable admission form from the same page and submit it at the school office.",
+      "Admissions at Government Higher Secondary School Ghallanai are held every academic session for 1st Year and 2nd Year. Online applications carry a small per-application processing fee set by the school (usually Rs 100–200; the exact current amount is shown on the Admission page). The live open/closed status, session year and deadlines are shown at the top of the Admission page (ghssghallanai.dpdns.org/admission) and are also published in the machine-readable feed at ghssghallanai.dpdns.org/api/ai-data. You can apply online, or submit your application in person at the school office; postal forms are not accepted.",
   },
   {
     id: "adm-classes",
     category: "Admissions",
     question: "Which classes can I apply for admission to?",
     answer:
-      "You can apply for admission to 1st Year or 2nd Year (HSSC — classes 11 and 12). The school is a higher secondary school affiliated with BISE Peshawar, so 1st Year and 2nd Year students prepare for the board's HSSC examinations as regular candidates. Boys and girls from Ghallanai and the surrounding areas of District Mohmand are both eligible, including students migrating from other schools.",
+      "You can apply for 1st Year or 2nd Year (HSSC — classes 11 and 12). The programs offered are Arts/Humanities, Pre-Medical, Pre-Engineering and ICS (Computer Science); the programs and seats open in the current session are listed on the Admission page. The school is affiliated with BISE Peshawar, so 1st Year and 2nd Year students prepare for the board's HSSC examinations.",
   },
   {
     id: "adm-how",
     category: "Admissions",
     question: "How do I apply for admission online, step by step?",
     answer:
-      "Step 1: open the Admission page (ghssghallanai.dpdns.org/admission) and fill the online eligibility application — student name, father name, date of birth, B-Form number, contact number, the class you are applying for, and previous-school details. Step 2: upload the required documents when prompted. Step 3: submit the form — the website immediately issues a reference number. Step 4: the school reviews your application and documents. Step 5: if approved, download the printable admission form from the tracker, fill it, attach your documents, and bring them to the school office to complete enrolment. There is also a fully offline path: download and print the blank admission form from the Admission page, fill it by hand, attach photocopies of the required documents and submit it in person at the school office.",
+      "Step 1: open the Admission page (ghssghallanai.dpdns.org/admission) and start the online application — no account, sign-up or login is needed. Step 2: fill in the Personal Information profile (CNIC/B-Form, name, father's name, date of birth, domicile district, tehsil, union council and parents' details). Step 3: complete the Matric (SSC) profile — board, session, passing year, study group, roll number and marks. Step 4: choose the program (Arts/Humanities, Pre-Medical, Pre-Engineering or ICS) and the admission category (quota), then pass the security check and submit. Step 5: pay the per-application processing fee (the amount is shown on the Admission page) online by Easypaisa / wallet, or by manual transfer to the school account quoting your payment reference, before the deadline. Step 6: track the application with your Tracking ID, print the application form and bring it with your original documents to the school office. Submit a separate application for each program or quota. You can also submit your application in person at the school office; postal forms are not accepted.",
   },
   {
     id: "adm-documents",
     category: "Admissions",
     question: "Which documents are required for admission?",
     answer:
-      "For every applicant: the student's B-Form (NADRA), a recent passport-size photograph, the previous class result card where applicable, and a copy of the father's or guardian's CNIC. Per GHSS Ghallanai admission policy, a School Leaving Certificate (SLC) from the previous school is required for ALL admissions — both fresh admission and migration/transfer. For 1st Year or 2nd Year students migrating from another BISE-affiliated school or another board, the school additionally processes DMC, migration certificate and an enrollment/reference letter from the previous school's head through the BISE Peshawar portal as part of the board-level migration.",
+      "Required for the online application and enrolment: the student's B-Form / CNIC (NADRA), the SSC (Matric) result card / DMC, a recent passport-size photograph, a copy of the father's or guardian's CNIC, and the processing-fee payment confirmation (online receipt or transfer slip). Quota documents are needed where applicable: a sports certificate (Sports quota), a payslip (College Employees quota) or a disability certificate (Special Person quota). Bring the originals to the school office when you complete the admission. If the school asks for any further document, such as a School Leaving Certificate for transfer cases, it is announced on the Notices page or by the school office.",
   },
   {
     id: "adm-track",
     category: "Admissions",
     question: "How can I track my admission application status?",
     answer:
-      "After submitting the online form, keep the reference number you received. On the Admission page, open the application status tracker and search by your reference number, your B-Form number, or your contact number — any one of them works. The tracker shows your current status (pending, under review, documents verified, interview scheduled, waitlisted, approved or admitted), any note from the school, and — once approved — links to download the printable admission form and related documents. From the tracker you can also open your application to edit it while unpaid, pay the fee or print the form — no account or login is needed.",
+      "Open the Admission page and use the application status tracker: enter the Tracking ID you received when you submitted the application (it looks like NOV2026-K7MQXA). The tracker shows your program, payment status, application date and current status. No account or login is needed. Keep your Tracking ID safe — it is the only key to your application status.",
   },
   {
     id: "adm-migration",
     category: "Admissions",
     question: "How does migration or transfer to GHSS Ghallanai work for 1st Year and 2nd Year?",
     answer:
-      "School-level approval of your online application and board-level migration are two separate steps. After you are approved at the school, migration between BISE Peshawar-affiliated institutions (or from another board) is carried out on the BISE Peshawar portal by the sending and receiving schools, within the board's notified migration window for the academic year — a parent or student does not complete it by submitting a form to the board directly. A valid School Leaving Certificate from the previous school is required. For students coming from another board, the receiving school submits the student's DMC, migration certificate and an enrollment/reference letter from the previous school's head to BISE Peshawar along with the prescribed fee, which is paid through the board's own channels. A transfer between schools at the higher secondary level is handled at the school level and through the BISE Peshawar portal.",
+      "School-level admission and board-level migration are two separate steps. For 1st Year or 2nd Year students moving from another school or another board, the school office guides the process; migration between boards or institutions is handled according to BISE Peshawar's rules and notified migration window, and any board migration fee is a board charge paid through the board's own channels, not a school charge. Contact the school office through the Contact page for your specific case.",
   },
   {
     id: "adm-fee",
     category: "Admissions",
-    question: "Is there any admission fee or tuition fee?",
+    question: "Is there any fee for online admission?",
     answer:
-      "No. Government Higher Secondary School Ghallanai is a government school, so admission and tuition are free of charge, as provided by the Government of Khyber Pakhtunkhwa. Students also receive free textbooks under the provincial free textbook scheme. Any fee that may apply in special cases (for example a BISE Peshawar board migration fee for 1st Year/2nd Year transfers) is a board charge paid through the board's designated channels, not a school charge.",
+      "Yes, a small processing fee is charged per application. The amount is set by the school (usually Rs 100–200) and the exact current figure is shown on the Admission page. You pay it online by Easypaisa / wallet or by manual transfer to the school account, quoting your payment reference. A separate application, and fee, is needed for each program or quota. Any BISE Peshawar board fee (for example a migration or exam fee) is a board charge paid through the board's own channels. For any other school fee, check the Notices page or ask the school office.",
   },
 
   // ── Results & Exams ───────────────────────────────────────────────────────
@@ -162,32 +162,46 @@ export const FAQ_ITEMS = [
 
   // ── School Information ────────────────────────────────────────────────────
   {
+    id: "sch-emis",
+    category: "School Information",
+    question: "What is the EMIS code of GHSS Ghallanai?",
+    answer:
+      "The EMIS (Education Management Information System) code of Government Higher Secondary School Ghallanai is 60645. It is the school's unique official identifier in the Khyber Pakhtunkhwa Elementary & Secondary Education Department system.",
+  },
+  {
+    id: "sch-established",
+    category: "School Information",
+    question: "When was GHSS Ghallanai established?",
+    answer:
+      "Government Higher Secondary School Ghallanai was established in 1975.",
+  },
+  {
+    id: "sch-location",
+    category: "School Information",
+    question: "Where is Ghallanai and which district is the school in?",
+    answer:
+      "The school is in Ghallanai, which is the headquarters of District Mohmand (formerly Mohmand Agency) in Khyber Pakhtunkhwa, Pakistan. The Contact page shows the school's location on a map.",
+  },
+  {
     id: "sch-about",
     category: "School Information",
     question: "Where is GHSS Ghallanai located and what kind of school is it?",
     answer:
-      "Government Higher Secondary School Ghallanai is a public government higher secondary school in Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan. It operates under the Elementary & Secondary Education Department of Khyber Pakhtunkhwa and offers 1st Year and 2nd Year (HSSC — classes 11 and 12). The school is affiliated with BISE Peshawar (Board of Intermediate and Secondary Education, Peshawar) for 1st Year and 2nd Year board examinations. The principal is set by the school office.",
+      "Government Higher Secondary School Ghallanai (GHSS Ghallanai) is a government higher secondary school established in 1975 in Ghallanai, the headquarters of District Mohmand (formerly Mohmand Agency), Khyber Pakhtunkhwa, Pakistan. Its official EMIS code in the Khyber Pakhtunkhwa Elementary & Secondary Education Department system is 60645. The school offers 1st Year and 2nd Year (HSSC — classes 11 and 12) and is affiliated with BISE Peshawar for the board examinations.",
   },
   {
     id: "sch-timing",
     category: "School Information",
     question: "What are the school timings and when is the office open?",
     answer:
-      "The school office is open during the morning shift on working days. Exact daily timings can change with the season and government notifications, so for the current schedule call the school at  or check the Notices page, where any timing change is announced officially. Holiday announcements and parent-teacher meeting dates are also published there and on the academic Calendar.",
+      "Exact school and office timings can change with the season and government notifications, so they are not fixed here. Check the Notices page for official timing changes, holidays and meeting dates, or use the Contact page to reach the school office.",
   },
   {
     id: "sch-teachers",
     category: "School Information",
     question: "Who are the teachers and what subjects do they cover?",
     answer:
-      "The staff directory page (ghssghallanai.dpdns.org/teachers) lists the school's teaching staff with their subjects and qualifications. Teachers are appointed through the Khyber Pakhtunkhwa Elementary & Secondary Education Department and cover Mathematics, Physics, Chemistry, Biology, English, Urdu, Islamiat, Pakistan Studies and Computer Science for 1st Year and 2nd Year.",
-  },
-  {
-    id: "sch-events",
-    category: "School Information",
-    question: "What school events and activities take place during the year?",
-    answer:
-      "The school holds sports days and tournaments, science fairs and exhibitions, annual prize distributions, national-day programmes such as 14 August and Pakistan Day, tree plantation drives and parent-teacher meetings. Notices about upcoming events are posted on the Notices page.",
+      "The staff directory page (ghssghallanai.dpdns.org/teachers) lists the school's teaching staff with their subjects and qualifications as entered by the school administration.",
   },
 
   // ── Website & Contact ─────────────────────────────────────────────────────
@@ -203,21 +217,21 @@ export const FAQ_ITEMS = [
     category: "Website & Contact",
     question: "Is there any cost or account required to use the website?",
     answer:
-      "The website is completely free, and all public sections — notices and results — can be used without any account. You only sign in if you are a student or guardian tracking an admission application or dashboard features, or if you are staff. There are no ads and no charges for any feature of the site.",
+      "The website is free to use: notices, results, merit lists, roll number slips and the admission application need no account. The only charge connected with the site is the per-application admission processing fee, which is shown on the Admission page. There are no ads.",
   },
   {
     id: "web-contact",
     category: "Website & Contact",
     question: "How do I contact the school?",
     answer:
-      "Call the school at , email , or use the contact form and WhatsApp option on the Contact page (ghssghallanai.dpdns.org/contact), which also shows the school's location on a map. The school's Facebook page is linked from the Contact page and footer. For admission questions, please read the Admission page first — it answers most queries and lets you track an application instantly.",
+      "Use the Contact page (ghssghallanai.dpdns.org/contact), which shows the school's phone, email and location on a map and has a contact form. You can also message the school on WhatsApp at +92 345 9409585. The school's Facebook page is linked from the Contact page and footer. For admission questions, read the Admission page first — it answers most queries and lets you track an application instantly.",
   },
   {
     id: "web-login",
     category: "Website & Contact",
     question: "Do I need to create an account, and what does it unlock?",
     answer:
-      "You don't need an account to browse notices or results — those are open to everyone. Creating a free account (Sign Up, ghssghallanai.dpdns.org/auth/signup) is only useful if you want a personal dashboard to track your admission application status in one place, or if you are a teacher who needs access to staff features. Signing in is never required just to read study material or check a result.",
+      "No. Visitors, students and parents do not need an account for anything on the website — notices, results, merit lists, roll number slips, the admission application and the application tracker all work without signing up or logging in. There is no sign-up page. The sign-in page (ghssghallanai.dpdns.org/auth/signin) exists only for the school administrator.",
   },
   {
     id: "web-notices",
@@ -232,13 +246,6 @@ export const FAQ_ITEMS = [
     question: "Is ghssghallanai.dpdns.org the official website of GHSS Ghallanai?",
     answer:
       "Yes. https://ghssghallanai.dpdns.org is the official website of Government Higher Secondary School Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan.",
-  },
-  {
-    id: "web-developer",
-    category: "Website & Contact",
-    question: "Who do I contact for school matters?",
-    answer:
-      "For admissions, results, notices and other school matters, please contact the school directly through the Contact page (ghssghallanai.dpdns.org/contact), which lists the official phone, email and location once set by the school office.",
   },
 ];
 

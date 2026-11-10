@@ -5,7 +5,7 @@ import { SITE_URL } from "./SEO";
 // /api/ai-data feed and /api/render (crawler HTML) serve. Single source,
 // zero drift. (Types come from src/data/faqData.d.mts. The import stays
 // INSIDE src/ on purpose — the frontend build must never depend on api/.)
-import { buildFaqJsonLd } from "../../data/faqData.mjs";
+import { buildFaqJsonLd, FAQ_ITEMS } from "../../data/faqData.mjs";
 
 interface RouteSEO {
   pattern: string;
@@ -27,67 +27,16 @@ const baseBreadcrumb = { name: "Home", path: "/" };
  *  Updated to lead with an explicit "are admissions open" Q&A so the SERP
  *  snippet reinforces the open status even when the admin has paused live
  *  form submissions in the database. */
+// Built from the canonical FAQ dataset (Admissions category) so the /admission
+// structured data can never drift from the FAQ page again.
 const admissionFAQSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "Are admissions open at GHSS Ghallanai right now?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes — admissions at Government Higher Secondary School Ghallanai are open every academic session. The online admission application form is available at https://ghssghallanai.dpdns.org/admission for 1st Year and 2nd Year (HSSC). Apply directly from your phone or computer.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Which classes can apply for admission at GHSS Ghallanai?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Fresh admissions are available for 1st Year (after SSC / Matric). Migration cases are accepted for 1st Year and 2nd Year through the BISEP migration process.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What documents are required for admission?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Required documents include: B-Form (NADRA) — mandatory, passport size photo — mandatory, previous result card or marksheet, school leaving certificate (for migration), father's CNIC copy, and migration certificate if applicable.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "How can I track my admission application?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "You can track your admission application online by visiting the Admission page and entering your CNIC or application reference number in the Track Application section.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What is the migration process for 1st Year and 2nd Year?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "The 1st Year / 2nd Year migration process involves 8 steps: submit online application, write migration letter to current school principal, get principal signature, both principals sign, current school applies migration on BISEP portal, our school approves on BISEP, BISEP generates bank challan, submit fee at bank — migration confirmed.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Is there an online application form available?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes, GHSS Ghallanai provides an online admission application form available at https://ghssghallanai.dpdns.org/admission. You can apply directly from your phone or computer.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What is the school address and how can I contact GHSS Ghallanai?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "GHSS Ghallanai is located in Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan. You can email at  or visit the school directly.",
-      },
-    },
-  ],
+  mainEntity: FAQ_ITEMS.filter((item) => item.category === "Admissions").map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: { "@type": "Answer", text: item.answer },
+  })),
 };
 
 const ROUTES: RouteSEO[] = [
@@ -374,7 +323,7 @@ const ROUTES: RouteSEO[] = [
         "@type": "EducationalOccupationalProgram",
         name: "GHSS Ghallanai Admissions",
         description:
-          "Admissions Open at Government Higher Secondary School Ghallanai for 1st Year and 2nd Year (HSSC) — fresh admissions and migration cases via the BISE Peshawar migration process.",
+          "Online admission at Government Higher Secondary School Ghallanai for 1st Year and 2nd Year (HSSC). No account needed; a small per-application processing fee applies (amount shown on the Admission page).",
         url: `${SITE_URL}/admission`,
         provider: {
           "@type": "HighSchool",
@@ -385,13 +334,6 @@ const ROUTES: RouteSEO[] = [
         educationalCredentialAwarded: "Higher Secondary School Certificate (HSSC)",
         applicationDeadline: undefined,
         timeToComplete: "P2Y",
-        offers: {
-          "@type": "Offer",
-          category: "Free education (Government school)",
-          price: "0",
-          priceCurrency: "PKR",
-          availability: "https://schema.org/InStock",
-        },
       },
     ],
   },
@@ -409,32 +351,18 @@ const ROUTES: RouteSEO[] = [
     jsonLd: () => buildFaqJsonLd(),
   },
   // ── Private / noindex pages ──
-  { pattern: "/auth/signin",         title: "Sign In — Student, Teacher & Admin Login",    description: "Sign in to your GHSS Ghallanai account.",            noIndex: true },
+  { pattern: "/auth/signin",         title: "Sign In — School Administrator Login",    description: "Sign in to your GHSS Ghallanai account.",            noIndex: true },
   { pattern: "/auth/forgot-password",title: "Forgot Password — Recover Your Account",     description: "Recover access to your GHSS Ghallanai account.",     noIndex: true },
   { pattern: "/auth/reset-password", title: "Reset Password — Set a New Password",        description: "Set a new password for your GHSS Ghallanai account.", noIndex: true },
   { pattern: "/admin",               title: "Admin Dashboard — School Management",         description: "Administrative console for GHSS Ghallanai.",          noIndex: true },
       {
     pattern: "/search",
     title: "Search — GHSS Ghallanai",
-    description: "Search across notices, teachers and notes at Government Higher Secondary School Ghallanai.",
+    description: "Search across notices, teachers and pages at Government Higher Secondary School Ghallanai.",
     noIndex: true,  // ← ADDED: prevents thin-content search page from being indexed
     breadcrumbs: () => [baseBreadcrumb, { name: "Search", path: "/search" }],
   },
   
-  {
-    pattern: "/admission/register",
-    title: "Create Admission Account — GHSS Ghallanai",
-    description: "Online admission portal of Government Higher Secondary School Ghallanai, District Mohmand.",
-    noIndex: true,
-    breadcrumbs: () => [baseBreadcrumb, { name: "Admissions", path: "/admission" }],
-  },
-  {
-    pattern: "/admission/login",
-    title: "Admission Login — GHSS Ghallanai",
-    description: "Online admission portal of Government Higher Secondary School Ghallanai, District Mohmand.",
-    noIndex: true,
-    breadcrumbs: () => [baseBreadcrumb, { name: "Admissions", path: "/admission" }],
-  },
   {
     pattern: "/admission/portal",
     title: "Admission Dashboard — GHSS Ghallanai",

@@ -3,12 +3,26 @@
   "description": "AI agent catalog for Government Higher Secondary School Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan. This catalog lists every machine-readable resource, live data feed, and AI-capable endpoint the site exposes so autonomous browsing agents can discover and use them without rendering the React application.",
   "type": "Catalog",
   "url": "https://ghssghallanai.dpdns.org",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "language": "en-PK",
   "siteType": "EducationalOrganization",
+  "school": {
+    "name": "Government Higher Secondary School Ghallanai",
+    "alternateName": "GHSS Ghallanai",
+    "emisCode": "60645",
+    "established": 1975,
+    "location": "Ghallanai, headquarters of District Mohmand (formerly Mohmand Agency), Khyber Pakhtunkhwa, Pakistan",
+    "level": "Higher Secondary (1st Year and 2nd Year, HSSC)",
+    "board": "BISE Peshawar"
+  },
+  "admission": {
+    "accountRequired": false,
+    "processingFee": "Small per-application fee set by the school (usually Rs 100-200); exact live amount in the AI Data Feed and on /admission",
+    "tracking": "By Tracking ID only"
+  },
   "contact": {
-    "email": "(set by the school office)",
-    "phone": "(set by the school office)"
+    "whatsapp": "+92 345 9409585",
+    "emailAndPhone": "Live values are in the AI Data Feed and on the /contact page"
   },
   "resources": [
     {
@@ -73,12 +87,12 @@
     }
   ],
   "pages": [
-    { "path": "/", "description": "Homepage — school overview, stats, latest notices" },
-    { "path": "/about", "description": "About the school, history, mission and principal's message" },
-    { "path": "/admission", "description": "Online admission application and procedure" },
+    { "path": "/", "description": "Homepage — school overview, live statistics, latest notices" },
+    { "path": "/about", "description": "About the school, mission and vision" },
+    { "path": "/admission", "description": "Online admission (no account needed): procedure, fee, programs, status tracker by Tracking ID" },
     { "path": "/results", "description": "Exam results lookup (school and BISE Peshawar)" },
     { "path": "/merit-list", "description": "Published merit lists of top-performing students" },
-    { "path": "/roll-no-slip", "description": "Roll number slip download for board exams" },
+    { "path": "/roll-no-slip", "description": "School exam roll number slips (find by class and full name; PDF with QR code)" },
     { "path": "/notices", "description": "Latest school notices" },
     { "path": "/teachers", "description": "Faculty and teaching staff" },
     { "path": "/faq", "description": "Frequently asked questions" },

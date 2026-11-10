@@ -127,7 +127,9 @@ HOW TO ANSWER (accuracy first)
 - Results: you cannot see any student's marks. Explain how to check on /results with the exam roll number, and state the live result status from the data (published / scheduled with date-time / nothing announced yet).
 - Admission: state the live status (open/closed), session and last date from the data, then the steps from the knowledge.
 - Notices/news: quote real titles and dates from the live notices; do not make up notices. If there are none, say so.
-- Specific student's private data (marks, attendance, fees): direct them to the student portal (/auth/signin) or the school office.
+- Specific student's private data (marks, attendance, fees): the website has NO student or parent accounts and cannot show private data — direct them to the school office (/contact). Results are public by roll number on /results.
+- Admission fee: it is NOT free. Each online application carries a small processing fee set by the school (usually Rs 100–200); state the exact live amount from the data. Never say admission is free. Never tell anyone to create an account or sign up — no accounts exist for visitors; sign-in is for the school administrator only.
+- Verified identity facts you may always state: GHSS Ghallanai, EMIS code 60645, established 1975, located in Ghallanai — the headquarters of District Mohmand (formerly Mohmand Agency), Khyber Pakhtunkhwa, Pakistan; offers 1st Year and 2nd Year (HSSC); affiliated with BISE Peshawar.
 - Off-topic questions: briefly redirect to school/website topics. Short, accurate general study help is fine.
 - Reply in the visitor's language (Urdu/Pashto included; Roman script if they write in Roman). Default English.
 
@@ -135,7 +137,7 @@ STYLE (premium, professional)
 - Warm, polished, confident, respectful — like a well-trained front-desk officer. Greet briefly only on a greeting.
 - Start with a direct one-line answer. If useful add up to 4 short bullets starting with "- " (under 18 words each), or a numbered list for steps.
 - **Bold** only for key terms/dates. At most one emoji, only if natural. No headings, tables or long paragraphs.
-- When a page matches, end with one line such as: "Next step: open the Results page (/results)." Use only these paths: /results /admission /notices /news /contact /about /calendar /faq /merit-list /roll-no-slip /teachers /dashboard /auth/signin.
+- When a page matches, end with one line such as: "Next step: open the Results page (/results)." Use only these paths: /results /admission /notices /news /contact /about /calendar /faq /merit-list /roll-no-slip /teachers.
 - Typically 40–110 words.`;
 
 // ── Live data (read-only, public rows only) ───────────────────────────────
@@ -255,7 +257,7 @@ async function buildLiveData(): Promise<string> {
     ? "pay by manual transfer to the school account shown on the challan, quoting the payment reference"
     : "pay online (Easypaisa / wallet via Safepay — fee confirmed automatically) or, as a slower fallback, by manual transfer quoting the payment reference";
   lines.push(
-    `- HOW TO APPLY (authoritative, current): 1) Create an account at ${SITE_URL}/admission with CNIC/Form-B (13 digits), mobile number and a password. 2) Complete the Personal Information profile. 3) Complete the Matric (SSC) profile (board, session, passing year, group, roll number, marks). 4) Submit a New Admission Request — choose the program (Arts, Pre-Medical, Pre-Engineering or ICS) and admission category. 5) Pay ${feeTxt}: ${payTxt}, before the deadline shown on the application. 6) Track with your Tracking ID on /admission. 7) Print the form and visit the school with original documents.` +
+    `- HOW TO APPLY (authoritative, current): 1) Open ${SITE_URL}/admission and start the online application (NO account or login is needed). 2) Complete the Personal Information profile. 3) Complete the Matric (SSC) profile (board, session, passing year, group, roll number, marks). 4) Submit a New Admission Request — choose the program (Arts/Humanities, Pre-Medical, Pre-Engineering or ICS) and admission category. 5) Pay ${feeTxt}: ${payTxt}, before the deadline shown on the application. 6) Track with your Tracking ID (the only tracking key) on /admission. 7) Print the form and visit the school with original documents. Applications may also be submitted in person at the school office; postal forms are not accepted.` +
     `\n- DOCUMENTS: Student B-Form/CNIC (NADRA); SSC (Matric) result card/DMC; recent passport photo; father's/guardian's CNIC copy; fee payment confirmation; quota documents where applicable (sports certificate, payslip for school employees, disability certificate).`
   );
 

@@ -35,12 +35,11 @@ export const SITE_LONG_NAME = "Government Higher Secondary School Ghallanai, Dis
 const SCHOOL_FACTS = [
   "Full name: Government Higher Secondary School Ghallanai (GHSS Ghallanai)",
   "EMIS code: 60645 (Government of Khyber Pakhtunkhwa, Elementary & Secondary Education Department)",
-  "Location: Ghallanai, District Mohmand, Khyber Pakhtunkhwa (KPK), Pakistan",
-  "Principal: (set by the school office)",
+  "Established: 1975",
+  "Location: Ghallanai — the headquarters of District Mohmand (formerly Mohmand Agency), Khyber Pakhtunkhwa (KPK), Pakistan",
   "Classes offered: 1st Year and 2nd Year (HSSC — classes 11 and 12)",
   "Board affiliation: BISE Peshawar — 1st Year and 2nd Year sit board examinations",
-  "Phone: (set by the school office)",
-  "Email: (set by the school office)",
+  "Phone and email: see the Contact page",
 ];
 
 // Main public navigation — appended to every fallback page as internal links
@@ -67,13 +66,13 @@ const PAGES = {
   "/": {
     title: "GHSS Ghallanai — Government Higher Secondary School, District Mohmand KPK",
     description:
-      "Official website of Government Higher Secondary School (GHSS) Ghallanai (EMIS code 60645), District Mohmand, KPK, Pakistan. Online admission applications, exam results by roll number, notices, free past papers, and teacher directory for 1st Year and 2nd Year.",
+      "Official website of Government Higher Secondary School (GHSS) Ghallanai (EMIS code 60645), District Mohmand, KPK, Pakistan. Online admission applications (no account needed), exam results by roll number, merit lists, exam roll number slips, notices and teacher directory for 1st Year and 2nd Year.",
     h1: "Government Higher Secondary School Ghallanai — District Mohmand, KPK",
     blocks: [
       {
         p: [
-          "Government Higher Secondary School (GHSS) Ghallanai (EMIS code 60645) is a government higher secondary school in Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan. The school offers 1st Year and 2nd Year (HSSC — classes 11 and 12) and is affiliated with BISE Peshawar, the Board of Intermediate and Secondary Education Peshawar, whose examinations our 1st Year and 2nd Year students sit every year.",
-          "This official website is the school's digital front door. Students and parents can apply for admission online, search exam results by roll number, read official notices, download free past papers, browse the teacher directory and view photos of school events. The site also works as a Progressive Web App (PWA), so it can be installed on a phone and used offline.",
+          "Government Higher Secondary School (GHSS) Ghallanai (EMIS code 60645), established in 1975, is a government higher secondary school in Ghallanai — the headquarters of District Mohmand (formerly Mohmand Agency), Khyber Pakhtunkhwa, Pakistan. The school offers 1st Year and 2nd Year (HSSC — classes 11 and 12) and is affiliated with BISE Peshawar, the Board of Intermediate and Secondary Education Peshawar, whose examinations our 1st Year and 2nd Year students sit every year.",
+          "This official website is the school's digital front door. Students and parents can apply for admission online, search exam results by roll number, read official notices and browse the teacher directory. The site also works as a Progressive Web App (PWA), so it can be installed on a phone and used offline.",
         ],
       },
       // Filled at build time with the REAL numbers from school_settings —
@@ -82,7 +81,7 @@ const PAGES = {
       {
         h2: "What you can do on this website",
         ul: [
-          "Apply online for admission to 1st Year and 2nd Year and track your application status by reference number, B-Form number or contact number",
+          "Apply online for admission to 1st Year and 2nd Year and track your application status by Tracking ID",
           "Search school exam results by roll number (1st/2nd semester for 1st Year and 2nd Year)",
           "Search BISE Peshawar board results (HSSC 1st Year/2nd Year) live from the official board portal",
           "View the official Merit List — top position holders of each class and school-wide rankings with pass statistics",
@@ -98,19 +97,19 @@ const PAGES = {
   "/about": {
     title: "About Us — GHSS Ghallanai, District Mohmand",
     description:
-      "About Government Higher Secondary School Ghallanai (EMIS code 60645), District Mohmand, KPK: principal set by the school office, 1st Year and 2nd Year (HSSC), affiliated with BISE Peshawar. Our mission, vision and values.",
+      "About Government Higher Secondary School Ghallanai (EMIS code 60645, established 1975), Ghallanai, District Mohmand, KPK: 1st Year and 2nd Year (HSSC), affiliated with BISE Peshawar. Our mission, vision and values.",
     h1: "About GHSS Ghallanai",
     blocks: [
       {
         p: [
           "Government Higher Secondary School Ghallanai (EMIS code 60645) is a public higher secondary school serving Ghallanai and the surrounding villages of District Mohmand, Khyber Pakhtunkhwa, Pakistan. The school operates under the Elementary & Secondary Education Department of Khyber Pakhtunkhwa. It educates students in 1st Year and 2nd Year (HSSC — classes 11 and 12), preparing them for the Higher Secondary School Certificate examinations conducted by BISE Peshawar.",
-          "The school serves a rural tribal district, and its mission is to give every child of the area access to qualified teachers, a proper science education and modern learning tools — free of cost, as provided by the Government of Khyber Pakhtunkhwa. Students receive free textbooks under the provincial free textbook scheme, and the school building houses science facilities, a library corner and a playground for sports and assemblies.",
+          "The school was established in 1975 in Ghallanai, the headquarters of District Mohmand (formerly Mohmand Agency), and serves students from the surrounding area.",
         ],
       },
       {
         h2: "Mission",
         p: [
-          "Our mission is to provide quality, accessible and free education to the children of Ghallanai and nearby areas of District Mohmand; to build strong foundations in mathematics, science, languages and computer literacy; and to prepare students to pass their board examinations with confidence and continue on to colleges and universities across Pakistan.",
+          "Our mission is to provide quality, accessible education to the children of Ghallanai and nearby areas of District Mohmand; to build strong foundations in mathematics, science, languages and computer literacy; and to prepare students to pass their board examinations with confidence and continue on to colleges and universities across Pakistan.",
         ],
       },
       {
@@ -131,12 +130,12 @@ const PAGES = {
   "/contact": {
     title: "Contact Us — GHSS Ghallanai, District Mohmand",
     description:
-      "Contact Government Higher Secondary School Ghallanai (EMIS code 60645): phone and email set by the school office, Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan. Contact form, WhatsApp and location map.",
+      "Contact Government Higher Secondary School Ghallanai (EMIS code 60645): phone, email and WhatsApp, Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan. Contact form, WhatsApp and location map.",
     h1: "Contact GHSS Ghallanai",
     blocks: [
       {
         p: [
-          "Parents, guardians and students are welcome to contact the school for admission queries, result verification, notices or any other matter. During working days the school office is open in the morning shift; a contact form and WhatsApp option are also available on this page for written queries, and an embedded map shows the school location in Ghallanai, District Mohmand.",
+          "Parents, guardians and students are welcome to contact the school for admission queries, result verification, notices or any other matter. A contact form and WhatsApp option are also available on this page for written queries, and an embedded map shows the school location in Ghallanai, District Mohmand.",
         ],
       },
       {
@@ -145,9 +144,8 @@ const PAGES = {
           "School: Government Higher Secondary School Ghallanai",
           "EMIS code: 60645",
           "Address: Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan",
-          "Phone: (set by the school office)",
-          "Email: (set by the school office)",
-          "Principal: (set by the school office)",
+          "Phone and email: shown on the live Contact page",
+          "WhatsApp: +92 345 9409585",
           "Facebook page: https://www.facebook.com/share/19doja9mNr/",
         ],
       },
@@ -162,41 +160,41 @@ const PAGES = {
   "/admission": {
     title: "Admission — GHSS Ghallanai (1st Year and 2nd Year)",
     description:
-      "Apply online for Intermediate admission at GHSS Ghallanai, District Mohmand — 1st Year and 2nd Year. Create an account, complete your profiles, submit your application, pay the processing fee online (Easypaisa / wallet) and track your application by Tracking ID.",
+      "Apply online for Intermediate admission at GHSS Ghallanai, District Mohmand — 1st Year and 2nd Year. No account needed — complete your profiles, submit your application, pay the processing fee online (Easypaisa / wallet) and track your application by Tracking ID.",
     h1: "Intermediate Admissions — Apply Online",
     blocks: [
       {
         p: [
-          "Admission to 1st Year and 2nd Year (Intermediate: Arts, Pre-Medical, Pre-Engineering and ICS) at Government Higher Secondary School Ghallanai follows a fully online process. All applications are submitted online — no manual or postal forms are accepted. For each different category (quota) or program, a separate application must be submitted, with an Rs 100 processing fee per application payable at any JazzCash shop or through the JazzCash App.",
+          "Admission to 1st Year and 2nd Year (Intermediate: Arts/Humanities, Pre-Medical, Pre-Engineering and ICS) at Government Higher Secondary School Ghallanai is applied for online, with no account or login. Applications may also be submitted in person at the school office; postal forms are not accepted. A separate application must be submitted for each category (quota) or program. Each application carries a small processing fee set by the school (usually Rs 100–200; the exact current amount is shown on the Admission page), payable online by Easypaisa / wallet or by manual transfer to the school account.",
         ],
       },
       {
         h2: "How to apply",
         ul: [
-          "Create your account with CNIC/Form-B (13 digits), mobile number and a password",
+          "Open the online application — no account or login is needed; enter your CNIC/Form-B (13 digits) and mobile number",
           "Complete your Personal Information profile (name, father's name, date of birth, domicile district, tehsil, union council, parents' details)",
           "Complete your Matric (SSC) profile — board, session, passing year, study group, roll number and marks (grade is computed automatically)",
           "Submit a New Admission Request — select the program and category of admission (quota) and agree to the declaration",
           "Confirm your application and pay the processing fee online (Easypaisa / wallet) — you receive a payment reference with a deadline",
           "Track your application any time with your Tracking ID (for example NOV2026…)",
-          "Print your application form and visit the college with all original documents to complete your admission",
+          "Print your application form and visit the school with all original documents to complete your admission",
         ],
       },
       {
         h2: "Categories of admission (quotas)",
         ul: [
-          "Open Merit — for applicants whose domicile/union council is outside District Mohmand",
-          "Local Quota — for applicants domiciled in District Mohmand (also considered in Open Merit)",
+          "Open Merit — for non-local applicants (all categories except Afghan are also counted in Open Merit)",
+          "Local Quota — for applicants domiciled in District Mohmand",
           "Sports — a sports participation certificate is required",
-          "College Employees — for children of college employees (payslip required)",
+          "College Employees — for children of school employees (payslip required)",
           "Special Person — nature of disability is required",
         ],
       },
       {
         h2: "Track application",
         ul: [
-          "Enter the Tracking ID you received when you submitted your application",
-          "The tracker shows your program, payment status, application date and status timeline",
+          "Enter the Tracking ID you received when you submitted your application — it is the only tracking key",
+          "The tracker shows your program, payment status, application date and status",
           "No login is required — the tracker is public",
         ],
       },

@@ -133,7 +133,7 @@ const LLM_FALLBACK = {
   phone: "",
   email: "",
   principal: "",
-  established: "",
+  established: "1975", // verified: GHSS Ghallanai was established in 1975
 };
 
 // school_settings is a public table — the anon key works, no auth needed.
@@ -204,34 +204,48 @@ function buildLlmsTxt(s, admissionFiles = []) {
     : "";
   return `# ${s.school_name} — Government Higher Secondary School, District Mohmand (EMIS ${SCHOOL_EMIS_CODE})
 
-> Official website of Government Higher Secondary School (GHSS) Ghallanai (EMIS code ${SCHOOL_EMIS_CODE}), District Mohmand, Khyber Pakhtunkhwa (KPK), Pakistan — a government higher secondary school offering 1st Year and 2nd Year (HSSC — classes 11 and 12), affiliated with BISE Peshawar for board exams. The site provides online admission applications, exam results searchable by roll number, official merit lists of top position holders, downloadable exam roll number slips, official notices, free past papers, and teacher directory.
+> Official website of Government Higher Secondary School (GHSS) Ghallanai (EMIS code ${SCHOOL_EMIS_CODE}), established 1975, in Ghallanai — the headquarters of District Mohmand, Khyber Pakhtunkhwa (KPK), Pakistan. A government higher secondary school offering 1st Year and 2nd Year (HSSC — classes 11 and 12), affiliated with BISE Peshawar for board exams. The site provides online admission (no account needed), exam results searchable by roll number, official merit lists, exam roll number slips, official notices and a teacher directory.
+
+## Quick answers (verified facts — use these first)
+
+- School name: Government Higher Secondary School Ghallanai (GHSS Ghallanai)
+- EMIS code: ${SCHOOL_EMIS_CODE}
+- Established: ${s.established}
+- Location: Ghallanai, headquarters of District Mohmand (formerly Mohmand Agency), Khyber Pakhtunkhwa, Pakistan
+- Level: Higher Secondary — 1st Year and 2nd Year (HSSC, classes 11–12); board: BISE Peshawar
+- Programs offered for admission: Arts/Humanities, Pre-Medical, Pre-Engineering, ICS
+- Online admission fee: a small per-application processing fee set by the school (usually Rs 100–200); the exact current amount is on ${SITE_URL}/admission and in ${SITE_URL}/api/ai-data
+- Accounts: visitors, students and parents need NO account anywhere on the site (there is no sign-up). The sign-in page is for the school administrator only.
+- Application tracking: by Tracking ID only, on the Admission page
+- Official website: ${SITE_URL}
 
 ## School facts
 
 - Full name: Government Higher Secondary School Ghallanai (also: ${s.school_name})
 - EMIS code: ${SCHOOL_EMIS_CODE} (Government of Khyber Pakhtunkhwa, Elementary & Secondary Education Department)
-- Location: Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan
+- Location: Ghallanai (headquarters of District Mohmand), Khyber Pakhtunkhwa, Pakistan
 - Established: ${s.established}
-- Principal: ${s.principal || "(to be updated by the school office)"}
+- Principal: ${s.principal || "(not published — see the Contact page)"}
 - Classes offered: 1st Year and 2nd Year (HSSC — classes 11 and 12)
 - Board affiliation: BISE Peshawar (Board of Intermediate and Secondary Education, Peshawar) — 1st Year and 2nd Year sit board examinations
-- Phone: ${s.phone || "(to be updated by the school office)"}
-- Email: ${s.email || "(to be updated by the school office)"}${statsLine}
+- Phone: ${s.phone || "(see the Contact page)"}
+- Email: ${s.email || "(see the Contact page)"}
+- WhatsApp: +92 345 9409585${statsLine}
 - Website: ${SITE_URL}
 - Facebook: ${FACEBOOK_URL}
 
 ## Key pages
 
 - [Home](${SITE_URL}/): School overview with latest notices, result toppers and announcements
-- [Admissions](${SITE_URL}/admission): Online admission application form for 1st Year and 2nd Year, plus an application status tracker (search by reference number, B-Form number or contact number)
+- [Admissions](${SITE_URL}/admission): Online admission for 1st Year and 2nd Year (no account needed), live open/closed status and fee, programs and seats, merit lists, and an application status tracker (search by Tracking ID)
 - [Results](${SITE_URL}/results): Search school exam results by roll number; also searches BISE Peshawar board results (HSSC 1st Year/2nd Year) live from the official board portal
 - [Merit List](${SITE_URL}/merit-list): Official exam rankings published by the school office — top position holders per class and school-wide lists with marks, percentages, grades and pass statistics
 - [Roll No. Slip](${SITE_URL}/roll-no-slip): Exam roll number slips — a student picks their class and types their full name to view, download (PDF with QR code) or share their own slip; a live countdown shows while a release is scheduled
-- [Notices](${SITE_URL}/notices): Official school notices — holidays, exam schedules, fee deadlines, parent-teacher meetings
+- [Notices](${SITE_URL}/notices): Official school notices published by the school administration
 - [Teachers](${SITE_URL}/teachers): Teaching staff directory with subjects and qualifications
 - [Contact](${SITE_URL}/contact): Contact details, embedded map, WhatsApp and contact form
-- [About](${SITE_URL}/about): School history, mission, vision and staff overview
-- [FAQ](${SITE_URL}/faq): Complete frequently-asked-questions page — admissions, documents, tracking, results, grading, contact and website usage
+- [About](${SITE_URL}/about): About the school, mission and vision
+- [FAQ](${SITE_URL}/faq): Frequently asked questions — admissions, fee, documents, tracking, results, grading, contact and website usage
 
 ## Results
 
@@ -244,10 +258,12 @@ function buildLlmsTxt(s, admissionFiles = []) {
 
 ## Admissions
 
-- Admissions open every academic session for 1st Year and 2nd Year
-- Apply online on the Admissions page; the form issues a reference number for tracking
-- Required documents: student B-Form (NADRA), passport-size photos, previous result card, school leaving certificate and father's CNIC copy (for migration cases)
-- Application status can be tracked online by reference number, B-Form number or contact number
+- Admissions are held every academic session for 1st Year and 2nd Year; the live open/closed status, session and deadlines are on the Admission page
+- Apply online on the Admission page — NO account, sign-up or login is needed; you may also submit your application in person at the school office (postal forms are not accepted)
+- Steps: Personal Information profile → Matric (SSC) profile → choose program and category (quota) → pass the security check and submit → pay the processing fee → track with your Tracking ID → print the form and visit the school with originals
+- Fee: a per-application processing fee set by the school (usually Rs 100–200; exact amount on the Admission page); payable online by Easypaisa / wallet or by manual transfer quoting the payment reference; one application (and fee) per program or quota
+- Required documents: student B-Form / CNIC (NADRA), SSC (Matric) result card / DMC, recent passport-size photo, father's/guardian's CNIC copy, fee payment confirmation; quota documents where applicable (sports certificate, payslip for school employees, disability certificate)
+- Application status can be tracked online by Tracking ID only
 ${filesSection ? filesSection + "\n" : ""}
 ## Machine-readable data (recommended for AI tools)
 

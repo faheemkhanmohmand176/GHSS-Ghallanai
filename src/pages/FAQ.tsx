@@ -80,7 +80,7 @@ const FAQ = () => {
       <PageBanner
         hideCrumbs
         title="Frequently Asked Questions"
-        subtitle="Quick answers about admissions, results, notes, school information and using this website"
+        subtitle="Quick answers about admissions, results, school information and using this website"
       />
 
       {/* ── Search ─────────────────────────────────────────────────────── */}

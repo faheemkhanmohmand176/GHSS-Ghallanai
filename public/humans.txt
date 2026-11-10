@@ -1,5 +1,6 @@
 /* TEAM */
-School: Government Higher Secondary School Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan
+School: Government Higher Secondary School Ghallanai (EMIS code 60645), established 1975
+Location: Ghallanai, headquarters of District Mohmand, Khyber Pakhtunkhwa, Pakistan
 Site: https://ghssghallanai.dpdns.org
 
 /* THANKS */
