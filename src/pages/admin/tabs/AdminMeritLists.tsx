@@ -156,6 +156,8 @@ export default function AdminMeritLists() {
         toast.success(`Done: ${d.selected} Merit Listed, ${d.not_listed} Not Merit Listed${d.published ? ", published" : ""}.`);
         invalidate();
         qc.invalidateQueries({ queryKey: ["inter-admin-apps"] });
+        setAutoOpen(false);   // done → the page closes by itself
+        setAPreview(null);
       }
     },
     onError: (e: Error) => toast.error(e.message),
