@@ -19,8 +19,8 @@ import { useAdmissionSettings, ADMISSION_SETTINGS_KEY, type AdmissionSettings } 
 import { markAdmissionSettingsBust } from "@/lib/publicData";
 import type { PaymentMethod } from "@/hooks/useFees";
 import {
-  WORKFLOW_STAGES, PAYMENT_METHODS, stageLabel, stageTone, suggestedStage,
-  paymentMethodLabel, type WorkflowStage,
+  PAYMENT_METHODS, stageLabel, stageTone,
+  paymentMethodLabel,
 } from "@/lib/admissionStatus";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -118,9 +118,6 @@ export default function AdminAdmissions() {
   const [payDialog, setPayDialog] = useState<AdminApp | null>(null);
   const [payRef, setPayRef] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
-  const [statusDialog, setStatusDialog] = useState<AdminApp | null>(null);
-  const [statusValue, setStatusValue] = useState<WorkflowStage["value"]>("under_review");
-  const [statusNote, setStatusNote] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [walkinOpen, setWalkinOpen] = useState(false);
   const [delApp, setDelApp] = useState<AdminApp | null>(null);
@@ -195,25 +192,6 @@ export default function AdminAdmissions() {
       if (d?.unchanged) toast("Nothing changed — the payment is already recorded that way.");
       else toast.success("Payment recorded.");
       setPayDialog(null); setPayRef(""); setPayMethod("cash");
-      qc.invalidateQueries({ queryKey: ["inter-admin-apps"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const setStatus = useMutation({
-    mutationFn: async ({ id, status, note }: { id: string; status: string; note: string }) => {
-      const { data, error } = await supabase.rpc("inter_admin_set_status", {
-        p_application_id: id, p_status: status, p_note: note || null,
-      });
-      if (error) throw error;
-      const d = data as { ok?: boolean; error?: string; unchanged?: boolean };
-      if (d?.ok === false) throw new Error(d?.error || "Update failed.");
-      return d;
-    },
-    onSuccess: (d) => {
-      if (d?.unchanged) toast("The application is already at this stage.");
-      else toast.success("Application status updated.");
-      setStatusDialog(null); setStatusNote("");
       qc.invalidateQueries({ queryKey: ["inter-admin-apps"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -301,19 +279,13 @@ export default function AdminAdmissions() {
   const paid = allApps.filter((a) => a.payment_status === "paid").length;
   const pendingFee = allApps.filter((a) => a.payment_status === "pending").length;
 
-  // One action row per application: Fee · Status · Delete (no duplicates, no Unlock).
-  // The action the office needs next is highlighted: Fee while unpaid, Status once paid.
+  // One action row per application: Fee · Delete. The workflow status is automatic:
+  // the one-click merit list marks every paid applicant Merit Listed / Not Merit Listed.
   const btn = "h-8 px-2 text-[11.5px] font-semibold rounded-full";
   const FeeBtn = ({ a }: { a: AdminApp }) => (
     <Button size="sm" variant={a.payment_status === "paid" ? "outline" : "default"} className={btn}
       onClick={() => { setPayDialog(a); setPayRef(a.payment_reference ?? ""); setPayMethod(a.payment_method || "cash"); }}>
       <Wallet className="w-3 h-3" /> Fee
-    </Button>
-  );
-  const StatusBtn = ({ a }: { a: AdminApp }) => (
-    <Button size="sm" variant={a.payment_status === "paid" ? "default" : "outline"} className={btn}
-      onClick={() => { setStatusDialog(a); setStatusValue(suggestedStage(a.status)); setStatusNote(""); }}>
-      <CheckCircle2 className="w-3 h-3" /> Status
     </Button>
   );
   const DeleteBtn = ({ a }: { a: AdminApp }) => (
@@ -409,11 +381,6 @@ export default function AdminAdmissions() {
             <UserPlus className="w-3 h-3" /> Add Walk-in / Import
           </Button>
         </div>
-        <div className="flex items-center justify-center w-full">
-          <Button size="sm" className="h-9 px-5 text-[12px] rounded-full whitespace-nowrap gap-1.5 font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-white shadow-md" onClick={() => setTab("merit")}>
-            <Trophy className="w-3.5 h-3.5" /> One-Click Merit List
-          </Button>
-        </div>
       </div>
 
       {/* Applications table */}
@@ -450,7 +417,6 @@ export default function AdminAdmissions() {
                         </div>
                         <div className="mt-2.5 grid w-full grid-cols-3 gap-1.5 border-t border-border/60 pt-3">
                           <FeeBtn a={a} />
-                          <StatusBtn a={a} />
                           <DeleteBtn a={a} />
                         </div>
                       </div>
@@ -497,8 +463,7 @@ export default function AdminAdmissions() {
                         <td className="px-3 py-3 text-center align-middle">
                           <div className="flex items-center justify-center gap-1.5">
                             <FeeBtn a={a} />
-                            <StatusBtn a={a} />
-                            <DeleteBtn a={a} />
+                              <DeleteBtn a={a} />
                           </div>
                         </td>
                       </tr>
@@ -571,8 +536,8 @@ export default function AdminAdmissions() {
       </Dialog>
 
       {/* Fee dialog — the processing fee and how it was paid.
-          This is the ONLY place the fee is recorded; the Status dialog below
-          deals with the college's workflow stages alone. */}
+          This is the ONLY place the fee is recorded;
+          Review and merit are automatic (Merit Lists tab). */}
       <Dialog open={Boolean(payDialog)} onOpenChange={(o) => !o && setPayDialog(null)}>
         <DialogContent className="w-[calc(100%-1.5rem)] max-w-md rounded-2xl p-0 overflow-hidden gap-0">
           <DialogHeader className="border-b border-border/60 bg-gradient-to-r from-green-700/10 to-transparent px-5 py-4">
@@ -661,82 +626,8 @@ export default function AdminAdmissions() {
               )}
 
               <p className="text-center text-[11px] leading-snug text-muted-foreground">
-                Fee is recorded here only. Review, merit and admission are handled with the Status action.
+                Fee is recorded here only. Review and merit are automatic: use the Merit Lists tab.
               </p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Status dialog — the college's workflow stages.
-          The payment states ("Fee Pending" / "Fee Paid") are deliberately
-          absent: they belong to the Fee action above. */}
-      <Dialog open={Boolean(statusDialog)} onOpenChange={(o) => !o && setStatusDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Application Status: {statusDialog?.tracking_id}</DialogTitle>
-          </DialogHeader>
-          {statusDialog && (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border bg-muted/40 p-3.5 text-[13px] space-y-1.5">
-                <p className="flex items-center justify-between gap-2">
-                  <span className="text-muted-foreground">Current stage</span>
-                  <StageBadge app={statusDialog} />
-                </p>
-                <p className="flex items-center justify-between gap-2">
-                  <span className="text-muted-foreground">Processing fee</span>
-                  <span className="font-semibold">
-                    {statusDialog.payment_status === "paid" ? "Paid"
-                      : statusDialog.payment_status === "rejected" ? "Rejected" : "Pending"}
-                  </span>
-                </p>
-              </div>
-
-              {statusDialog.payment_status !== "paid" && (
-                <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-[12px] leading-snug text-amber-700 dark:text-amber-400">
-                  The processing fee is not paid. Record it with the Fee action before moving the
-                  application to Review, Merit or Admitted.
-                </p>
-              )}
-
-              <div className="grid grid-cols-2 gap-2">
-                {WORKFLOW_STAGES.map((s) => {
-                  const blocked = s.requiresFee && statusDialog.payment_status !== "paid";
-                  const isCurrent = s.value === statusDialog.status;
-                  const recommended = !isCurrent && s.value === suggestedStage(statusDialog.status);
-                  return (
-                    <button key={s.value} type="button" disabled={blocked}
-                      onClick={() => setStatusValue(s.value)}
-                      title={blocked ? "Mark the processing fee as paid first." : s.hint}
-                      className={`h-10 rounded-xl border-2 text-[13px] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
-                        statusValue === s.value ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/40"
-                      }`}>
-                      {s.label}
-                      {recommended && (
-                        <span className="ml-1.5 text-[10px] font-normal uppercase tracking-wide opacity-70">next</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-semibold">Note (shown in the applicant's timeline)</Label>
-                <Textarea rows={2} value={statusNote} onChange={(e) => setStatusNote(e.target.value)}
-                  placeholder="e.g. Documents verified at the college office" />
-              </div>
-
-              {statusValue === statusDialog.status ? (
-                <p className="text-center text-[12px] font-semibold text-muted-foreground">
-                  The application is already at this stage — pick another one to change it.
-                </p>
-              ) : (
-                <Button className="w-full h-11 font-semibold" disabled={setStatus.isPending}
-                  onClick={() => setStatus.mutate({ id: statusDialog.id, status: statusValue, note: statusNote })}>
-                  {setStatus.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                  Update Status
-                </Button>
-              )}
             </div>
           )}
         </DialogContent>
