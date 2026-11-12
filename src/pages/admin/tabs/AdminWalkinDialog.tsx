@@ -319,6 +319,12 @@ export default function AdminWalkinDialog({
       if (d.imported > 0) { toast.success(`${d.imported} application(s) imported.`); refresh(); }
       setRows([]); setFileName("");
       if (fileRef.current) fileRef.current.value = "";
+      // Everything imported → the page closes by itself. If some rows failed the
+      // dialog stays open so the admin can read which rows and why.
+      if (d.failed === 0 && d.imported > 0) {
+        setReport(null);
+        onOpenChange(false);
+      }
     } catch (e) {
       toast.error((e as Error).message || "Import failed.");
     } finally { setImporting(false); }
