@@ -44,6 +44,32 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://ghssghallanai.dpdns.org/" />
 
+    <!-- ✅ SEO audit: og:image + Twitter card were missing from the static
+         shell (Helmet adds them per-route after JS runs, but the FIRST HTML
+         byte — what link-preview bots and non-JS crawlers read — carried no
+         image at all, so social shares of the raw shell showed no preview
+         image). Absolute URL, 1200×630, exactly like SEO.tsx emits. -->
+    <meta property="og:image" content="https://ghssghallanai.dpdns.org/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Government Higher Secondary School Ghallanai, District Mohmand, KPK" />
+    <meta property="og:site_name" content="GHSS Ghallanai" />
+    <meta property="og:locale" content="en_PK" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="GHSS Ghallanai — Government Higher Secondary School, District Mohmand KPK" />
+    <meta name="twitter:description" content="Government Higher Secondary School Ghallanai — a government higher secondary school in District Mohmand, Khyber Pakhtunkhwa, Pakistan, offering 1st Year and 2nd Year (HSSC), affiliated with BISE Peshawar." />
+    <meta name="twitter:image" content="https://ghssghallanai.dpdns.org/og-image.png" />
+
+    <!-- ✅ SEO audit: self-referencing hreflang for the single-language site
+         (en-PK + x-default, both naming the homepage). The per-route
+         versions are injected by SEO.tsx (client) and
+         scripts/seo-page-content.mjs (prerendered/fallback pages); the head
+         normaliser strips THIS pair before injecting the route-correct one,
+         exactly as it does for the canonical, so a prerendered page can
+         never carry two conflicting hreflang targets. -->
+    <link rel="alternate" hreflang="en-PK" href="https://ghssghallanai.dpdns.org/" />
+    <link rel="alternate" hreflang="x-default" href="https://ghssghallanai.dpdns.org/" />
+
     <!-- Machine-readable discovery — read by crawlers/AI fetchers that only
          read the first HTML byte and never execute JavaScript (many "weak"
          AI systems: consumer assistants, lightweight scrapers). These tags

@@ -90,6 +90,27 @@ const NotFound = () => {
           <Home className="w-4 h-4" />
           Go Home
         </Link>
+
+        {/* ✅ SEO audit: quick links to the top public pages so a visitor
+            (and any crawler that renders this SPA screen) can reach the
+            site's main sections in one tap instead of bouncing. The HTTP
+            404 itself is answered by middleware.ts (notFoundResponse) with
+            the same link list — this covers the client-side navigation
+            case. */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs">
+          {[
+            { to: "/admission", label: "Admission" },
+            { to: "/results", label: "Results" },
+            { to: "/notices", label: "Notices" },
+            { to: "/teachers", label: "Teachers" },
+            { to: "/faq", label: "FAQ" },
+            { to: "/contact", label: "Contact" },
+          ].map((l) => (
+            <Link key={l.to} to={l.to} className="text-primary font-medium hover:underline underline-offset-2">
+              {l.label}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

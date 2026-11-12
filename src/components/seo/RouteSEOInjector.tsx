@@ -74,7 +74,13 @@ const ROUTES: RouteSEO[] = [
   },
   {
     pattern: "/notices",
-    title: "School Notices & Announcements — GHSS Ghallanai",
+    // ✅ SEO audit: "Mohmand" added — this was the only public-route title
+    // missing the location token every other title carries. City + school
+    // in the title is the strongest local-ranking signal for a school site.
+    // All other titles are deliberately left untouched: they are already
+    // unique per page, keyword-mapped, and the homepage title (which ranks
+    // at ~position 7) must not be disturbed.
+    title: "School Notices & Announcements — GHSS Ghallanai, Mohmand",
     description:
       "Browse the latest school notices, urgent announcements, academic updates and event information from Government Higher Secondary School Ghallanai.",
     keywords: "school notices, announcements, urgent notices, academic updates, GHSS Ghallanai notices",

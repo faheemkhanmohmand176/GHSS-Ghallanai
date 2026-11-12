@@ -8,8 +8,13 @@ import { useSchoolSettings, safeMediaUrl, optimizedCloudinaryUrl } from "@/hooks
 
 // SEO / crawlability: every PUBLIC route keeps a permanent <a href> in the DOM
 // (the Navbar dropdowns only mount their links while open). Do not remove links.
+// ✅ SEO audit: "Home" added so the two footer columns together form a
+// COMPLETE site map (all 10 public routes) on every page of the site —
+// Google treats a persistent, complete footer link mesh as a crawl-priority
+// signal, exactly what "Discovered — currently not indexed" pages need.
 const footerLinks = {
   quickLinks: [
+    { to: "/",         label: "Home" },
     { to: "/about",     label: "About Us" },
     { to: "/admission", label: "Admission" },
     { to: "/teachers",  label: "Our Teachers" },

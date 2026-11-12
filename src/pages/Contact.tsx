@@ -68,6 +68,11 @@ const Contact = () => {
   const displayEmail  = settings?.email  || "";
   const displayPhone  = settings?.phone?.trim().length > 5 ? settings.phone : null;
   const displayAddress = settings?.address || "Ghallanai, District Mohmand, KPK, Pakistan";
+  // ✅ SEO audit (local SEO): live coordinates for the Google Maps embed
+  // below — same source & fallback district coordinates as SiteSchema.tsx
+  // so the map pin and the structured-data geo always agree.
+  const mapLat = settings?.location_lat ?? 34.6403;
+  const mapLng = settings?.location_lng ?? 71.3080;
 
   const [form, setForm]       = useState<FormState>(INIT);
   const [sending, setSending] = useState(false);
@@ -672,6 +677,49 @@ const Contact = () => {
               </div>
             </motion.div>
           </div>
+
+          {/* ✅ SEO audit (local SEO): embedded Google Map + full NAP.
+              Local-SEO requirement for a school site — Google cross-checks
+              the map embed / NAP text against the EducationalOrganization
+              address in the structured data. Keyless Google Maps embed
+              (output=embed), lazy-loaded, fixed height for zero CLS, and a
+              descriptive title for accessibility. The CSP in vercel.json
+              allows https: frames, so no policy change is needed. */}
+          <motion.div
+            variants={fadeUp}
+            custom={2}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.1 }}
+            className="mt-10"
+          >
+            <div className="bg-card rounded-3xl shadow-card border border-border/70 p-2.5 md:p-3 overflow-hidden">
+              <iframe
+                title="GHSS Ghallanai location map — Ghallanai, District Mohmand, Khyber Pakhtunkhwa, Pakistan"
+                src={`https://maps.google.com/maps?q=${mapLat},${mapLng}&z=15&output=embed&hl=en`}
+                width={600}
+                height={380}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="w-full h-[280px] sm:h-[340px] md:h-[380px] rounded-2xl border-0 block"
+                allowFullScreen
+              />
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+                <p className="flex items-center gap-1.5 text-xs sm:text-[13px] text-muted-foreground">
+                  <MapPin className="w-3.5 h-3.5 shrink-0 text-gold" aria-hidden="true" />
+                  <span className="min-w-0">{displayAddress}</span>
+                </p>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${mapLat},${mapLng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:gap-2 transition-all whitespace-nowrap"
+                >
+                  Get Directions <ArrowRight className="w-3 h-3" aria-hidden="true" />
+                </a>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
     </PageLayout>

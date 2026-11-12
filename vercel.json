@@ -22,6 +22,10 @@
     { "source": "/api/sitemap", "destination": "/api/seo?kind=sitemap" },
     { "source": "/api/robots", "destination": "/api/seo?kind=robots" },
     { "source": "/api/rss", "destination": "/api/seo?kind=rss" },
+    { "source": "/sitemap-index.xml", "destination": "/api/seo?kind=sitemap-index" },
+    { "source": "/sitemap-pages.xml", "destination": "/api/seo?kind=sitemap-pages" },
+    { "source": "/sitemap-notices.xml", "destination": "/api/seo?kind=sitemap-notices" },
+    { "source": "/sitemap-images.xml", "destination": "/api/seo?kind=sitemap-images" },
     { "source": "/api/bisep-proxy", "destination": "/api/bisep-proxy" },
     { "source": "/api/create-payment", "destination": "/api/safepay?kind=create" },
     { "source": "/api/safepay-webhook", "destination": "/api/safepay?kind=webhook" },
@@ -123,6 +127,84 @@
       "source": "/search",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, follow" }
+      ]
+    },
+    {
+      "source": "/admin/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/auth/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/dashboard/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/about",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/contact",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/admission",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/notices",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/results",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/merit-list",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/roll-no-slip",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/teachers",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }
+      ]
+    },
+    {
+      "source": "/faq",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" }
       ]
     },
     {

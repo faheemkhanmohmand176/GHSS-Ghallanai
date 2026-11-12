@@ -506,6 +506,23 @@ export function buildJsonLd(route) {
       })),
     });
   }
+  // ✅ SEO audit: BreadcrumbList on every SUB-page (Home > This Page).
+  // The client-side RouteSEOInjector.tsx already emits one per route, but
+  // this build-time layer (static fallback pages) did not — so a crawler
+  // reading the fallback saw no breadcrumb trail. The shape mirrors the
+  // client breadcrumb exactly (2 items, position 1 = Home) so the graphs
+  // merge instead of conflicting. The homepage itself gets no breadcrumb
+  // (it IS the top of the hierarchy).
+  if (route !== "/") {
+    const nav = NAV_LINKS.find(([, href]) => href === route);
+    graph["@graph"].push({
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+        { "@type": "ListItem", position: 2, name: nav ? nav[0] : page.h1, item: `${SITE_URL}${route}` },
+      ],
+    });
+  }
   return JSON.stringify(graph).replace(/</g, "\\u003c");
 }
 
@@ -699,9 +716,15 @@ function buildSeoHead(route, noticeDetail = null) {
     <meta property="og:description" content="${escapeHtml(page.description)}" />
     <meta property="og:url" content="${canonical}" />
     <meta property="og:image" content="${SITE_URL}/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_PK" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(page.title)}" />
     <meta name="twitter:description" content="${escapeHtml(page.description)}" />
+    <meta name="twitter:image" content="${SITE_URL}/og-image.png" />
+    <link rel="alternate" hreflang="en-PK" href="${canonical}" />
+    <link rel="alternate" hreflang="x-default" href="${canonical}" />
     <script type="application/ld+json">${jsonLd}</script>`;
 }
 
@@ -709,10 +732,20 @@ function buildSeoHead(route, noticeDetail = null) {
 function stripSeoHead(html) {
   return html
     .replace(/<meta\s+name=(["'])description\1[^>]*>/gi, "")
-    .replace(/<meta\s+property=(["'])og:(?:title|description|url|type|site_name|image)\1[^>]*>/gi, "")
+    .replace(/<meta\s+property=(["'])og:(?:title|description|url|type|site_name|locale|image(?::(?:width|height|alt))?)\1[^>]*>/gi, "")
     .replace(/<meta\s+name=(["'])twitter:(?:card|title|description|image)\1[^>]*>/gi, "")
     .replace(/<meta\s+name=(["'])robots\1[^>]*>/gi, "")
     .replace(/<link\b[^>]*\brel=(["'])canonical\1[^>]*>/gi, "")
+    // ✅ SEO audit: also strip the shell's static hreflang alternates
+    // (index.html now ships a self-referencing en-PK + x-default pair for
+    // the homepage) so a normalised page always carries exactly the
+    // route-correct pair injected by buildSeoHead — the same
+    // strip-then-inject guarantee the canonical enjoys. Only links that are
+    // BOTH rel="alternate" AND carry a hreflang attribute are removed; the
+    // machine-readable alternates (RSS / JSON feeds / describedby) have no
+    // hreflang and survive untouched. Attribute order rel→hreflang matches
+    // every tag this repo emits.
+    .replace(/<link\b[^>]*\brel=(["'])alternate\1[^>]*\bhreflang=[^>]*>/gi, "")
     .replace(/<script\b[^>]*type=(["'])application\/ld\+json\1[^>]*>[\s\S]*?<\/script>/gi, "");
 }
 

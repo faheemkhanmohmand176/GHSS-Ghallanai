@@ -109,7 +109,12 @@ Allow: /api/ai-data
 Allow: /humans.txt
 
 # ── Sitemap ───────────────────────────────────────────────────────────────
+# ✅ SEO audit: the segmented sitemap index is advertised alongside the
+# unified /sitemap.xml so every crawler finds both entry points. The owner
+# should submit /sitemap-index.xml in Search Console for per-segment
+# (pages / notices / images) crawl diagnostics.
 Sitemap: ${SITE_URL}/sitemap.xml
+Sitemap: ${SITE_URL}/sitemap-index.xml
 `;
 
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -467,6 +472,210 @@ async function sitemapHandler(req, res) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// KIND: sitemap-index / sitemap-pages / sitemap-notices / sitemap-images
+// (SEO audit — segmented sitemaps)
+// ═════════════════════════════════════════════════════════════════════════════
+// WHY: Google re-fetches a sitemap faster when it is small and focused, and
+// Search Console reports crawl state PER sitemap file. Splitting the (small)
+// surface into pages / notices / images files — referenced by one
+// /sitemap-index.xml — gives the owner per-segment diagnostics in GSC
+// ("notices crawled?", "pages crawled?") and lets notice URLs be pinged and
+// monitored separately from the static pages. The existing /sitemap.xml
+// (everything in one file) is KEPT byte-identical so the already-submitted
+// GSC sitemap keeps validating; robots.txt advertises both. A dedicated
+// "events" sitemap is intentionally NOT emitted: the site has no public
+// /events routes — dated content lives in notices and the exam schedule,
+// and inventing a sitemap of non-existent URLs is the exact
+// "Submitted URL not found" defect the shared route list exists to prevent.
+//
+// All four kinds share the same route list, DB sources and lastmod rules as
+// the unified sitemap above — one more application of the single-source-of
+// -truth rule (scripts/site-routes.mjs).
+
+/** Shared resolver: STATIC_PAGES with their real (or omitted) lastmod. */
+async function resolveStaticPages() {
+  return Promise.all(
+    STATIC_PAGES.map(async (page) => {
+      if (!page.dbSource) return { page, lastmod: STATIC_LASTMOD };
+      const lm = await getLastMod(page.dbSource.table, page.dbSource.column);
+      return { page, lastmod: lm || STATIC_LASTMOD };
+    })
+  );
+}
+
+function sendXml(res, xml, maxAge = 3600) {
+  res.setHeader("Content-Type", "application/xml");
+  res.setHeader("Cache-Control", `public, s-maxage=${maxAge}, stale-while-revalidate=86400`);
+  return res.status(200).send(xml);
+}
+
+/** ?kind=sitemap-pages — the 10 static public routes only. */
+async function sitemapPagesHandler(req, res) {
+  const pageResults = await resolveStaticPages();
+  const staticEntries = pageResults.map(({ page, lastmod }) => buildUrlEntry(page, lastmod));
+  return sendXml(
+    res,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+ ${staticEntries.join("\n\n")}
+
+</urlset>`
+  );
+}
+
+/** ?kind=sitemap-notices — published notice detail URLs only. */
+async function sitemapNoticesHandler(req, res) {
+  const noticeDetails = await getDetailEntries("notices", "/notices");
+  return sendXml(
+    res,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+ ${noticeDetails.join("\n")}
+
+</urlset>`
+  );
+}
+
+/** ?kind=sitemap-images — the site's real content images mapped to pages.
+ *
+ * Sources (all live from the DB, all already used by the pages themselves):
+ *   • og-image.png — the social/OG image of every page (static file)
+ *   • school_settings.banner_url / principal_photo_url — homepage / about
+ *   • teachers.photo_url — the /teachers staff directory
+ * Always emits at least the og-image entry so the file is never empty.
+ */
+async function sitemapImagesHandler(req, res) {
+  const sb = getSupabase();
+
+  // Static, always-present image on the homepage.
+  const pageImages = [
+    {
+      page: `${SITE_URL}/`,
+      images: [
+        { loc: `${SITE_URL}/og-image.png`, title: "GHSS Ghallanai — school website preview image" },
+      ],
+    },
+  ];
+
+  if (sb) {
+    try {
+      const { data: settings } = await sb
+        .from("school_settings")
+        .select("banner_url, principal_photo_url")
+        .eq("id", 1)
+        .maybeSingle();
+      const banner = settings?.banner_url;
+      const principal = settings?.principal_photo_url;
+      if (banner && /^https?:\/\//.test(banner)) {
+        pageImages[0].images.push({ loc: banner, title: "GHSS Ghallanai campus" });
+      }
+      if (principal && /^https?:\/\//.test(principal)) {
+        pageImages.push({
+          page: `${SITE_URL}/about`,
+          images: [{ loc: principal, title: "Principal of GHSS Ghallanai" }],
+        });
+      }
+    } catch { /* best-effort — settings fetch must never break the sitemap */ }
+
+    try {
+      const { data: teachers } = await sb
+        .from("teachers")
+        .select("full_name, photo_url")
+        .not("photo_url", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(60);
+      if (Array.isArray(teachers) && teachers.length) {
+        pageImages.push({
+          page: `${SITE_URL}/teachers`,
+          images: teachers
+            .filter((t) => t && t.photo_url && /^https?:\/\//.test(t.photo_url))
+            .map((t) => ({ loc: t.photo_url, title: `${t.full_name || "Teacher"} — GHSS Ghallanai` })),
+        });
+      }
+    } catch { /* best-effort */ }
+  }
+
+  const entries = pageImages
+    .filter((p) => p.images.length)
+    .map(
+      (p) => `  <url>
+    <loc>${p.page}</loc>
+${p.images
+  .map(
+    (img) => `    <image:image>
+      <image:loc>${img.loc}</image:loc>
+      <image:title>${escapeXml(img.title)}</image:title>
+    </image:image>`
+  )
+  .join("\n")}
+  </url>`
+    );
+
+  return sendXml(
+    res,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+ ${entries.join("\n")}
+
+</urlset>`
+  );
+}
+
+/** ?kind=sitemap-index — the segmented-sitemap index. */
+async function sitemapIndexHandler(req, res) {
+  // Best-effort lastmod per segment (max of the segment's entries) so
+  // Google can skip re-fetching unchanged segments.
+  const [pages, notices] = await Promise.all([
+    resolveStaticPages(),
+    sbDetailLastmod(),
+  ]);
+
+  const pageLastmod = pages
+    .map((p) => p.lastmod)
+    .filter(Boolean)
+    .sort()
+    .pop() || null;
+
+  const entries = [
+    { loc: `${SITE_URL}/sitemap-pages.xml`, lastmod: pageLastmod },
+    { loc: `${SITE_URL}/sitemap-notices.xml`, lastmod: notices },
+    { loc: `${SITE_URL}/sitemap-images.xml`, lastmod: null },
+  ];
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+${entries
+  .map((e) => {
+    const lastmodTag = e.lastmod ? `\n    <lastmod>${e.lastmod}</lastmod>` : "";
+    return `  <sitemap>
+    <loc>${e.loc}</loc>${lastmodTag}
+  </sitemap>`;
+  })
+  .join("\n")}
+
+</sitemapindex>`;
+
+  return sendXml(res, xml);
+}
+
+/** Max created_at of the newest published notice (for the index lastmod). */
+async function sbDetailLastmod() {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const lm = await getLastMod("notices", "created_at");
+    return lm || null;
+  } catch {
+    return null;
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // KIND: rss  (former api/rss.js)
 // ═════════════════════════════════════════════════════════════════════════════
 // RSS 2.0 feed for notices — content distribution via RSS readers and
@@ -725,6 +934,15 @@ export default async function handler(req, res) {
       return robotsHandler(req, res);
     case "sitemap":
       return sitemapHandler(req, res);
+    // ✅ SEO audit — segmented sitemaps (see the big comment block above).
+    case "sitemap-index":
+      return sitemapIndexHandler(req, res);
+    case "sitemap-pages":
+      return sitemapPagesHandler(req, res);
+    case "sitemap-notices":
+      return sitemapNoticesHandler(req, res);
+    case "sitemap-images":
+      return sitemapImagesHandler(req, res);
     case "llms":
       return llmsHandler(req, res);
     case "rss":
@@ -733,6 +951,6 @@ export default async function handler(req, res) {
       return indexNowHandler(req, res);
     default:
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      return res.status(404).send("Not found. Use /robots.txt, /sitemap.xml, /llms.txt, /rss.xml or /api/indexnow");
+      return res.status(404).send("Not found. Use /robots.txt, /sitemap.xml, /sitemap-index.xml, /sitemap-pages.xml, /sitemap-notices.xml, /sitemap-images.xml, /llms.txt, /rss.xml or /api/indexnow");
   }
 }

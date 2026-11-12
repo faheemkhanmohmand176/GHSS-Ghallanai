@@ -67,9 +67,20 @@ const SEO = ({
     ? title
     : `${title} | ${SITE_NAME}`;
 
+  // Canonical URL (SEO audit fix): the HOMEPAGE keeps its trailing slash
+  // (https://…/) so the client-rendered canonical is byte-identical with the
+  // sitemap entry, the static shell canonical in index.html and the
+  // prerendered canonical from scripts/seo-page-content.mjs. The old code
+  // stripped the slash from "/" via .replace(/\/$/, ""), producing
+  // https://…dpdns.org (no slash) in the hydrated DOM while every other
+  // layer said https://…dpdns.org/ — a needless inconsistency across the
+  // same URL's canonical signals. Every other route stays slash-less,
+  // matching the middleware's 308 /index.html canonicalisation.
   const url =
-    `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`.replace(/\/$/, "") ||
-    SITE_URL;
+    path === "/" || path === ""
+      ? `${SITE_URL}/`
+      : `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`.replace(/\/+$/, "") ||
+        SITE_URL;
 
   const schemas: Record<string, any>[] = [];
   if (jsonLd) {
@@ -108,9 +119,17 @@ const SEO = ({
       {/* ✅ Canonical — prevents duplicate-content issues for every page */}
       <link rel="canonical" href={url} />
 
-      {/* hreflang intentionally REMOVED: en-PK / ur / x-default all pointed
-          to the SAME URL, which is a conflicting language signal Google
-          ignores. Re-add only when separate Urdu URLs actually exist. */}
+      {/* ✅ hreflang (SEO audit): self-referencing en-PK + x-default for this
+          single-language site. The previous removal targeted the OLD code,
+          which emitted en-PK AND ur alternates that all pointed at the SAME
+          URL — a genuinely conflicting language signal. A single
+          self-referencing en-PK pair is the documented single-language
+          pattern: each alternate names THIS page for its own locale, so
+          nothing can conflict, and Google receives an explicit Pakistan
+          targeting hint. Urdu-specific URLs can be added later as real
+          alternates once they exist. */}
+      <link rel="alternate" hrefLang="en-PK" href={url} />
+      <link rel="alternate" hrefLang="x-default" href={url} />
 
       {/* Open Graph */}
       <meta property="og:title" content={fullTitle} />

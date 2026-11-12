@@ -223,7 +223,7 @@ const MeritAvatar = memo(function MeritAvatar({ photoUrl, fullName, size = "w-8 
   return src && !imgError ? (
     <img
       src={src}
-      alt=""
+      alt={`Photo of ${fullName}`}
       width={40}
       height={40}
       className={`${size} rounded-full object-cover shrink-0 ring-1 ring-border bg-muted`}

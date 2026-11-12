@@ -1105,6 +1105,60 @@ const Home = () => {
         </div>
       </m.section>
 
+      {/* ══ 3.5 EXPLORE THE SITE — internal-link equity (SEO audit) ══
+          Google Search Console reports the site's sub-pages as
+          "Discovered — currently not indexed": Google knows them but does
+          not consider them valuable/well-linked enough to crawl yet. This
+          tile grid places a prominent, descriptive-text <a> to EVERY public
+          section one click from the homepage (the only indexed page), right
+          below the hero — the single strongest "the rest of this site
+          matters" signal we can send. The same routes are also linked in
+          the footer (every page) and in the prerendered "Website sections"
+          block, so all three crawler layers (React app, prerendered HTML,
+          live renderer) see the full crawl mesh. Descriptive anchor text —
+          never "click here". */}
+      <section className="container mx-auto px-4 mt-12 md:mt-16" aria-label="Explore the website">
+        <SectionHeader
+          eyebrow="Explore"
+          title="Everything on This Website"
+          subtitle="Admissions, results, notices and every school section — one tap away"
+        />
+        <nav
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 max-w-5xl mx-auto"
+          aria-label="Website sections"
+        >
+          {[
+            { to: "/admission",   icon: UserPlus,   title: "Admissions 2026-27", desc: "Apply online — no account needed" },
+            { to: "/results",     icon: BarChart3,  title: "Exam Results",       desc: "BISE Peshawar & school results by roll number" },
+            { to: "/merit-list",  icon: Trophy,     title: "Merit List",         desc: "Official rankings & position holders" },
+            { to: "/roll-no-slip",icon: BookMarked, title: "Roll No. Slip",      desc: "View & download your slip with QR code" },
+            { to: "/notices",     icon: Bell,       title: "Notices",            desc: "Official announcements & exam schedules" },
+            { to: "/teachers",    icon: Users,      title: "Our Teachers",       desc: "Staff directory with subjects & qualifications" },
+            { to: "/about",       icon: BookOpen,   title: "About Us",           desc: "Our history, mission & vision since 1975" },
+            { to: "/faq",         icon: Lightbulb,  title: "FAQs",               desc: "Answers to common admission & exam questions" },
+            { to: "/contact",     icon: Phone,      title: "Contact Us",         desc: "Phone, WhatsApp, location map & contact form" },
+          ].map(({ to, icon: Icon, title, desc }) => (
+            <Link
+              key={to}
+              to={to}
+              className="group bg-card rounded-2xl border border-border/70 p-4 md:p-5 shadow-card card-lift flex items-center gap-3.5 min-w-0"
+            >
+              <span className="lux-tile w-10 h-10 shrink-0">
+                <Icon className="w-5 h-5" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-heading font-bold text-foreground truncate">{title}</span>
+                <span className="block text-[11.5px] leading-snug text-muted-foreground truncate">{desc}</span>
+              </span>
+              <ArrowRight
+                className="w-4 h-4 ml-auto shrink-0 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all"
+                aria-hidden="true"
+              />
+            </Link>
+          ))}
+        </nav>
+      </section>
+
       {/* ══ 4. SUBJECTS MARQUEE ══ */}
       <section className="py-5 bg-gradient-to-b from-secondary/40 to-background overflow-hidden border-y border-gold/20 mt-16" style={{ contain: "layout paint" }}>
         <div className="relative flex overflow-hidden">
