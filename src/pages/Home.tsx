@@ -9,11 +9,11 @@ import {
   Star, Award, MapPin, Phone, Mail,
   Shield, Zap, Globe, Lightbulb, RefreshCw,
   Volume2, BookMarked, X as XIcon, Clock, ExternalLink,
-  UserPlus, Search,
+  UserPlus, Search, Lock,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useSchoolSettings, safeMediaUrl, optimizedCloudinaryUrl } from "@/hooks/useSchoolSettings";
-import { useAdmissionSettings } from "@/hooks/useAdmission";
+import { useAdmissionSettings, getAdmissionState } from "@/hooks/useAdmission";
 import { useNotices } from "@/hooks/useNotices";
 import { useTeachers } from "@/hooks/useTeachers";
 import { useCountUp } from "@/hooks/useCountUp";
@@ -994,6 +994,8 @@ const Home = () => {
   const { data: settings,          isLoading: settingsLoading }      = useSchoolSettings();
   const { data: admissionCfg } = useAdmissionSettings();
   const admissionFee = admissionCfg?.processing_fee;
+  // Admin switched admission off → only "Apply Online" is locked; everything else stays.
+  const applyClosed = Boolean(admissionCfg) && !getAdmissionState(admissionCfg).open;
   const { data: notices = [],      isLoading: noticesLoading }        = useNotices(4);
   const { data: teachers = [],     isLoading: teachersLoading }       = useTeachers(4);
 
@@ -1333,9 +1335,9 @@ const Home = () => {
               <div className="text-center lg:text-left">
                 <div className="mb-4 flex flex-wrap items-center justify-center lg:justify-start gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.16em] text-foreground">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" /> Admissions Open
+                    <span className={`h-1.5 w-1.5 rounded-full ${applyClosed ? "bg-red-500" : "bg-green-500 animate-pulse"}`} /> {applyClosed ? "Admissions Closed" : "Admissions Open"}
                   </span>
-                  <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.16em] text-gold-strong dark:text-gold">Session 2026–27</span>
+                  <span className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.16em] text-gold-strong dark:text-gold">{applyClosed ? "Session —" : "Session 2026–27"}</span>
                 </div>
                 <h2 className="font-luxe text-[2.4rem] sm:text-6xl font-bold leading-[1] text-foreground">
                   Intermediate <span className="italic lux-gold-text">Admissions</span>
@@ -1347,9 +1349,15 @@ const Home = () => {
                   application and pay the {admissionFee ? <>Rs&nbsp;{admissionFee} </> : null}processing fee online with Easypaisa or a wallet.
                 </p>
                 <div className="grid grid-cols-2 gap-2.5 sm:flex sm:justify-center lg:justify-start">
+                  {applyClosed ? (
+                    <button type="button" disabled aria-disabled="true" title="Online admission is currently closed" className="inline-flex h-11 cursor-not-allowed items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-muted px-5 text-[13px] font-bold tracking-wide text-muted-foreground opacity-80">
+                      <Lock className="w-4 h-4" strokeWidth={2} /> Apply Online
+                    </button>
+                  ) : (
                   <Link to="/admission/portal" className="inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-5 text-[13px] font-bold tracking-wide text-primary-foreground shadow-[0_12px_24px_-12px_hsl(var(--primary)/.8)] transition-all active:scale-[0.97] hover:brightness-110">
                     <UserPlus className="w-4 h-4" strokeWidth={2} /> Apply Online
                   </Link>
+                  )}
                   <Link to="/admission#track" className="inline-flex h-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-gold/50 bg-card px-5 text-[13px] font-semibold tracking-wide text-foreground transition-colors hover:bg-gold/10 active:scale-[0.97]">
                     <Search className="w-4 h-4 text-gold" strokeWidth={2} /> Track Application
                   </Link>
