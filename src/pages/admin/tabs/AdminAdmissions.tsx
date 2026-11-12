@@ -415,7 +415,7 @@ export default function AdminAdmissions() {
                           <StageBadge app={a} />
                           {a.marks && <Badge variant="secondary" className="font-semibold">{a.marks}</Badge>}
                         </div>
-                        <div className="mt-2.5 grid w-full grid-cols-3 gap-1.5 border-t border-border/60 pt-3">
+                        <div className="mx-auto mt-2.5 grid w-full max-w-[280px] grid-cols-2 gap-2 border-t border-border/60 pt-3">
                           <FeeBtn a={a} />
                           <DeleteBtn a={a} />
                         </div>
