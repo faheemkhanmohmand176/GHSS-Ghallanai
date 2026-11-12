@@ -10,17 +10,15 @@
 import { MeritTitleBlock, MeritDates, MeritInstructions } from "@/components/shared/MeritListSheet";
 import { useState, useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import AdmissionBackBar from "@/components/shared/AdmissionBackBar";
 import { motion } from "framer-motion";
 import {
   GraduationCap, Search, UserPlus, LayoutDashboard, ClipboardList, CalendarDays, Hourglass, CalendarCheck2,
   AlertCircle, Phone, Mail, Loader2, CheckCircle2, XCircle,
-  BadgeCheck, BookOpen, Landmark, Wallet, Printer, Trophy, ArrowRight,
+  BadgeCheck, BookOpen, Landmark, Wallet, Printer, Trophy, ArrowRight, Lock,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import AdmissionStepper from "@/components/shared/AdmissionStepper";
 import AdmissionReviewTable from "@/components/shared/AdmissionReviewTable";
-import { AdmissionClosedCard } from "@/components/shared/AdmissionGate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdmissionSettings, getAdmissionState, formatAdmissionDate } from "@/hooks/useAdmission";
 import { ADMISSION_CLIENT_CACHE } from "@/config/admissionCache";
@@ -470,20 +468,20 @@ function AdmissionHero({
         <p className="mt-3 text-[11.5px] font-bold uppercase tracking-[0.22em] text-primary dark:text-gold sm:text-xs">{COLLEGE_SHORT}</p>
 
         {/* Session + countdown */}
-        {open && (
+        {(
           <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-2">
             <div className={stat}>
               <span className={lab}><CalendarDays className="h-3 w-3 text-primary dark:text-gold" /> Session</span>
-              <span className="font-luxe text-[1.45rem] font-bold leading-none text-foreground">{session || "N/A"}</span>
+              <span className="font-luxe text-[1.45rem] font-bold leading-none text-foreground">{open ? (session || "N/A") : "—"}</span>
             </div>
             <div className={`${stat} !border-primary/50 bg-gradient-to-b from-primary/15 to-primary/[0.04] shadow-[0_10px_24px_-14px_hsl(var(--primary)/.55)]`}>
               <span className={lab}><Hourglass className="h-3 w-3 text-primary dark:text-gold" /> {daysLeft === 1 ? "Day Left" : "Days Left"}</span>
-              <span className="font-luxe text-[1.9rem] font-bold leading-none text-foreground">{daysLeft === null ? "Open" : daysLeft}</span>
+              <span className="font-luxe text-[1.9rem] font-bold leading-none text-foreground">{!open ? "—" : daysLeft === null ? "Open" : daysLeft}</span>
             </div>
             <div className={stat}>
               <span className={lab}><CalendarCheck2 className="h-3 w-3 text-primary dark:text-gold" /> Last Date</span>
               <span className="font-luxe text-[1.05rem] font-bold leading-tight text-foreground">
-                {lastDate ? formatAdmissionDate(lastDate) : "To be announced"}
+                {!open ? "—" : lastDate ? formatAdmissionDate(lastDate) : "To be announced"}
               </span>
             </div>
           </div>
@@ -491,14 +489,26 @@ function AdmissionHero({
 
         {/* Actions */}
         <div className="mt-5 grid w-full max-w-md grid-cols-2 gap-2.5">
-          <button
-            type="button"
-            onClick={() => navigate("/admission/portal")}
-            className={`${btn} bg-primary text-primary-foreground shadow-[0_12px_24px_-12px_hsl(var(--primary)/.8)] hover:brightness-110`}
-          >
-            {hasSession ? <LayoutDashboard className="h-4 w-4" strokeWidth={2} /> : <ClipboardList className="h-4 w-4" strokeWidth={2} />}
-            {hasSession ? "My Application" : "Apply Online"}
-          </button>
+          {open ? (
+            <button
+              type="button"
+              onClick={() => navigate("/admission/portal")}
+              className={`${btn} bg-primary text-primary-foreground shadow-[0_12px_24px_-12px_hsl(var(--primary)/.8)] hover:brightness-110`}
+            >
+              {hasSession ? <LayoutDashboard className="h-4 w-4" strokeWidth={2} /> : <ClipboardList className="h-4 w-4" strokeWidth={2} />}
+              {hasSession ? "My Application" : "Apply Online"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              title="Online admission is currently closed"
+              className={`${btn} cursor-not-allowed border border-border bg-muted text-muted-foreground opacity-80`}
+            >
+              <Lock className="h-4 w-4" strokeWidth={2} /> Apply Online
+            </button>
+          )}
           <a href="#track" className={`${btn} border-2 border-primary/70 bg-card text-primary hover:bg-primary hover:text-primary-foreground dark:text-foreground`}>
             <Search className="h-4 w-4" strokeWidth={2} /> Track Application
           </a>
@@ -521,7 +531,7 @@ export default function Admission() {
     queryKey: ["inter-programs-public"],
     queryFn: () => interApi.programsList() as Promise<{ ok?: boolean } & { [k: string]: unknown }>,
     staleTime: ADMISSION_CLIENT_CACHE.programsStaleMs,
-    enabled: state.open || settingsError,
+    enabled: true,
   });
   // Defensive: the RPC / edge cache can return a wrapped object or an error object
   // instead of a bare array. Never call .map on anything that is not an array.
@@ -544,21 +554,14 @@ export default function Admission() {
     );
   }
 
-  // Admin closed admissions (or the date window is over): everything is locked.
-  if (!settingsError && !state.open) {
-    return (
-      <PageLayout>
-        <div className="container mx-auto max-w-xl px-4 py-12">
-          <AdmissionBackBar to="/" />
-          <AdmissionClosedCard state={state} />
-        </div>
-      </PageLayout>
-    );
-  }
+  // Admission closed by the admin / date window over: ONLY "Apply Online" is
+  // locked (and the session / days-left / last-date tiles show a dash). Track,
+  // merit lists, programs and instructions stay available.
+  const applyOpen = state.open || settingsError;
 
   return (
     <PageLayout>
-      <AdmissionHero session={session} daysLeft={state.daysLeft} lastDate={state.lastDate} hasSession={hasSession} open />
+      <AdmissionHero session={session} daysLeft={state.daysLeft} lastDate={state.lastDate} hasSession={hasSession} open={applyOpen} />
 
       <div className="container mx-auto px-4 py-10 sm:py-14 max-w-5xl space-y-12">
         {/* How to apply */}
