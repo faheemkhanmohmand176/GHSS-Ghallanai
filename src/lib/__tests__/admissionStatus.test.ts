@@ -62,7 +62,7 @@ describe("stageLabel — the admin status badge", () => {
     expect(stageLabel("fee_paid")).toBe("Awaiting Review");
     expect(stageLabel("fee_pending")).toBe("Applied");
     expect(stageLabel("submitted")).toBe("Applied");
-    expect(stageLabel("under_review")).toBe("Under Review");
+    expect(stageLabel("under_review")).toBe("Not Merit Listed");
     expect(stageLabel("merit_listed")).toBe("Merit Listed");
     expect(stageLabel("admitted")).toBe("Admitted");
     expect(stageLabel("rejected")).toBe("Rejected");
