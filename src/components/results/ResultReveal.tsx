@@ -58,7 +58,7 @@ export interface RevealResultData {
   isPass: boolean;
   subjects: RevealSubject[];
   photoUrl?: string | null;
-  /** Raw marks line (e.g. "455/550") shown when obtained/total can't be split. */
+  /** Raw marks line (e.g. "456/600") shown when obtained/total can't be split. */
   marksLine?: string | null;
   /** Board remarks (e.g. "PROMOTED") shown in the compact stats row. */
   remarksLine?: string | null;
