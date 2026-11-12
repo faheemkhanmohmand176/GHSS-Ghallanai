@@ -409,6 +409,11 @@ export default function AdminAdmissions() {
             <UserPlus className="w-3 h-3" /> Add Walk-in / Import
           </Button>
         </div>
+        <div className="flex items-center justify-center w-full">
+          <Button size="sm" className="h-9 px-5 text-[12px] rounded-full whitespace-nowrap gap-1.5 font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-white shadow-md" onClick={() => setTab("merit")}>
+            <Trophy className="w-3.5 h-3.5" /> One-Click Merit List
+          </Button>
+        </div>
       </div>
 
       {/* Applications table */}
