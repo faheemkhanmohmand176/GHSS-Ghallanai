@@ -12,7 +12,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
-  ClipboardList, ArrowRight, UserRound, BookOpen,
+  ArrowRight, UserRound, BookOpen,
   LogOut, Search, AlertCircle, BadgeCheck,
 } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -121,22 +121,9 @@ export default function AdmissionPortal() {
                 <AlertCircle className="w-5 h-5 text-azure-strong dark:text-azure shrink-0 mt-0.5" />
                 <div className="text-sm space-y-2 w-full min-w-0">
                   <p className="font-bold text-foreground">Complete your profile before applying</p>
-                  <div className="flex flex-wrap gap-2">
-                    {!personalDone && (
-                      <Link to="/admission/profile">
-                        <Button size="sm" className="h-9 font-semibold">
-                          <UserRound className="w-4 h-4" /> Personal Information
-                        </Button>
-                      </Link>
-                    )}
-                    {!sscDone && (
-                      <Link to="/admission/ssc">
-                        <Button size="sm" className="h-9 font-semibold">
-                          <BookOpen className="w-4 h-4" /> Matric (SSC) Profile
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
+                  <p className="text-muted-foreground">
+                    Complete {[!personalDone && "Personal Information", !sscDone && "Matric (SSC) Profile"].filter(Boolean).join(" and ")} from the Admission Menu below.
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -187,18 +174,6 @@ export default function AdmissionPortal() {
               <Card className="border-border/80 shadow-card"><CardContent className="p-5 space-y-2.5">
                 {[1, 2].map((i) => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
               </CardContent></Card>
-            )}
-
-            {/* Not complete yet (draft) — short guidance instead of an empty list */}
-            {!loading && !profilesDone && apps.length === 0 && (
-              <Card className="border-border/80 shadow-card">
-                <CardContent className="p-6 text-center">
-                  <ClipboardList className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    Complete your Personal Information and Matric Profile, then you will go straight to your admission request.
-                  </p>
-                </CardContent>
-              </Card>
             )}
 
             {/* The submitted application — one per applicant, shown as a card */}
