@@ -188,7 +188,9 @@ export function stageLabel(status?: string | null): string {
     case "fee_paid":
       return "Awaiting Review";
     case "under_review":
-      return "Under Review";
+      // Set automatically by the Auto Merit List for fee-paid applicants
+      // who did not get a seat.
+      return "Not Merit Listed";
     case "merit_listed":
       return "Merit Listed";
     case "admitted":
@@ -210,7 +212,7 @@ export function stageTone(status?: string | null): string {
     case "fee_paid":
       return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
     case "under_review":
-      return "bg-blue-500/15 text-blue-700 dark:text-blue-400";
+      return "bg-red-500/10 text-red-600 dark:text-red-400";
     case "merit_listed":
       return "bg-primary/10 text-primary";
     case "admitted":
@@ -311,10 +313,10 @@ export function resolveStage(status?: string | null, paymentStatus?: string | nu
     note = "You are on the published merit list for your program and quota.";
     next = "Check the published merit list below, then collect your admission slip from the school office.";
   } else if (st === "under_review") {
-    label = "Under Review";
-    tone = "bg-blue-500/15 text-blue-700 dark:text-blue-400";
-    note = "The college office is reviewing your application and verifying your documents.";
-    next = "Document verification is under way. The next update appears here when the merit list is published.";
+    label = "Not Merit Listed";
+    tone = "bg-red-500/10 text-red-600 dark:text-red-400";
+    note = "Your fee is received, but you are not on the merit list because all seats of your program were filled by higher merit.";
+    next = "Check the published merit list below to see your position. If a later list is published, the status here updates automatically.";
   } else if (paid) {
     label = "Fee Paid";
     tone = "bg-green-500/15 text-green-700 dark:text-green-400";
