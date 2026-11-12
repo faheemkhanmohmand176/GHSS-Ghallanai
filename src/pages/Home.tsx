@@ -1183,6 +1183,8 @@ const Home = () => {
   // Admin switched admission off → only "Apply Online" is locked; everything else stays.
   const applyClosed = Boolean(admissionCfg) && !getAdmissionState(admissionCfg).open;
   const { data: notices = [],      isLoading: noticesLoading }        = useNotices(4);
+  // Same query key as HomeResultsBanner → React Query shares one cached request.
+  const { data: exploreSchedules = [] } = useSchoolScheduledPublish();
   const { data: teachers = [],     isLoading: teachersLoading }       = useTeachers(4);
 
   // Track if banner image failed to load — show fallback bg instead of broken icon
@@ -1679,7 +1681,7 @@ const Home = () => {
       </m.section>
 
       {/* ══ 17. EXPLORE THE SITE — bottom quick links (live data) ══ */}
-      <ExploreSection settings={settings} admissionCfg={admissionCfg} notices={notices} schedules={schedules} />
+      <ExploreSection settings={settings} admissionCfg={admissionCfg} notices={notices} schedules={exploreSchedules} />
 
     </PageLayout>
     <Deferred><GlobalDefinitionPopup /></Deferred>
