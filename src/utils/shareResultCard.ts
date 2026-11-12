@@ -705,12 +705,12 @@ function buildBiseCanvas(d: BiseResultShareData): HTMLCanvasElement | null {
 
   const status = bisePassState(d);
   const remarksColor = status === false || /fail/i.test(d.remarks || "") ? C.red : C.green;
-  // Total + percentage only when EVERY paper has a known fixed maximum and the
-  // board's marks figure is a plain number that fits inside that total.
-  const obtainedNum = /^\d{1,4}$/.test((d.marks || "").trim()) ? Number((d.marks || "").trim()) : null;
-  const allMax = d.subjects.length > 0 && d.subjects.every(s => typeof s.maxMarks === "number" && s.maxMarks > 0);
-  const maxTotal = allMax ? d.subjects.reduce((a, s) => a + (s.maxMarks as number), 0) : null;
-  const totalKnown = obtainedNum !== null && maxTotal !== null && obtainedNum <= maxTotal;
+  // d.marks arrives as "obtained/total" (e.g. "456/600", "1042/1200") — the
+  // total is the fixed full marks of the exam (600 or 1200), computed on the page.
+  const mm = /^\s*(\d{1,4})\s*\/\s*(\d{3,4})\s*$/.exec(d.marks || "");
+  const obtainedNum = mm ? Number(mm[1]) : /^\d{1,4}$/.test((d.marks || "").trim()) ? Number((d.marks || "").trim()) : null;
+  const maxTotal = mm ? Number(mm[2]) : null;
+  const totalKnown = obtainedNum !== null && maxTotal !== null && maxTotal > 0 && obtainedNum <= maxTotal;
   const pctText = totalKnown ? `${Math.round(((obtainedNum as number) / (maxTotal as number)) * 1000) / 10}%` : null;
 
   const ySub = drawStatTiles(ctx, [
