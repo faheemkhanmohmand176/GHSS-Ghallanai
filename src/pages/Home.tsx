@@ -11,6 +11,7 @@ import {
   Volume2, BookMarked, X as XIcon, Clock, ExternalLink,
   UserPlus, Search, Lock,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
 import { useSchoolSettings, safeMediaUrl, optimizedCloudinaryUrl } from "@/hooks/useSchoolSettings";
 import { useAdmissionSettings, getAdmissionState } from "@/hooks/useAdmission";
@@ -982,6 +983,191 @@ function HomeResultsBanner() {
 /* ══════════════════════════════════
    MAIN HOME COMPONENT
 ══════════════════════════════════ */
+/* ─── Explore the site (bottom quick-links) ───────────────────────────────
+   Lives at the END of the homepage, just above the footer, so visitors who
+   scrolled the whole page get a one-tap route to every section.
+   SEO: still a real <nav> of descriptive <a> links to EVERY public page.
+   LIVE: nothing here is hardcoded copy that can go stale — the admission
+   title / status / countdown come from the admin's admission settings, the
+   notices card shows the latest published notice, the results card reflects
+   the scheduled publish date, and the teachers / about / contact cards read
+   the school settings. Cards fall back to neutral wording when data is
+   missing, never to a wrong claim. */
+interface ExploreSectionProps {
+  settings?: { total_teachers?: number; established_year?: number; phone?: string | null } | null;
+  admissionCfg?: Parameters<typeof getAdmissionState>[0];
+  notices: Notice[];
+  schedules: ScheduledGroup[];
+}
+
+type ExploreTone = "open" | "soon" | "closed" | "urgent" | "new";
+interface ExploreItem {
+  to: string;
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  badge?: { label: string; tone: ExploreTone };
+}
+
+const TONE_CLASS: Record<ExploreTone, string> = {
+  open:   "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+  soon:   "bg-amber-500/12 text-amber-700 dark:text-amber-300 border-amber-500/30",
+  closed: "bg-muted text-muted-foreground border-border",
+  urgent: "bg-rose-500/12 text-rose-700 dark:text-rose-300 border-rose-500/30",
+  new:    "bg-primary/10 text-primary border-primary/25",
+};
+const DOT_CLASS: Record<ExploreTone, string> = {
+  open: "bg-emerald-500", soon: "bg-amber-500", closed: "bg-muted-foreground/60",
+  urgent: "bg-rose-500", new: "bg-primary",
+};
+
+const ExploreBadge = ({ label, tone }: { label: string; tone: ExploreTone }) => (
+  <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-[2px] text-[9.5px] font-bold uppercase tracking-wider ${TONE_CLASS[tone]}`}>
+    <span className="relative flex h-1.5 w-1.5">
+      {(tone === "open" || tone === "urgent") && (
+        <span className={`absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping ${DOT_CLASS[tone]}`} />
+      )}
+      <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${DOT_CLASS[tone]}`} />
+    </span>
+    {label}
+  </span>
+);
+
+const ExploreSection = ({ settings, admissionCfg, notices, schedules }: ExploreSectionProps) => {
+  const reduce = useReducedMotion();
+
+  // ── Admissions: title, status and countdown all follow the admin settings.
+  const adm = admissionCfg ? getAdmissionState(admissionCfg) : null;
+  const session = admissionCfg?.session_year?.trim();
+  const admTitle = session ? `Admissions ${session}` : "Admissions";
+  let admDesc = "Apply online — no account needed";
+  let admBadge: ExploreItem["badge"];
+  if (adm) {
+    if (adm.open) {
+      admBadge = { label: "Open", tone: "open" };
+      if (adm.daysLeft !== null) {
+        admDesc = adm.daysLeft <= 1
+          ? "Last day to apply — no account needed"
+          : `Apply online · closes in ${adm.daysLeft} days`;
+      }
+    } else if (adm.reason === "not_started") {
+      admBadge = { label: "Soon", tone: "soon" };
+      admDesc = adm.daysToStart !== null && adm.daysToStart > 0
+        ? `Applications open in ${adm.daysToStart} day${adm.daysToStart === 1 ? "" : "s"}`
+        : "Applications open soon";
+    } else {
+      admBadge = { label: "Closed", tone: "closed" };
+      admDesc = "Applications closed · track your application";
+    }
+  }
+
+  // ── Results: show the next scheduled publish when the school has one.
+  const nextResult = schedules[0];
+  let resDesc = "BISE Peshawar & school results by roll number";
+  let resBadge: ExploreItem["badge"];
+  if (nextResult) {
+    const when = new Date(nextResult.publish_at);
+    if (!isNaN(when.getTime())) {
+      resBadge = { label: "Soon", tone: "soon" };
+      resDesc = `${nextResult.exam_type || "Result"}${nextResult.year ? ` ${nextResult.year}` : ""} · ${format(when, "d MMM, h:mm a")}`;
+    }
+  }
+
+  // ── Notices: latest published notice (+ urgent / new flag).
+  const latest = notices[0];
+  const hasUrgent = notices.some((n) => n.is_urgent);
+  const isFresh = latest ? Date.now() - new Date(latest.created_at).getTime() < 3 * 86400000 : false;
+  const noticeDesc = latest?.title ? `Latest: ${latest.title}` : "Official announcements & exam schedules";
+  const noticeBadge: ExploreItem["badge"] = hasUrgent
+    ? { label: "Urgent", tone: "urgent" }
+    : isFresh ? { label: "New", tone: "new" } : undefined;
+
+  const staff = settings?.total_teachers ? `${settings.total_teachers}+ staff` : "Staff directory";
+  const aboutDesc = settings?.established_year
+    ? `Our history, mission & vision since ${settings.established_year}`
+    : "Our history, mission & vision";
+  const contactDesc = settings?.phone
+    ? `Call ${settings.phone} · WhatsApp & map`
+    : "Phone, WhatsApp, location map & contact form";
+
+  const items: ExploreItem[] = [
+    { to: "/admission",    icon: UserPlus,   title: admTitle,         desc: admDesc,  badge: admBadge },
+    { to: "/results",      icon: BarChart3,  title: "Exam Results",   desc: resDesc,  badge: resBadge },
+    { to: "/merit-list",   icon: Trophy,     title: "Merit List",     desc: "Official rankings & position holders" },
+    { to: "/roll-no-slip", icon: BookMarked, title: "Roll No. Slip",  desc: "View & download your slip with QR code" },
+    { to: "/notices",      icon: Bell,       title: "Notices",        desc: noticeDesc, badge: noticeBadge },
+    { to: "/teachers",     icon: Users,      title: "Our Teachers",   desc: `${staff} · subjects & qualifications` },
+    { to: "/about",        icon: BookOpen,   title: "About Us",       desc: aboutDesc },
+    { to: "/faq",          icon: Lightbulb,  title: "FAQs",           desc: "Answers to common admission & exam questions" },
+    { to: "/contact",      icon: Phone,      title: "Contact Us",     desc: contactDesc },
+  ];
+
+  return (
+    <section
+      className="relative overflow-hidden bg-gradient-to-b from-background via-secondary/30 to-background py-10 md:py-16"
+      aria-label="Explore the website"
+    >
+      <div className="container mx-auto px-3.5 sm:px-4">
+        <div className="mb-6 text-center md:mb-10">
+          <span className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 eyebrow">
+            <span className="h-1.5 w-1.5 rotate-45 bg-gold" />Explore
+          </span>
+          <h2 className="section-title !text-[1.7rem] sm:!text-4xl">Everything on This Website</h2>
+          <div className="mt-3 flex items-center justify-center gap-2">
+            <span className="h-px w-10 bg-gradient-to-r from-transparent to-gold/70" />
+            <span className="h-1.5 w-1.5 rotate-45 bg-gold" />
+            <span className="h-px w-10 bg-gradient-to-l from-transparent to-gold/70" />
+          </div>
+          <p className="section-subtitle !text-[13px] sm:!text-base">
+            Admissions, results, notices and every school section — one tap away
+          </p>
+        </div>
+
+        <nav className="mx-auto grid max-w-5xl grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3 lg:gap-4" aria-label="Website sections">
+          {items.map(({ to, icon: Icon, title, desc, badge }, i) => {
+            const featured = i === 0;
+            return (
+              <m.div
+                key={to}
+                className={featured ? "sm:col-span-2 lg:col-span-3" : ""}
+                initial={reduce ? false : { opacity: 0, y: 14 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.35, delay: Math.min(i, 5) * 0.05 }}
+              >
+                <Link
+                  to={to}
+                  className={`group relative flex min-h-[60px] min-w-0 items-center gap-3 overflow-hidden rounded-2xl border p-3 shadow-card transition-all duration-200 active:scale-[0.985] sm:p-4 card-lift ${
+                    featured
+                      ? "border-gold/50 bg-gradient-to-br from-card via-card to-gold/10"
+                      : "border-border/70 bg-card"
+                  }`}
+                >
+                  {featured && <span className="pointer-events-none absolute inset-x-5 top-0 h-[2px] bg-gradient-to-r from-transparent via-gold to-transparent" />}
+                  <span className="lux-tile h-10 w-10 shrink-0 sm:h-11 sm:w-11">
+                    <Icon className="h-[18px] w-[18px] sm:h-5 sm:w-5" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate font-heading text-[14px] font-bold text-foreground sm:text-[15px]">{title}</span>
+                      {badge && <ExploreBadge label={badge.label} tone={badge.tone} />}
+                    </span>
+                    <span className="mt-0.5 line-clamp-2 block text-[11.5px] leading-snug text-muted-foreground sm:text-xs">{desc}</span>
+                  </span>
+                  <ArrowRight
+                    className="h-4 w-4 shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-primary"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </m.div>
+            );
+          })}
+        </nav>
+      </div>
+    </section>
+  );
+};
+
 const Home = () => {
   // PERF: the old hero parallax (useScroll + useTransform on y/opacity) ran
   // JavaScript on EVERY scroll event and forced the whole hero to repaint —
@@ -1104,60 +1290,6 @@ const Home = () => {
           </ScrollStage>
         </div>
       </m.section>
-
-      {/* ══ 3.5 EXPLORE THE SITE — internal-link equity (SEO audit) ══
-          Google Search Console reports the site's sub-pages as
-          "Discovered — currently not indexed": Google knows them but does
-          not consider them valuable/well-linked enough to crawl yet. This
-          tile grid places a prominent, descriptive-text <a> to EVERY public
-          section one click from the homepage (the only indexed page), right
-          below the hero — the single strongest "the rest of this site
-          matters" signal we can send. The same routes are also linked in
-          the footer (every page) and in the prerendered "Website sections"
-          block, so all three crawler layers (React app, prerendered HTML,
-          live renderer) see the full crawl mesh. Descriptive anchor text —
-          never "click here". */}
-      <section className="container mx-auto px-4 mt-12 md:mt-16" aria-label="Explore the website">
-        <SectionHeader
-          eyebrow="Explore"
-          title="Everything on This Website"
-          subtitle="Admissions, results, notices and every school section — one tap away"
-        />
-        <nav
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 max-w-5xl mx-auto"
-          aria-label="Website sections"
-        >
-          {[
-            { to: "/admission",   icon: UserPlus,   title: "Admissions 2026-27", desc: "Apply online — no account needed" },
-            { to: "/results",     icon: BarChart3,  title: "Exam Results",       desc: "BISE Peshawar & school results by roll number" },
-            { to: "/merit-list",  icon: Trophy,     title: "Merit List",         desc: "Official rankings & position holders" },
-            { to: "/roll-no-slip",icon: BookMarked, title: "Roll No. Slip",      desc: "View & download your slip with QR code" },
-            { to: "/notices",     icon: Bell,       title: "Notices",            desc: "Official announcements & exam schedules" },
-            { to: "/teachers",    icon: Users,      title: "Our Teachers",       desc: "Staff directory with subjects & qualifications" },
-            { to: "/about",       icon: BookOpen,   title: "About Us",           desc: "Our history, mission & vision since 1975" },
-            { to: "/faq",         icon: Lightbulb,  title: "FAQs",               desc: "Answers to common admission & exam questions" },
-            { to: "/contact",     icon: Phone,      title: "Contact Us",         desc: "Phone, WhatsApp, location map & contact form" },
-          ].map(({ to, icon: Icon, title, desc }) => (
-            <Link
-              key={to}
-              to={to}
-              className="group bg-card rounded-2xl border border-border/70 p-4 md:p-5 shadow-card card-lift flex items-center gap-3.5 min-w-0"
-            >
-              <span className="lux-tile w-10 h-10 shrink-0">
-                <Icon className="w-5 h-5" aria-hidden="true" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-heading font-bold text-foreground truncate">{title}</span>
-                <span className="block text-[11.5px] leading-snug text-muted-foreground truncate">{desc}</span>
-              </span>
-              <ArrowRight
-                className="w-4 h-4 ml-auto shrink-0 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all"
-                aria-hidden="true"
-              />
-            </Link>
-          ))}
-        </nav>
-      </section>
 
       {/* ══ 4. SUBJECTS MARQUEE ══ */}
       <section className="py-5 bg-gradient-to-b from-secondary/40 to-background overflow-hidden border-y border-gold/20 mt-16" style={{ contain: "layout paint" }}>
@@ -1545,6 +1677,9 @@ const Home = () => {
           </div>
         </div>
       </m.section>
+
+      {/* ══ 17. EXPLORE THE SITE — bottom quick links (live data) ══ */}
+      <ExploreSection settings={settings} admissionCfg={admissionCfg} notices={notices} schedules={schedules} />
 
     </PageLayout>
     <Deferred><GlobalDefinitionPopup /></Deferred>
