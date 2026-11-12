@@ -29,7 +29,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Trophy, Loader2, Plus, Eye, Trash2, Globe, GlobeLock, Zap, ScanSearch,
+  Trophy, Loader2, Eye, Trash2, Globe, GlobeLock, Zap, ScanSearch,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { MeritTitleBlock, MeritDates, MeritInstructions } from "@/components/shared/MeritListSheet";
@@ -38,37 +38,27 @@ interface AdminMeritList {
   id: string; program: string; quota: string; list_no: number; title: string;
   is_published: boolean; published_at: string | null; created_at: string;
   admission_start_date: string | null; admission_last_date: string | null;
-  no_of_applicants: number;
+  no_of_applicants: number; listed_count?: number; not_listed_count?: number;
 }
 
 interface AutoProgramRow {
   program_id: number; program: string; seats: number; taken: number; seats_left: number;
-  eligible: number; selected: number; waiting: number; unpaid: number; cutoff: number | null; skipped: string | null;
+  eligible: number; selected: number; waiting: number; unpaid: number; cutoff: number | null;
 }
-interface AutoResult { ok: boolean; dry_run: boolean; published: boolean; lists: number; selected: number; programs: AutoProgramRow[]; }
+interface AutoResult { ok: boolean; dry_run: boolean; published: boolean; lists: number; selected: number; not_listed: number; programs: AutoProgramRow[]; }
 
-const QUOTA_OPTIONS = Object.entries(QUOTA_LABEL);
 const quotaKey = (q: string) => q.toLowerCase().replace(/ /g, "_");
 
 interface MeritEntry {
   id?: string;
   position: number; tracking_id: string; name: string; father_name: string;
   total_marks: number; obtained_marks: number; net_marks: number;
-  percentage: number; remarks: string | null;
+  percentage: number; remarks: string | null; is_listed?: boolean;
 }
 
 export default function AdminMeritLists() {
   const qc = useQueryClient();
-  const [genOpen, setGenOpen] = useState(false);
   const [viewId, setViewId] = useState<string | null>(null);
-
-  // ── generate form state ──────────────────────────────────────────────
-  const [gProgram, setGProgram] = useState<number | "">("");
-  const [gQuota, setGQuota] = useState("open_merit");
-  const [gListNo, setGListNo] = useState(1);
-  const [gStart, setGStart] = useState("");
-  const [gLast, setGLast] = useState("");
-  const [gInstructions, setGInstructions] = useState("");
 
   // ── one-click auto merit (all programs, by sanctioned seats) ─────────
   const [autoOpen, setAutoOpen] = useState(false);
@@ -77,7 +67,6 @@ export default function AdminMeritLists() {
   const [aLast, setALast] = useState("");
   const [aInstructions, setAInstructions] = useState("");
   const [aPublish, setAPublish] = useState(false);
-  const [aReview, setAReview] = useState(true);
   const [aPreview, setAPreview] = useState<AutoResult | null>(null);
 
   const programsQ = useQuery({
@@ -145,30 +134,6 @@ export default function AdminMeritLists() {
     qc.invalidateQueries({ queryKey: ["inter-merit-public"] });
   };
 
-  const generate = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.rpc("inter_admin_merit_generate", {
-        p_program_id: gProgram,
-        p_quota: gQuota,
-        p_list_no: gListNo,
-        p_admission_start_date: gStart || null,
-        p_admission_last_date: gLast || null,
-        p_instructions: gInstructions.trim() || null,
-      });
-      if (error) throw error;
-      const d = data as { ok?: boolean; error?: string; entries?: number };
-      if (d?.ok === false) throw new Error(d?.error || "Generation failed.");
-      return d;
-    },
-    onSuccess: (d) => {
-      toast.success(`Merit list generated, ${d?.entries ?? 0} entr${d?.entries === 1 ? "y" : "ies"}. Review it below, then publish.`);
-      setGenOpen(false);
-      setGStart(""); setGLast(""); setGInstructions("");
-      invalidate();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const runAuto = useMutation({
     mutationFn: async (dry: boolean) => {
       const { data, error } = await supabase.rpc("inter_admin_merit_auto", {
@@ -178,7 +143,6 @@ export default function AdminMeritLists() {
         p_instructions: aInstructions.trim() || null,
         p_publish: aPublish,
         p_dry_run: dry,
-        p_review_rest: aReview,
         p_program_id: null,
       });
       if (error) throw error;
@@ -189,7 +153,7 @@ export default function AdminMeritLists() {
     onSuccess: ({ d, dry }) => {
       setAPreview(d);
       if (!dry) {
-        toast.success(`${d.lists} merit list${d.lists === 1 ? "" : "s"} created, ${d.selected} applicant${d.selected === 1 ? "" : "s"} merit listed${d.published ? " and published" : ""}.`);
+        toast.success(`Done: ${d.selected} Merit Listed, ${d.not_listed} Not Merit Listed${d.published ? ", published" : ""}.`);
         invalidate();
         qc.invalidateQueries({ queryKey: ["inter-admin-apps"] });
       }
@@ -229,14 +193,6 @@ export default function AdminMeritLists() {
   });
 
   const lists: AdminMeritList[] = listsQ.data ?? [];
-
-  // Next list number for a program + quota (1st, 2nd, 3rd provisional …).
-  function nextListNo(programId: number | "", quota: string) {
-    const name = (programsQ.data ?? []).find((p) => p.id === programId)?.name;
-    if (!name) return 1;
-    const nos = lists.filter((l) => l.program === name && quotaKey(l.quota) === quota).map((l) => l.list_no);
-    return nos.length ? Math.max(...nos) + 1 : 1;
-  }
 
   const publishingId = publish.isPending ? publish.variables?.id : null;
   function togglePublish(m: AdminMeritList) {
@@ -300,9 +256,6 @@ export default function AdminMeritLists() {
             }}>
               <Zap className="w-4 h-4" /> Auto Merit List (All Programs)
             </Button>
-            <Button size="sm" variant="outline" className="h-10 rounded-full px-4 text-[12.5px] font-semibold" onClick={() => setGenOpen(true)}>
-              <Plus className="w-4 h-4" /> Single Program
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -317,9 +270,9 @@ export default function AdminMeritLists() {
               <Trophy className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm font-semibold text-foreground">No merit list generated yet.</p>
               <p className="text-[13px] text-muted-foreground mt-1">
-                Click <span className="font-semibold">Generate Merit List</span>, the list is built from
-                fee-paid applications of the chosen program and quota, ordered by net marks
-                (SSC obtained + 20 if Hafiz e Quran).
+                Click <span className="font-semibold">Auto Merit List (All Programs)</span>. Every fee-paid
+                applicant (online + walk-in) is ranked by net marks (SSC obtained + 20 if Hafiz e Quran)
+                and the seats of each program decide who is Merit Listed.
               </p>
             </div>
           ) : (
@@ -330,7 +283,7 @@ export default function AdminMeritLists() {
                 <div key={m.id} className="flex flex-col items-center gap-1.5 px-4 py-4 text-center">
                   <p className="text-[14px] font-semibold text-foreground">{m.program}</p>
                   <p className="text-[12.5px] text-muted-foreground">
-                    {QUOTA_LABEL[quotaKey(m.quota)] ?? m.quota} · List #{m.list_no} · {m.no_of_applicants} applicant{m.no_of_applicants === 1 ? "" : "s"}
+                    {QUOTA_LABEL[quotaKey(m.quota)] ?? m.quota} · List #{m.list_no} · {m.listed_count ?? m.no_of_applicants} listed · {m.not_listed_count ?? 0} not listed
                   </p>
                   <StatusPill m={m} />
                   <div className="mt-1"><ListActions m={m} /></div>
@@ -344,7 +297,7 @@ export default function AdminMeritLists() {
                     <th className="text-center align-middle px-4 py-3 font-semibold">Program</th>
                     <th className="text-center align-middle px-4 py-3 font-semibold">Quota</th>
                     <th className="text-center align-middle px-4 py-3 font-semibold">List #</th>
-                    <th className="text-center align-middle px-4 py-3 font-semibold">Applicants</th>
+                    <th className="text-center align-middle px-4 py-3 font-semibold">Listed / Not</th>
                     <th className="text-center align-middle px-4 py-3 font-semibold">Dates</th>
                     <th className="text-center align-middle px-4 py-3 font-semibold">Status</th>
                     <th className="text-center align-middle px-4 py-3 font-semibold">Actions</th>
@@ -356,7 +309,7 @@ export default function AdminMeritLists() {
                       <td className="text-center align-middle px-4 py-3 font-semibold text-foreground">{m.program}</td>
                       <td className="text-center align-middle px-4 py-3">{QUOTA_LABEL[m.quota.toLowerCase().replace(/ /g, "_")] ?? m.quota}</td>
                       <td className="text-center align-middle px-4 py-3">{m.list_no}</td>
-                      <td className="text-center align-middle px-4 py-3 font-semibold">{m.no_of_applicants}</td>
+                      <td className="text-center align-middle px-4 py-3 font-semibold">{m.listed_count ?? m.no_of_applicants} / {m.not_listed_count ?? 0}</td>
                       <td className="text-center align-middle px-4 py-3 text-[12px] text-muted-foreground whitespace-nowrap">
                         {m.admission_start_date ?? "N/A"} → {m.admission_last_date ?? "N/A"}
                       </td>
@@ -397,12 +350,8 @@ export default function AdminMeritLists() {
               placeholder="Instructions shown with the lists (optional, a standard set is used if empty)" className="text-[13px]" />
 
             <label className="flex items-start gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 text-[12.5px]">
-              <input type="checkbox" checked={aReview} onChange={(e) => setAReview(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]" />
-              <span><span className="font-semibold text-foreground">Mark the rest as Under Review.</span> <span className="text-muted-foreground">Fee-paid applicants who are not selected move from “Awaiting Review” to “Under Review”.</span></span>
-            </label>
-            <label className="flex items-start gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 text-[12.5px]">
               <input type="checkbox" checked={aPublish} onChange={(e) => setAPublish(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]" />
-              <span><span className="font-semibold text-foreground">Publish immediately.</span> <span className="text-muted-foreground">Lists go public right away. Leave off to check them as drafts first.</span></span>
+              <span><span className="font-semibold text-foreground">Publish immediately.</span> <span className="text-muted-foreground">Lists go public right away, with Merit Listed and Not Merit Listed students. Leave off to check them as drafts first.</span></span>
             </label>
 
             {/* Result / preview */}
@@ -423,7 +372,7 @@ export default function AdminMeritLists() {
                       {[
                         ["Seats", r.seats],
                         ["Eligible", r.eligible],
-                        ["Waiting", r.waiting],
+                        ["Not Listed", r.waiting],
                         ["Cut-off", r.cutoff ?? "—"],
                       ].map(([l, v]) => (
                         <div key={String(l)} className="rounded-lg bg-muted/50 px-1 py-1">
@@ -434,7 +383,6 @@ export default function AdminMeritLists() {
                     </div>
                     {r.seats === 0 && <p className="mt-1.5 text-[11.5px] text-amber-700 dark:text-amber-400">No seats set for this program. Set them in Programs &amp; Seats.</p>}
                     {r.unpaid > 0 && <p className="mt-1.5 text-[11.5px] text-muted-foreground">{r.unpaid} application{r.unpaid === 1 ? "" : "s"} with unpaid fee are not included.</p>}
-                    {r.skipped && <p className="mt-1.5 text-[11.5px] text-amber-700 dark:text-amber-400">{r.skipped}</p>}
                   </div>
                 ))}
               </div>
@@ -446,74 +394,16 @@ export default function AdminMeritLists() {
               </Button>
               <Button className="h-11 font-bold" disabled={runAuto.isPending}
                 onClick={() => {
-                  if (window.confirm(`Create merit list #${aListNo} for ALL programs now?\n\nSelected applicants are marked "Merit Listed"${aPublish ? " and the lists are published publicly" : ""}. Draft lists of this number are replaced.`)) runAuto.mutate(false);
+                  if (window.confirm(`Create merit list #${aListNo} for ALL programs now?\n\nApplicants inside the seats become "Merit Listed", the others "Not Merit Listed"${aPublish ? ", and the lists are published publicly" : ""}. Old lists of this number are replaced.`)) runAuto.mutate(false);
                 }}>
                 {runAuto.isPending && runAuto.variables === false ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />} Generate All
               </Button>
             </div>
             <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
               Ranking: SSC obtained marks + 20 for Hafiz-e-Quran, ties go to the earlier application.
-              For 2nd and later lists only the seats left after published lists are filled.
+              Every fee-paid applicant appears in the list: inside the seats = Merit Listed, the rest = Not Merit Listed.
+              Running the same list number again replaces the old lists, so nothing is duplicated.
             </p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Generate dialog ──────────────────────────────────────────── */}
-      <Dialog open={genOpen} onOpenChange={(o) => !o && setGenOpen(false)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Generate Merit List</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-semibold">Program <span className="text-red-500">*</span></Label>
-                <select className={sel} value={gProgram} onChange={(e) => { const v = e.target.value ? Number(e.target.value) : ""; setGProgram(v); setGListNo(nextListNo(v, gQuota)); }}>
-                  <option value="">Select Program</option>
-                  {(programsQ.data ?? []).map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-semibold">Quota <span className="text-red-500">*</span></Label>
-                <select className={sel} value={gQuota} onChange={(e) => { setGQuota(e.target.value); setGListNo(nextListNo(gProgram, e.target.value)); }}>
-                  {QUOTA_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[13px] font-semibold">List Number <span className="text-red-500">*</span></Label>
-              <Input type="number" min={1} value={gListNo} onChange={(e) => setGListNo(Math.max(1, Number(e.target.value) || 1))} className="h-10" />
-              <p className="text-[11px] text-muted-foreground">1 = “1st Provisional”, 2 = “2nd”, 3 = “3rd” ….</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-semibold">Admission Start Date</Label>
-                <Input type="date" value={gStart} onChange={(e) => setGStart(e.target.value)} className="h-10" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-semibold">Admission Last Date</Label>
-                <Input type="date" value={gLast} onChange={(e) => setGLast(e.target.value)} className="h-10" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[13px] font-semibold">Instructions (shown with the published list)</Label>
-              <Textarea rows={3} value={gInstructions} onChange={(e) => setGInstructions(e.target.value)}
-                placeholder="Printed copy of online admission form;&#10;Original documents for verification;&#10;Fee submission at the college office…" />
-            </div>
-            <div className="rounded-xl border border-border bg-muted/40 p-3 text-[12px] text-muted-foreground">
-              Only applications with <span className="font-semibold text-foreground">Paid</span> processing fee are
-              included. Entries are ordered by net marks (SSC obtained + 20 if Hafiz e Quran).
-              The list is created as a <span className="font-semibold text-foreground">Draft</span>, publish it
-              when ready to show it publicly.
-            </div>
-            <Button className="w-full h-11 font-semibold" disabled={generate.isPending || !gProgram}
-              onClick={() => generate.mutate()}>
-              {generate.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trophy className="w-4 h-4" />}
-              Generate Merit List
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
