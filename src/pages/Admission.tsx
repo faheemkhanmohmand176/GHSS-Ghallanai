@@ -246,6 +246,7 @@ function TrackApplication() {
 interface PublicMeritList {
   id: string; college: string; level: string; program: string; quota: string;
   list_no: number; title: string; no_of_applicants: number;
+  listed_count?: number; not_listed_count?: number;
   published_on: string | null; admission_start_date: string | null;
   admission_last_date: string | null;
 }
@@ -253,11 +254,12 @@ interface PublicMeritList {
 interface MeritEntry {
   position: number; tracking_id: string; name: string; father_name: string;
   total_marks: number; obtained_marks: number; net_marks: number;
-  percentage: number; remarks: string | null;
+  percentage: number; remarks: string | null; is_listed?: boolean;
 }
 
 function MeritLists() {
   const [viewId, setViewId] = useState<string | null>(null);
+  const [q, setQ] = useState("");
   const { data, isLoading } = useQuery({
     queryKey: ["inter-merit-public"],
     queryFn: () => interApi.meritListsPublic() as Promise<unknown>,
@@ -280,6 +282,11 @@ function MeritLists() {
     };
     entries?: MeritEntry[];
   };
+  const entries: MeritEntry[] = Array.isArray(view?.entries) ? (view!.entries as MeritEntry[]) : [];
+  const needle = q.trim().toLowerCase();
+  const shown = needle
+    ? entries.filter((e) => e.tracking_id.toLowerCase().includes(needle) || e.name.toLowerCase().includes(needle))
+    : entries;
 
   return (
     <section id="merit-lists">
@@ -315,9 +322,16 @@ function MeritLists() {
                       {m.quota} · List #{m.list_no} · {m.level}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="shrink-0 bg-primary/10 text-primary">
-                    {m.no_of_applicants} applicant{m.no_of_applicants === 1 ? "" : "s"}
-                  </Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge variant="secondary" className="bg-primary/10 text-primary">
+                      {m.listed_count ?? m.no_of_applicants} Merit Listed
+                    </Badge>
+                    {(m.not_listed_count ?? 0) > 0 && (
+                      <Badge variant="secondary" className="bg-red-500/10 text-red-600 dark:text-red-400">
+                        {m.not_listed_count} Not Merit Listed
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[12px] text-muted-foreground">
                   <span>Published: {m.published_on ?? "N/A"}</span>
@@ -325,7 +339,7 @@ function MeritLists() {
                     <span className="font-semibold text-foreground">Join by: {m.admission_last_date}</span>
                   )}
                 </div>
-                <Button size="sm" className="mt-3.5 h-9 w-full text-[13px] font-semibold" onClick={() => setViewId(m.id)}>
+                <Button size="sm" className="mt-3.5 h-9 w-full text-[13px] font-semibold" onClick={() => { setQ(""); setViewId(m.id); }}>
                   <ClipboardList className="w-4 h-4" /> View Merit List
                 </Button>
               </CardContent>
@@ -346,16 +360,31 @@ function MeritLists() {
             <div className="space-y-4">
               <MeritTitleBlock title={view.list?.title ?? "Merit List"} />
               <MeritDates start={view.list?.admission_start_date} last={view.list?.admission_last_date} />
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={q} onChange={(e) => setQ(e.target.value)}
+                  placeholder="Find yourself: Tracking ID or name"
+                  className="h-10 w-full rounded-full border border-input bg-background pl-9 pr-3 text-[13px] outline-none focus:border-primary"
+                />
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-1.5 text-[11.5px] font-semibold">
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary">{entries.filter((e) => e.is_listed !== false).length} Merit Listed</span>
+                <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-red-600 dark:text-red-400">{entries.filter((e) => e.is_listed === false).length} Not Merit Listed</span>
+              </div>
               <div className="space-y-2 md:hidden">
-                {(Array.isArray(view.entries) ? view.entries : []).map((e) => (
-                  <div key={e.tracking_id} className="rounded-xl border border-border bg-card px-3 py-2.5 text-center">
+                {shown.map((e) => (
+                  <div key={e.tracking_id} className={`rounded-xl border px-3 py-2.5 text-center ${e.is_listed === false ? "border-red-500/30 bg-red-500/[0.04]" : "border-border bg-card"}`}>
                     <p className="text-[13px] font-semibold text-foreground">#{e.position} · {e.name}</p>
+                    <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10.5px] font-bold uppercase tracking-wide ${e.is_listed === false ? "bg-red-500/10 text-red-600 dark:text-red-400" : "bg-primary/10 text-primary"}`}>
+                      {e.is_listed === false ? "Not Merit Listed" : "Merit Listed"}
+                    </span>
                     <p className="text-[11.5px] text-muted-foreground">S/O {e.father_name}</p>
                     <p className="mt-0.5 font-mono text-[11.5px] font-semibold text-primary">{e.tracking_id}</p>
                     <p className="mt-0.5 text-[12px] text-muted-foreground">
                       {e.obtained_marks}/{e.total_marks} · Net <strong className="text-foreground">{e.net_marks}</strong> · <strong className="text-primary">{e.percentage}%</strong>
                     </p>
-                    {e.remarks && <p className="mt-0.5 text-[11.5px] text-muted-foreground">{e.remarks}</p>}
+                    {e.remarks && e.is_listed !== false && <p className="mt-0.5 text-[11.5px] text-muted-foreground">{e.remarks}</p>}
                   </div>
                 ))}
               </div>
@@ -375,8 +404,8 @@ function MeritLists() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(Array.isArray(view.entries) ? view.entries : []).map((e) => (
-                      <tr key={e.tracking_id} className="border-t border-border">
+                    {shown.map((e) => (
+                      <tr key={e.tracking_id} className={`border-t border-border ${e.is_listed === false ? "bg-red-500/[0.05]" : ""}`}>
                         <td className="text-center align-middle px-2.5 py-2.5">{e.position}</td>
                         <td className="text-center align-middle px-2.5 py-2.5 font-mono font-semibold">{e.tracking_id}</td>
                         <td className="text-center align-middle px-2.5 py-2.5 font-semibold text-foreground">{e.name}</td>
@@ -385,7 +414,7 @@ function MeritLists() {
                         <td className="text-center align-middle px-2.5 py-2.5">{e.obtained_marks}</td>
                         <td className="text-center align-middle px-2.5 py-2.5 font-semibold">{e.net_marks}</td>
                         <td className="text-center align-middle px-2.5 py-2.5 font-semibold text-primary">{e.percentage}%</td>
-                        <td className="text-center align-middle px-2.5 py-2.5 text-muted-foreground">{e.remarks ?? "N/A"}</td>
+                        <td className={`text-center align-middle px-2.5 py-2.5 font-semibold ${e.is_listed === false ? "text-red-600 dark:text-red-400" : "text-primary"}`}>{e.is_listed === false ? "Not Merit Listed" : (e.remarks || "Merit Listed")}</td>
                       </tr>
                     ))}
                   </tbody>
