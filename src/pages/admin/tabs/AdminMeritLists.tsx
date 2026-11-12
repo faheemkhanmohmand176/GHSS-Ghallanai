@@ -29,7 +29,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Trophy, Loader2, Plus, Eye, Trash2, Globe, GlobeLock,
+  Trophy, Loader2, Plus, Eye, Trash2, Globe, GlobeLock, Zap, ScanSearch,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { MeritTitleBlock, MeritDates, MeritInstructions } from "@/components/shared/MeritListSheet";
@@ -40,6 +40,12 @@ interface AdminMeritList {
   admission_start_date: string | null; admission_last_date: string | null;
   no_of_applicants: number;
 }
+
+interface AutoProgramRow {
+  program_id: number; program: string; seats: number; taken: number; seats_left: number;
+  eligible: number; selected: number; waiting: number; unpaid: number; cutoff: number | null; skipped: string | null;
+}
+interface AutoResult { ok: boolean; dry_run: boolean; published: boolean; lists: number; selected: number; programs: AutoProgramRow[]; }
 
 const QUOTA_OPTIONS = Object.entries(QUOTA_LABEL);
 const quotaKey = (q: string) => q.toLowerCase().replace(/ /g, "_");
@@ -63,6 +69,16 @@ export default function AdminMeritLists() {
   const [gStart, setGStart] = useState("");
   const [gLast, setGLast] = useState("");
   const [gInstructions, setGInstructions] = useState("");
+
+  // ── one-click auto merit (all programs, by sanctioned seats) ─────────
+  const [autoOpen, setAutoOpen] = useState(false);
+  const [aListNo, setAListNo] = useState(1);
+  const [aStart, setAStart] = useState("");
+  const [aLast, setALast] = useState("");
+  const [aInstructions, setAInstructions] = useState("");
+  const [aPublish, setAPublish] = useState(false);
+  const [aReview, setAReview] = useState(true);
+  const [aPreview, setAPreview] = useState<AutoResult | null>(null);
 
   const programsQ = useQuery({
     queryKey: ["inter-admin-programs"],
@@ -153,6 +169,34 @@ export default function AdminMeritLists() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const runAuto = useMutation({
+    mutationFn: async (dry: boolean) => {
+      const { data, error } = await supabase.rpc("inter_admin_merit_auto", {
+        p_list_no: aListNo,
+        p_admission_start_date: aStart || null,
+        p_admission_last_date: aLast || null,
+        p_instructions: aInstructions.trim() || null,
+        p_publish: aPublish,
+        p_dry_run: dry,
+        p_review_rest: aReview,
+        p_program_id: null,
+      });
+      if (error) throw error;
+      const d = data as AutoResult & { error?: string };
+      if (d?.ok === false) throw new Error(d?.error || "Auto merit failed.");
+      return { d, dry };
+    },
+    onSuccess: ({ d, dry }) => {
+      setAPreview(d);
+      if (!dry) {
+        toast.success(`${d.lists} merit list${d.lists === 1 ? "" : "s"} created, ${d.selected} applicant${d.selected === 1 ? "" : "s"} merit listed${d.published ? " and published" : ""}.`);
+        invalidate();
+        qc.invalidateQueries({ queryKey: ["inter-admin-apps"] });
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const publish = useMutation({
     mutationFn: async ({ id, published }: { id: string; published: boolean }) => {
       const { data, error } = await supabase.rpc("inter_admin_merit_publish", {
@@ -236,11 +280,32 @@ export default function AdminMeritLists() {
   return (
     <div className="space-y-5">
       {/* Toolbar */}
-      <div className="flex items-center justify-center">
-        <Button size="sm" className="h-9 rounded-full text-[12.5px] font-semibold" onClick={() => setGenOpen(true)}>
-          <Plus className="w-4 h-4" /> Generate Merit List
-        </Button>
-      </div>
+      <Card className="overflow-hidden border-gold/40 bg-gradient-to-br from-primary/[0.06] via-card to-gold/[0.08] shadow-card">
+        <CardContent className="flex flex-col items-center gap-3 p-4 text-center sm:p-6">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/40 bg-gold/10">
+            <Zap className="h-5 w-5 text-gold" strokeWidth={1.6} />
+          </span>
+          <div>
+            <h3 className="font-heading text-[17px] font-bold text-foreground sm:text-lg">One-Click Merit List</h3>
+            <p className="mx-auto mt-1 max-w-md text-[12.5px] leading-relaxed text-muted-foreground">
+              Ranks every fee-paid applicant (online + walk-in) of all programs by marks and
+              selects the top ones up to the seats fixed in Programs &amp; Seats.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button className="h-10 rounded-full px-5 text-[13px] font-bold" onClick={() => {
+              const published = lists.filter((l) => l.is_published).map((l) => l.list_no);
+              setAListNo(published.length ? Math.max(...published) + 1 : 1);
+              setAPreview(null); setAutoOpen(true);
+            }}>
+              <Zap className="w-4 h-4" /> Auto Merit List (All Programs)
+            </Button>
+            <Button size="sm" variant="outline" className="h-10 rounded-full px-4 text-[12.5px] font-semibold" onClick={() => setGenOpen(true)}>
+              <Plus className="w-4 h-4" /> Single Program
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Lists */}
       <Card className="border-border/80">
@@ -306,6 +371,93 @@ export default function AdminMeritLists() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── One-click auto merit dialog ──────────────────────────────── */}
+      <Dialog open={autoOpen} onOpenChange={(o) => !o && setAutoOpen(false)}>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2 text-center"><Zap className="h-5 w-5 text-gold" /> One-Click Merit List</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="space-y-1.5">
+                <Label className="text-[12px] font-semibold">List No.</Label>
+                <Input type="number" min={1} value={aListNo} onChange={(e) => { setAListNo(Math.max(1, Number(e.target.value) || 1)); setAPreview(null); }} className="h-10" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[12px] font-semibold">Start Date</Label>
+                <Input type="date" value={aStart} onChange={(e) => setAStart(e.target.value)} className="h-10 px-2" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[12px] font-semibold">Last Date</Label>
+                <Input type="date" value={aLast} onChange={(e) => setALast(e.target.value)} className="h-10 px-2" />
+              </div>
+            </div>
+            <Textarea rows={2} value={aInstructions} onChange={(e) => setAInstructions(e.target.value)}
+              placeholder="Instructions shown with the lists (optional, a standard set is used if empty)" className="text-[13px]" />
+
+            <label className="flex items-start gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 text-[12.5px]">
+              <input type="checkbox" checked={aReview} onChange={(e) => setAReview(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]" />
+              <span><span className="font-semibold text-foreground">Mark the rest as Under Review.</span> <span className="text-muted-foreground">Fee-paid applicants who are not selected move from “Awaiting Review” to “Under Review”.</span></span>
+            </label>
+            <label className="flex items-start gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 text-[12.5px]">
+              <input type="checkbox" checked={aPublish} onChange={(e) => setAPublish(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]" />
+              <span><span className="font-semibold text-foreground">Publish immediately.</span> <span className="text-muted-foreground">Lists go public right away. Leave off to check them as drafts first.</span></span>
+            </label>
+
+            {/* Result / preview */}
+            {aPreview && (
+              <div className="space-y-2">
+                <p className="text-center text-[12px] font-bold uppercase tracking-[0.14em] text-gold-strong dark:text-gold">
+                  {aPreview.dry_run ? "Preview (nothing saved yet)" : "Done"}
+                </p>
+                {aPreview.programs.map((r) => (
+                  <div key={r.program_id} className="rounded-xl border border-border bg-card px-3 py-2.5 shadow-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-[13.5px] font-bold text-foreground">{r.program}</p>
+                      <Badge variant="secondary" className="shrink-0 bg-primary/10 text-primary">
+                        {r.selected} / {r.seats_left} seats
+                      </Badge>
+                    </div>
+                    <div className="mt-1.5 grid grid-cols-4 gap-1 text-center">
+                      {[
+                        ["Seats", r.seats],
+                        ["Eligible", r.eligible],
+                        ["Waiting", r.waiting],
+                        ["Cut-off", r.cutoff ?? "—"],
+                      ].map(([l, v]) => (
+                        <div key={String(l)} className="rounded-lg bg-muted/50 px-1 py-1">
+                          <p className="text-[13px] font-bold leading-none text-foreground">{v}</p>
+                          <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">{l}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {r.seats === 0 && <p className="mt-1.5 text-[11.5px] text-amber-700 dark:text-amber-400">No seats set for this program. Set them in Programs &amp; Seats.</p>}
+                    {r.unpaid > 0 && <p className="mt-1.5 text-[11.5px] text-muted-foreground">{r.unpaid} application{r.unpaid === 1 ? "" : "s"} with unpaid fee are not included.</p>}
+                    {r.skipped && <p className="mt-1.5 text-[11.5px] text-amber-700 dark:text-amber-400">{r.skipped}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <Button variant="outline" className="h-11 font-semibold" disabled={runAuto.isPending} onClick={() => runAuto.mutate(true)}>
+                {runAuto.isPending && runAuto.variables === true ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanSearch className="w-4 h-4" />} Preview
+              </Button>
+              <Button className="h-11 font-bold" disabled={runAuto.isPending}
+                onClick={() => {
+                  if (window.confirm(`Create merit list #${aListNo} for ALL programs now?\n\nSelected applicants are marked "Merit Listed"${aPublish ? " and the lists are published publicly" : ""}. Draft lists of this number are replaced.`)) runAuto.mutate(false);
+                }}>
+                {runAuto.isPending && runAuto.variables === false ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />} Generate All
+              </Button>
+            </div>
+            <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
+              Ranking: SSC obtained marks + 20 for Hafiz-e-Quran, ties go to the earlier application.
+              For 2nd and later lists only the seats left after published lists are filled.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Generate dialog ──────────────────────────────────────────── */}
       <Dialog open={genOpen} onOpenChange={(o) => !o && setGenOpen(false)}>
