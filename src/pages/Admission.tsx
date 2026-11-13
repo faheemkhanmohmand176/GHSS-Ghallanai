@@ -264,6 +264,8 @@ function MeritLists() {
     queryKey: ["inter-merit-public"],
     queryFn: () => interApi.meritListsPublic() as Promise<unknown>,
     staleTime: ADMISSION_CLIENT_CACHE.meritListsStaleMs,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
   const lists = (Array.isArray(data) ? data : []) as PublicMeritList[];
 
