@@ -59,6 +59,12 @@ const ADMISSION_FAMILY = new Set([
   "admission-settings",
 ]);
 
+/** Admission merit lists: busted the moment the admin publishes / unpublishes. */
+const MERIT_FAMILY = new Set([
+  "admission-merit-lists",
+  "admission-merit-list",
+]);
+
 /** family name → “busted until” timestamp (ms epoch). */
 const busts = new Map<string, number>();
 
@@ -73,10 +79,18 @@ export function markAdmissionSettingsBust(): void {
   busts.set("admission", Date.now() + 75_000);
 }
 
+/** Called by the admin Merit Lists screen right after publish / unpublish /
+ *  rebuild, so this browser (and every visitor whose hook refetches within the
+ *  window) reads the just-changed lists instead of a CDN copy. */
+export function markMeritBust(): void {
+  busts.set("merit", Date.now() + 75_000);
+}
+
 /** Is this kind currently inside a bust window? */
 function isBusted(kind: string): boolean {
   const until = RESULTS_FAMILY.has(kind) ? busts.get("results")
     : ADMISSION_FAMILY.has(kind) ? busts.get("admission")
+    : MERIT_FAMILY.has(kind) ? busts.get("merit")
     : undefined;
   return until !== undefined && until > Date.now();
 }
