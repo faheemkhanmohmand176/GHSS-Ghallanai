@@ -40,10 +40,10 @@ export const ADMISSION_CLIENT_CACHE = {
   ucsStaleMs: 24 * 60 * 60 * 1000,
 
   /** Published admission merit lists (admission-merit-lists kind). */
-  meritListsStaleMs: 2 * 60 * 1000,
+  meritListsStaleMs: 15 * 1000,
 
   /** One merit list + entries (admission-merit-list kind). */
-  meritListStaleMs: 5 * 60 * 1000,
+  meritListStaleMs: 60 * 1000,
 
   // ── SLOW-INTERNET RESILIENCE (network layer) ─────────────────────────────
   // These are NOT school facts — they are how long the browser waits before
