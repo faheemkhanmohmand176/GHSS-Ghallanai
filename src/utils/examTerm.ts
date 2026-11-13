@@ -41,13 +41,14 @@ export function sessionTermLabel(term: string): string {
 }
 
 /**
- * Public result title term. With only HSSC classes, the website shows
- * "Annual-I" / "Annual-II" as the single title for the whole school.
+ * Public result title term. The database keeps the internal Annual-I /
+ * Annual-II values, while the school-facing Results page shows the semester
+ * names selected in Manage Results.
  */
 export function resultTermLabel(examType: string): string {
   const slot = termSlot(examType);
-  if (slot === 1) return "Annual-I";
-  if (slot === 2) return "Annual-II";
+  if (slot === 1) return "1st Semester";
+  if (slot === 2) return "2nd Semester";
   return examType;
 }
 
