@@ -17,7 +17,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { QUOTA_LABEL } from "@/lib/interAdmission";
+import { markMeritBust } from "@/lib/publicData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +47,6 @@ interface AutoProgramRow {
 }
 interface AutoResult { ok: boolean; dry_run: boolean; published: boolean; lists: number; selected: number; not_listed: number; programs: AutoProgramRow[]; }
 
-const quotaKey = (q: string) => q.toLowerCase().replace(/ /g, "_");
 
 interface MeritEntry {
   id?: string;
@@ -129,6 +128,7 @@ export default function AdminMeritLists() {
   });
 
   const invalidate = () => {
+    markMeritBust(); // public page must not read a pre-publish CDN copy
     qc.invalidateQueries({ queryKey: ["inter-admin-merit-lists"] });
     qc.invalidateQueries({ queryKey: ["inter-admin-apps"] });
     qc.invalidateQueries({ queryKey: ["inter-merit-public"] });
@@ -199,7 +199,7 @@ export default function AdminMeritLists() {
   const publishingId = publish.isPending ? publish.variables?.id : null;
   function togglePublish(m: AdminMeritList) {
     if (!m.is_published && !window.confirm(
-      `Publish ${m.program} (${QUOTA_LABEL[quotaKey(m.quota)] ?? m.quota}) list #${m.list_no}?\n\nIt becomes public, and its ${m.no_of_applicants} fee-paid applicant(s) are marked "Merit Listed".`,
+      `Publish ${m.program} list #${m.list_no}?\n\nIt becomes public, and its ${m.no_of_applicants} fee-paid applicant(s) are marked "Merit Listed".`,
     )) return;
     publish.mutate({ id: m.id, published: !m.is_published });
   }
@@ -219,7 +219,7 @@ export default function AdminMeritLists() {
         <Button size="sm" variant="outline" className="h-7 px-2.5 text-[11.5px] text-red-600 border-red-200 hover:bg-red-500/5"
           disabled={remove.isPending}
           onClick={() => {
-            if (window.confirm(`Delete the draft merit list for ${m.program} (${m.quota})?`)) remove.mutate(m.id);
+            if (window.confirm(`Delete the draft merit list for ${m.program}?`)) remove.mutate(m.id);
           }}>
           <Trash2 className="w-3.5 h-3.5" /> Delete
         </Button>
@@ -285,7 +285,7 @@ export default function AdminMeritLists() {
                 <div key={m.id} className="flex flex-col items-center gap-1.5 px-4 py-4 text-center">
                   <p className="text-[14px] font-semibold text-foreground">{m.program}</p>
                   <p className="text-[12.5px] text-muted-foreground">
-                    {QUOTA_LABEL[quotaKey(m.quota)] ?? m.quota} · List #{m.list_no} · {m.listed_count ?? m.no_of_applicants} listed · {m.not_listed_count ?? 0} not listed
+                    List #{m.list_no} · {m.listed_count ?? m.no_of_applicants} listed · {m.not_listed_count ?? 0} not listed
                   </p>
                   <StatusPill m={m} />
                   <div className="mt-1"><ListActions m={m} /></div>
@@ -297,7 +297,6 @@ export default function AdminMeritLists() {
                 <thead className="bg-muted/60 border-b border-border">
                   <tr>
                     <th className="text-center align-middle px-4 py-3 font-semibold">Program</th>
-                    <th className="text-center align-middle px-4 py-3 font-semibold">Quota</th>
                     <th className="text-center align-middle px-4 py-3 font-semibold">List #</th>
                     <th className="text-center align-middle px-4 py-3 font-semibold">Listed / Not</th>
                     <th className="text-center align-middle px-4 py-3 font-semibold">Dates</th>
@@ -309,7 +308,6 @@ export default function AdminMeritLists() {
                   {lists.map((m) => (
                     <tr key={m.id} className="border-b border-border/60 hover:bg-muted/30">
                       <td className="text-center align-middle px-4 py-3 font-semibold text-foreground">{m.program}</td>
-                      <td className="text-center align-middle px-4 py-3">{QUOTA_LABEL[m.quota.toLowerCase().replace(/ /g, "_")] ?? m.quota}</td>
                       <td className="text-center align-middle px-4 py-3">{m.list_no}</td>
                       <td className="text-center align-middle px-4 py-3 font-semibold">{m.listed_count ?? m.no_of_applicants} / {m.not_listed_count ?? 0}</td>
                       <td className="text-center align-middle px-4 py-3 text-[12px] text-muted-foreground whitespace-nowrap">
