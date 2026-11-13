@@ -116,8 +116,12 @@ const CACHE = {
   "admission-settings":    { s: 60,   swr: 300 },
   "admission-programs":    { s: 300,  swr: 600 },
   "admission-ucs":         { s: 3600, swr: 86400 },
-  "admission-merit-lists": { s: 120,  swr: 600 },
-  "admission-merit-list":  { s: 300,  swr: 600 },
+  // Merit lists are PUBLISHED BY HAND and the admin expects them live at once.
+  // A long CDN window (was 120 s + 600 s stale) kept serving the pre-publish
+  // EMPTY list to visitors for minutes. Short windows still collapse a burst of
+  // visitors into a handful of database reads.
+  "admission-merit-lists": { s: 10,   swr: 20 },
+  "admission-merit-list":  { s: 30,   swr: 60 },
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -520,6 +524,11 @@ async function handle(req, res) {
 
   try {
     const data = await fetcher(url.searchParams);
+    // An EMPTY merit-list index must never sit in the CDN: the admin may publish
+    // the first list a second later, and "nothing published yet" would stick.
+    if (kind === "admission-merit-lists" && Array.isArray(data) && data.length === 0) {
+      res.setHeader("Cache-Control", "public, max-age=0, s-maxage=0, must-revalidate");
+    }
     return res.status(200).json(data);
   } catch (e) {
     if (e instanceof BadRequest) return res.status(400).json({ error: String(e.message) });
