@@ -150,7 +150,6 @@ export default function AdminAdmissionPrograms() {
                         </td>
                         <td className="text-center align-middle px-4 py-3">
                           <div className="inline-flex items-center justify-center gap-2.5">
-                            <Badge variant="secondary" className="bg-muted">Boys</Badge>
                             <Switch
                               checked={p.is_active !== false}
                               onCheckedChange={(checked) => toggleActive.mutate({ id: p.id, active: checked })}
