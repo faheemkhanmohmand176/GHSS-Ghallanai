@@ -74,10 +74,10 @@ const CLIENT_TIMEOUT_MS = 34000;
 
 // Starter suggestions — the four most common homepage questions.
 const STARTER_SUGGESTIONS: { text: string; Icon: LucideIcon }[] = [
-  { text: "When will the result be announced?", Icon: Trophy },
-  { text: "How do I apply for admission?", Icon: GraduationCap },
-  { text: "What's new on the Notices page?", Icon: Bell },
-  { text: "How do I check my result by roll number?", Icon: Search },
+  { text: "Are admissions open right now?", Icon: GraduationCap },
+  { text: "What is the admission fee and how do I pay it?", Icon: Trophy },
+  { text: "How do I get my Roll No. Slip?", Icon: Search },
+  { text: "What are the latest notices?", Icon: Bell },
 ];
 
 // ── "Thinking" indicator ──────────────────────────────────────────────────
@@ -104,7 +104,7 @@ function escapeHtml(s: string): string {
 }
 
 // Known site pages → rendered as tappable in-app links (SPA navigation).
-const PATH_RE = /(^|[\s(])(\/(?:results|admission|notices|news|contact|about|calendar|faq|notes|merit-list|roll-no-slip|teachers|dashboard|search|auth\/signin|auth\/forgot-password))(?=[\s).,;:!?]|$)/g;
+const PATH_RE = /(^|[\s(])(\/(?:results|admission|notices|contact|about|faq|merit-list|roll-no-slip|teachers|search))(?=[\s).,;:!?]|$)/g;
 const URL_RE = /(https?:\/\/[^\s<)]+[^\s<).,;:!?])/g;
 
 function renderInline(s: string): string {
@@ -772,7 +772,7 @@ const AIAssistantWidget = () => {
                       Welcome to GHSS Ghallanai
                     </p>
                     <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                      I'm the official school assistant. Ask me about results, admissions, notices, news, the student portal or how to find anything on this site.
+                      I'm the official school assistant. Ask me about admissions, results, roll number slips, merit lists, notices or how to find anything on this site.
                     </p>
                   </div>
                   <div>
@@ -987,7 +987,7 @@ const AIAssistantWidget = () => {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask about results, admission, notices…"
+                  placeholder="Ask about admission, results, roll slip…"
                   disabled={loading}
                   className="flex-1 min-w-0 text-sm px-3.5 py-2.5 rounded-xl bg-secondary/60 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#d4a93a]/40 focus:border-[#d4a93a]/70 disabled:opacity-60"
                 />
