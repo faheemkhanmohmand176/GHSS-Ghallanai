@@ -27,6 +27,7 @@
     { "source": "/sitemap-notices.xml", "destination": "/api/seo?kind=sitemap-notices" },
     { "source": "/sitemap-images.xml", "destination": "/api/seo?kind=sitemap-images" },
     { "source": "/api/bisep-proxy", "destination": "/api/bisep-proxy" },
+    { "source": "/api/bisep-draw", "destination": "/api/public-data?kind=draw" },
     { "source": "/api/create-payment", "destination": "/api/safepay?kind=create" },
     { "source": "/api/safepay-webhook", "destination": "/api/safepay?kind=webhook" },
     { "source": "/about", "destination": "/about/index.html" },

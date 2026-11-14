@@ -107,6 +107,7 @@ export const PUBLIC_ROUTES = [
   { label: "Merit List", path: "/merit-list" },
   { label: "Roll No. Slip", path: "/roll-no-slip" },
   { label: "Teachers", path: "/teachers" },
+  { label: "Exam Duties", path: "/duties" },
   { label: "FAQ", path: "/faq" },
 ];
 

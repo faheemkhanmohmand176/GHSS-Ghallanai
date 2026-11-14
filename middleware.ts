@@ -79,6 +79,7 @@ export const config = {
     "/((?!api/|assets/|\\.well-known/|favicon|icon-|apple-touch-icon|manifest.json|robots.txt|sitemap.xml|rss.xml|feed.xml|og-image|sw.js|offline\\.html|.*\\.(?:js|css|png|jpg|jpeg|svg|ico|webp|woff2?|ttf|json|xml|txt)$).*)",
     // Outbound-scraping endpoints get the tighter 'scrapeProxy' rate limit.
     "/api/bisep-proxy",
+    "/api/bisep-draw",
     "/api/og",
   ],
 };

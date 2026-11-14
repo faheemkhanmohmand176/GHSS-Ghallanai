@@ -119,6 +119,7 @@ const NAV_SECTIONS: NavSection[] = [
     tint: "bg-secondary text-primary dark:bg-primary/15 dark:text-primary-light",
     links: [
       { to: "/teachers",       label: "Our Teachers",   icon: Users,    desc: "Meet our faculty & staff",         tint: "bg-secondary text-primary dark:bg-primary/15 dark:text-primary-light" },
+      { to: "/duties",         label: "Exam Duties",    icon: ClipboardList, desc: "BISE Peshawar supervisory draw", tint: "bg-gold-soft text-[hsl(43_89%_29%)] dark:bg-gold/15 dark:text-gold" },
     ],
   },
 ];

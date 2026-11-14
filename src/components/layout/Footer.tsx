@@ -18,6 +18,7 @@ const footerLinks = {
     { to: "/about",     label: "About Us" },
     { to: "/admission", label: "Admission" },
     { to: "/teachers",  label: "Our Teachers" },
+    { to: "/duties",    label: "Exam Duties" },
     { to: "/notices",   label: "Notices" },
     { to: "/faq",       label: "FAQs" },
     { to: "/contact",   label: "Contact Us" },

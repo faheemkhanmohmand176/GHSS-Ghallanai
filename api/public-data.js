@@ -75,6 +75,8 @@
 // into FUNCTION_INVOCATION_FAILED (a platform 502 with no JSON body) instead
 // of this handler's clean, fallback-friendly 502. 8 s always leaves the
 // function time to answer first.
+import { handleDraw } from "./_lib/bisep-draw-core.js";
+
 const SB_TIMEOUT_MS = 8000;
 
 // kind → { s: s-maxage seconds, swr: stale-while-revalidate seconds }
@@ -502,6 +504,15 @@ async function handle(req, res) {
 
   const url = new URL(req.url, "https://x.invalid");
   const kind = url.searchParams.get("kind") || "";
+
+  // BISE Peshawar duty draw (served at /api/bisep-draw via vercel.json rewrite;
+  // lives here so the project stays under the 12-function Hobby limit).
+  if (kind === "draw") {
+    const r = await handleDraw(url.searchParams);
+    res.setHeader("Cache-Control", r.cache);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    return res.status(r.status).json(r.body);
+  }
   const cacheCfg = CACHE[kind];
   const fetcher = FETCHERS[kind];
 

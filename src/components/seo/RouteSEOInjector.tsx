@@ -87,6 +87,15 @@ const ROUTES: RouteSEO[] = [
     breadcrumbs: () => [baseBreadcrumb, { name: "Notices", path: "/notices" }],
   },
   {
+    pattern: "/duties",
+    title: "BISE Peshawar Exam Duties — Supervisory Draw Result | GHSS Ghallanai",
+    description:
+      "Check your BISE Peshawar supervisory draw result (theory & practical duties) by CNIC or mobile number, live from the Board. Fast, free and mobile-friendly.",
+    keywords:
+      "BISE Peshawar duties, supervisory draw, BISEP draw, exam duty order, SSC supervisory staff, theory duty, practical duty, GHSS Ghallanai",
+    breadcrumbs: () => [baseBreadcrumb, { name: "Exam Duties", path: "/duties" }],
+  },
+  {
     pattern: "/results",
     title:
       "BISE Peshawar Result — HSSC Result, BISEP Result, Peshawar Board Result | GHSS Ghallanai",
