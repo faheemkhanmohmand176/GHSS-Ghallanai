@@ -37,7 +37,7 @@ const NATIONALITIES = ["Pakistani", "Afghani"] as const;
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July",
   "August", "September", "October", "November", "December"];
-const DAYS: number[] = Array.from({ length: 30 }, (_, i) => i + 1);
+const DAYS: number[] = Array.from({ length: 31 }, (_, i) => i + 1);
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -158,6 +158,14 @@ export default function PersonalProfileForm() {
     const yr = Number(dobYear);
     if (!/^\d{4}$/.test(dobYear) || yr < 1950 || yr > new Date().getFullYear() - 10) {
       toast.error("Please enter a valid 4-digit birth year (e.g. 2008).");
+      return;
+    }
+    // Reject impossible dates (e.g. 30 February, 31 April) before saving.
+    const dayNum = Number(dobDay);
+    const monthIdx = MONTHS.indexOf(dobMonth);
+    const check = new Date(yr, monthIdx, dayNum);
+    if (monthIdx < 0 || check.getFullYear() !== yr || check.getMonth() !== monthIdx || check.getDate() !== dayNum) {
+      toast.error("This date does not exist. Please select a valid Date of Birth.");
       return;
     }
     const dob = `${dobYear}-${String(MONTHS.indexOf(dobMonth) + 1).padStart(2, "0")}-${dobDay.padStart(2, "0")}`;
