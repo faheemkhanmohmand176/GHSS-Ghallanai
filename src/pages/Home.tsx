@@ -1230,8 +1230,6 @@ const Home = () => {
       {/* ══ 2. HERO — deep emerald · deep gold (premium) ══ */}
       <section id="hero-section" className="lux-hero lux-hero-deep relative md:min-h-[88vh] flex items-start md:items-center overflow-hidden">
         <div className="absolute inset-0 lux-grid" aria-hidden="true" />
-        <div className="luxe-blob w-[340px] h-[340px] -top-24 -right-20 bg-[hsl(42_90%_55%/.22)]" aria-hidden="true" />
-        <div className="luxe-blob w-[300px] h-[300px] bottom-10 -left-24 bg-[hsl(250_80%_60%/.22)]" style={{ animationDelay: "-7s" }} aria-hidden="true" />
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[hsl(40_80%_45%)] to-transparent opacity-70" aria-hidden="true" />
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[hsl(42_85%_58%)] to-transparent" aria-hidden="true" />
 
@@ -1241,7 +1239,7 @@ const Home = () => {
 
               <m.div variants={stagger.child}>
                 <span className="lux-chip inline-flex max-w-full items-center gap-2.5 rounded-full pl-2 pr-4 py-1.5 text-[10.5px] sm:text-xs font-semibold tracking-[0.14em] uppercase">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(46_95%_72%)] to-[hsl(38_88%_46%)] text-[hsl(226_50%_8%)] shrink-0 shadow-[0_0_14px_hsl(42_95%_55%/.55)]"><Award className="w-3.5 h-3.5" /></span>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(45_92%_62%)] to-[hsl(36_85%_42%)] text-white shrink-0"><Award className="w-3.5 h-3.5" /></span>
                   <span className="min-w-0 leading-snug">{settings?.established_year ? `Est. ${settings.established_year} · ` : ""}HSSC (1st Year & 2nd Year)</span>
                 </span>
               </m.div>
