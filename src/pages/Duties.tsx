@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ClipboardCheck, Search, IdCard, Smartphone, Loader2, ExternalLink, Printer,
-  CheckCircle2, Info, AlertTriangle, MapPin, Hash, UserRound, BadgeCheck, Briefcase,
-  Phone, Building2, Landmark, ShieldCheck,
+  Search, IdCard, Smartphone, Loader2, Download, CheckCircle2, Info, AlertTriangle, Landmark,
 } from "lucide-react";
+import toast from "react-hot-toast";
+import { downloadDutyOrderPDF } from "@/lib/dutyOrderPDF";
 import PageLayout from "@/components/layout/PageLayout";
 import PageBanner from "@/components/shared/PageBanner";
 import {
@@ -26,20 +26,13 @@ const formatMobile = (v: string) => {
   return d.length > 4 ? `${d.slice(0, 4)} ${d.slice(4)}` : d;
 };
 
-const FIELDS: { key: keyof DrawDetails; label: string; icon: typeof Hash }[] = [
-  { key: "centerNo", label: "Center No", icon: Hash },
-  { key: "name", label: "Name", icon: UserRound },
-  { key: "designation", label: "Designation", icon: Briefcase },
-  { key: "institute", label: "Institute", icon: Building2 },
-  { key: "mobile", label: "Mobile", icon: Phone },
-  { key: "appointedAs", label: "Appointed As", icon: BadgeCheck },
-];
-
-const BISE_LINKS = [
-  { label: "Supervisory Staff Portal", href: "https://supervisory.bisep.edu.pk/login/" },
-  { label: "Retotalling / Rechecking", href: "https://portal.bisep.edu.pk/retotalling/" },
-  { label: "Fee Challan", href: "https://www.bisep.edu.pk/challan/" },
-  { label: "Notifications & Date Sheets", href: "https://www.bisep.edu.pk/page-10006.html" },
+const FIELDS: { key: keyof DrawDetails; label: string }[] = [
+  { key: "name", label: "Name" },
+  { key: "designation", label: "Designation" },
+  { key: "institute", label: "Institute" },
+  { key: "centerNo", label: "Center No" },
+  { key: "mobile", label: "Mobile" },
+  { key: "appointedAs", label: "Appointed As" },
 ];
 
 const slimBtn =
@@ -50,6 +43,7 @@ const Duties = () => {
   const [sourceId, setSourceId] = useState("theory");
   const [by, setBy] = useState<By>("cnic");
   const [value, setValue] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(false);
   const lookup = useDrawLookup();
   const preview = useDrawPreview(sourceId);
 
@@ -66,24 +60,31 @@ const Duties = () => {
   const switchBy = (b: By) => { setBy(b); setValue(""); lookup.reset(); };
   const switchSource = (id: string) => { setSourceId(id); lookup.reset(); };
 
+  const downloadOrder = async () => {
+    if (!result?.details || pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      await downloadDutyOrderPDF({ details: result.details, session: source.session, dutyLabel: source.label });
+    } catch {
+      toast.error("Could not create the PDF. Please try again.");
+    } finally { setPdfBusy(false); }
+  };
+
   return (
     <PageLayout>
       <PageBanner
         variant="premium"
         compact
         hideCrumbs
-        eyebrow="BISE Peshawar"
-        icon={<ClipboardCheck className="h-6 w-6" />}
         title="Exam Duties"
         subtitle="Check your supervisory draw result, live from the Board"
       />
 
       <section className="px-4 pb-16 pt-8 sm:pt-10">
-        <div className="mx-auto w-full max-w-2xl min-w-0">
+        <div className="mx-auto w-full min-w-0 max-w-2xl">
           {/* ── Lookup card ─────────────────────────────────────────── */}
           <div className="rounded-3xl border border-border bg-card p-4 shadow-[0_18px_50px_-28px_hsl(var(--primary)/.35)] sm:p-6">
-            {/* Session tabs */}
-            <div role="tablist" aria-label="Duty type" className="mb-5 flex rounded-full bg-secondary p-1">
+            <div role="tablist" aria-label="Duty type" className="mb-6 flex rounded-full bg-secondary p-1">
               {sources.map((s) => (
                 <button
                   key={s.id}
@@ -91,9 +92,7 @@ const Duties = () => {
                   aria-selected={s.id === sourceId}
                   onClick={() => switchSource(s.id)}
                   className={`min-w-0 flex-1 rounded-full px-2 py-2 text-[13px] font-semibold leading-tight transition-all ${
-                    s.id === sourceId
-                      ? "bg-card text-primary shadow-sm ring-1 ring-gold/40"
-                      : "text-muted-foreground hover:text-foreground"
+                    s.id === sourceId ? "bg-card text-primary shadow-sm ring-1 ring-gold/40" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {s.label}
@@ -101,15 +100,22 @@ const Duties = () => {
               ))}
             </div>
 
-            <p className="mb-4 break-words font-heading text-lg font-bold leading-snug text-foreground sm:text-xl">
-              {source.session}
-              <span className="block text-xs font-body font-medium text-muted-foreground">
+            {/* Centered stylish heading */}
+            <div className="mb-6 text-center">
+              <h2 className="break-words font-luxe text-[1.7rem] font-bold leading-tight text-foreground sm:text-3xl">
+                {source.session}
+              </h2>
+              <div className="mx-auto my-2 flex items-center justify-center gap-2" aria-hidden="true">
+                <span className="h-px w-8 bg-gradient-to-r from-transparent to-gold" />
+                <span className="h-1.5 w-1.5 rotate-45 bg-gold" />
+                <span className="h-px w-8 bg-gradient-to-l from-transparent to-gold" />
+              </div>
+              <p className="font-luxe text-base font-semibold italic tracking-wide text-primary sm:text-lg">
                 Online Computerized Supervisory Draw
-              </span>
-            </p>
+              </p>
+            </div>
 
             <form onSubmit={submit} noValidate>
-              {/* CNIC / Mobile toggle */}
               <div className="mb-3 grid grid-cols-2 gap-2">
                 {([["cnic", "CNIC", IdCard], ["mobile", "Mobile No", Smartphone]] as const).map(([k, label, Icon]) => (
                   <button
@@ -128,9 +134,7 @@ const Duties = () => {
                 ))}
               </div>
 
-              <label htmlFor="draw-value" className="sr-only">
-                {by === "cnic" ? "CNIC number" : "Mobile number"}
-              </label>
+              <label htmlFor="draw-value" className="sr-only">{by === "cnic" ? "CNIC number" : "Mobile number"}</label>
               <div className="relative">
                 {by === "cnic" ? (
                   <IdCard className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/70" />
@@ -147,8 +151,10 @@ const Duties = () => {
                   className="h-12 w-full rounded-2xl border border-border bg-background pl-11 pr-4 font-body text-base font-semibold tracking-wider text-foreground outline-none transition-shadow placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground/60 focus:border-gold focus:ring-2 focus:ring-gold/30"
                 />
               </div>
-              <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
-                {by === "cnic" ? "Enter your 13-digit CNIC. Dashes are added for you." : "Enter the mobile number registered with BISE Peshawar."}
+              <p className="mx-auto mt-2.5 max-w-xs text-center text-[12.5px] leading-relaxed text-muted-foreground">
+                {by === "cnic"
+                  ? "Enter your 13-digit CNIC. Dashes are added for you."
+                  : "Enter the mobile number registered with BISE Peshawar."}
               </p>
 
               <button
@@ -156,7 +162,7 @@ const Duties = () => {
                 disabled={!ready || lookup.isPending}
                 className={`${slimBtn} mt-4 w-full bg-gradient-to-b from-[hsl(45_95%_68%)] to-[hsl(38_88%_50%)] text-[hsl(158_45%_10%)] shadow-[0_10px_22px_-12px_hsl(38_85%_42%/.7)]`}
               >
-                {lookup.isPending ? (<><Loader2 className="h-4 w-4 animate-spin" /> Checking with BISE…</>) : (<><Search className="h-4 w-4" /> Check My Duty</>)}
+                {lookup.isPending ? (<><Loader2 className="h-4 w-4 animate-spin" /> Checking…</>) : (<><Search className="h-4 w-4" /> Check My Duty</>)}
               </button>
             </form>
           </div>
@@ -175,44 +181,43 @@ const Duties = () => {
               >
                 {!result.ok ? (
                   <Notice tone="warn" icon={AlertTriangle} title="Couldn't reach the Board">
-                    {result.error || "Something went wrong."}
-                    {result.official_page && (
-                      <a href={result.official_page} target="_blank" rel="noopener noreferrer" className={`${slimBtn} mt-3 border border-border text-primary hover:bg-secondary`}>
-                        Open official BISE page <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    )}
+                    {result.error || "Something went wrong. Please try again."}
                   </Notice>
                 ) : result.selected ? (
                   <div className="overflow-hidden rounded-3xl border border-gold/40 bg-card shadow-[0_18px_50px_-28px_hsl(var(--gold)/.55)]">
-                    <div className="flex items-center gap-2 bg-gradient-to-r from-[hsl(45_90%_90%)] to-[hsl(150_35%_92%)] px-4 py-3 dark:from-gold/15 dark:to-primary/15">
-                      <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
-                      <p className="break-words font-heading text-base font-bold text-foreground">You are selected for duty</p>
+                    <div className="bg-gradient-to-r from-[hsl(45_90%_90%)] to-[hsl(150_35%_92%)] px-4 py-4 text-center dark:from-gold/15 dark:to-primary/15">
+                      <CheckCircle2 className="mx-auto mb-1 h-6 w-6 text-primary" />
+                      <p className="font-luxe text-xl font-bold text-foreground">You are selected for duty</p>
+                      <p className="text-[12px] font-medium text-muted-foreground">{source.session} · {source.label}</p>
                     </div>
-                    <dl className="divide-y divide-border px-4">
-                      {FIELDS.map(({ key, label, icon: Icon }) =>
-                        result.details?.[key] ? (
-                          <div key={key} className="flex items-start gap-3 py-3">
-                            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
-                              <Icon className="h-4 w-4" />
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</dt>
-                              <dd className="break-words font-body text-[15px] font-semibold leading-snug text-foreground">{result.details[key]}</dd>
-                            </div>
-                          </div>
-                        ) : null,
-                      )}
-                    </dl>
-                    <div className="flex flex-wrap gap-2 px-4 pb-4 pt-2">
-                      {result.letter && (
-                        <a href={result.letter} target="_blank" rel="noopener noreferrer" className={`${slimBtn} bg-primary text-primary-foreground`}>
-                          <Printer className="h-3.5 w-3.5" /> Duty Order
-                        </a>
-                      )}
-                      <a href={result.official_page} target="_blank" rel="noopener noreferrer" className={`${slimBtn} border border-border text-primary hover:bg-secondary`}>
-                        Official page <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
+
+                    {/* Duty table */}
+                    <div className="px-3 pt-3 sm:px-5">
+                      <table className="w-full table-fixed border-separate border-spacing-0 overflow-hidden rounded-2xl border border-border text-left">
+                        <tbody>
+                          {FIELDS.map(({ key, label }, i) =>
+                            result.details?.[key] ? (
+                              <tr key={key} className={i % 2 ? "bg-card" : "bg-secondary/40"}>
+                                <th scope="row" className="w-[36%] border-b border-r border-border bg-secondary/70 px-3 py-3 align-top text-[11px] font-bold uppercase tracking-[0.1em] text-primary">
+                                  {label}
+                                </th>
+                                <td className={`break-words border-b border-border px-3 py-3 align-top text-[14.5px] font-semibold leading-snug text-foreground ${key === "appointedAs" ? "text-gold-ink dark:text-gold" : ""}`}>
+                                  {result.details[key]}
+                                </td>
+                              </tr>
+                            ) : null,
+                          )}
+                        </tbody>
+                      </table>
                     </div>
+
+                    <div className="flex justify-center px-4 pb-5 pt-4">
+                      <button type="button" onClick={downloadOrder} disabled={pdfBusy} className={`${slimBtn} bg-primary px-6 text-primary-foreground shadow-md`}>
+                        {pdfBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        {pdfBusy ? "Preparing…" : "Download Duty Order"}
+                      </button>
+                    </div>
+
                     {result.notes && result.notes.length > 0 && (
                       <ul className="space-y-2 border-t border-border bg-secondary/50 px-4 py-3">
                         {result.notes.map((n, i) => (
@@ -226,62 +231,44 @@ const Duties = () => {
                 ) : (
                   <Notice tone="info" icon={Info} title="Not selected in this draw">
                     The Computerized Draw did not select this {by === "cnic" ? "CNIC" : "number"} for {source.label.toLowerCase()}.
-                    Try the other duty type or the other detail, or verify on the Board's page.
-                    <a href={result.official_page} target="_blank" rel="noopener noreferrer" className={`${slimBtn} mt-3 border border-border text-primary hover:bg-secondary`}>
-                      Official BISE page <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
+                    Try the other duty type, or the other detail.
                   </Notice>
-                )}
-                {result.fetched_at && (
-                  <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                    Fetched live from BISE Peshawar · {new Date(result.fetched_at).toLocaleString()}
-                  </p>
                 )}
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* ── Recently drawn preview (mobiles masked server-side) ── */}
+          {/* ── Recently drawn (mobiles masked server-side) ─────────── */}
           {preview.data?.ok && preview.data.entries && preview.data.entries.length > 0 && (
             <div className="mt-10">
-              <h2 className="mb-3 flex items-center gap-2 font-heading text-lg font-bold text-foreground">
+              <h2 className="mb-3 flex items-center justify-center gap-2 font-luxe text-2xl font-bold text-foreground">
                 <Landmark className="h-4 w-4 text-gold-strong" /> Recently drawn staff
               </h2>
-              <ul className="space-y-2">
-                {preview.data.entries.map((e, i) => (
-                  <li key={i} className="rounded-2xl border border-border bg-card px-4 py-3">
-                    <p className="break-words text-[15px] font-semibold text-foreground">{e.name}</p>
-                    <p className="break-words text-[12px] text-muted-foreground">
-                      {[e.designation, e.institute].filter(Boolean).join(" · ")}
-                    </p>
-                    <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
-                      {e.centerNo && <span className="inline-flex items-center gap-1 text-primary"><MapPin className="h-3 w-3" /> Center {e.centerNo}</span>}
-                      {e.appointedAs && <span className="rounded-full bg-gold-soft px-2 py-0.5 font-semibold text-gold-ink dark:bg-gold/15 dark:text-gold">{e.appointedAs}</span>}
-                      {e.mobile && <span className="text-muted-foreground">{e.mobile}</span>}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+              <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                <table className="w-full table-fixed border-collapse text-left">
+                  <thead>
+                    <tr className="bg-secondary/70 text-[10.5px] font-bold uppercase tracking-[0.1em] text-primary">
+                      <th className="px-3 py-2.5">Staff</th>
+                      <th className="w-[22%] px-2 py-2.5 text-center">Center</th>
+                      <th className="w-[30%] px-2 py-2.5">Duty</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.data.entries.map((e, i) => (
+                      <tr key={i} className="border-t border-border align-top">
+                        <td className="break-words px-3 py-2.5">
+                          <p className="text-[14px] font-semibold leading-snug text-foreground">{e.name}</p>
+                          <p className="text-[11.5px] leading-snug text-muted-foreground">{[e.designation, e.institute].filter(Boolean).join(" · ")}</p>
+                        </td>
+                        <td className="px-2 py-2.5 text-center text-[13px] font-semibold text-primary">{e.centerNo || "-"}</td>
+                        <td className="break-words px-2 py-2.5 text-[12px] font-semibold text-gold-ink dark:text-gold">{e.appointedAs || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
-
-          {/* ── BISE corner ─────────────────────────────────────────── */}
-          <div className="mt-10 rounded-3xl border border-border bg-secondary/40 p-4 sm:p-5">
-            <h2 className="mb-3 flex items-center gap-2 font-heading text-lg font-bold text-foreground">
-              <ShieldCheck className="h-4 w-4 text-primary" /> BISE Corner
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {BISE_LINKS.map((l) => (
-                <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer" className={`${slimBtn} border border-border bg-card text-primary hover:bg-secondary`}>
-                  {l.label} <ExternalLink className="h-3 w-3" />
-                </a>
-              ))}
-            </div>
-            <p className="mt-4 text-[12px] leading-relaxed text-muted-foreground">
-              Results come directly from the Board of Intermediate and Secondary Education Peshawar. This page is an
-              independent convenience by GHSS Ghallanai; the Board's own page is always the final authority.
-            </p>
-          </div>
         </div>
       </section>
     </PageLayout>
@@ -289,10 +276,9 @@ const Duties = () => {
 };
 
 const Notice = ({ tone, icon: Icon, title, children }: { tone: "info" | "warn"; icon: typeof Info; title: string; children: React.ReactNode }) => (
-  <div className={`rounded-3xl border p-4 sm:p-5 ${tone === "warn" ? "border-amber-400/50 bg-amber-50 dark:bg-amber-500/10" : "border-border bg-card"}`}>
-    <p className="mb-1 flex items-center gap-2 font-heading text-base font-bold text-foreground">
-      <Icon className={`h-4 w-4 shrink-0 ${tone === "warn" ? "text-amber-600" : "text-primary"}`} /> <span className="min-w-0 break-words">{title}</span>
-    </p>
+  <div className={`rounded-3xl border p-5 text-center ${tone === "warn" ? "border-amber-400/50 bg-amber-50 dark:bg-amber-500/10" : "border-border bg-card"}`}>
+    <Icon className={`mx-auto mb-1.5 h-6 w-6 ${tone === "warn" ? "text-amber-600" : "text-primary"}`} />
+    <p className="mb-1 break-words font-luxe text-xl font-bold text-foreground">{title}</p>
     <div className="break-words text-[14px] leading-relaxed text-muted-foreground">{children}</div>
   </div>
 );
