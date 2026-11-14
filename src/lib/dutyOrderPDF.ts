@@ -1,7 +1,7 @@
 // src/lib/dutyOrderPDF.ts — premium A4 "Duty Order" (jsPDF, lazy-loaded).
 // A4 portrait 595.28 × 841.89 pt, identical left/right margins so everything
 // is mathematically centred. Palette matches the site: deep green + gold.
-import type { DrawDetails } from "@/hooks/useDrawLookup";
+import { formatPkMobile, type DrawDetails } from "@/hooks/useDrawLookup";
 
 type RGB = [number, number, number];
 const A4_W = 595.28;
@@ -41,17 +41,18 @@ export async function downloadDutyOrderPDF({ details, session, dutyLabel, school
   line(C.goldLine, 1.2); d.rect(18, 18, A4_W - 36, A4_H - 36);
   line(C.border, 0.5); d.rect(23, 23, A4_W - 46, A4_H - 46);
 
-  // ── header band ──
-  fill(C.greenDeep); d.rect(23, 23, A4_W - 46, 108, "F");
-  fill(C.goldLine); d.rect(23, 131, A4_W - 46, 3, "F");
-  ink(C.goldLine); d.setFont("times", "bold"); d.setFontSize(10);
-  d.text("GOVERNMENT OF KHYBER PAKHTUNKHWA", mid, 52, { align: "center", charSpace: 1.6 });
-  ink(C.white); d.setFont("times", "bold"); d.setFontSize(19);
+  // ── header (light ivory — no heavy fills) ──
+  fill([252, 249, 238]); d.rect(23, 23, A4_W - 46, 104, "F");
+  fill(C.goldLine); d.rect(23, 127, A4_W - 46, 2, "F");
+  fill(C.goldLine); d.rect(23, 131, A4_W - 46, 0.8, "F");
+  ink(C.gold); d.setFont("times", "bold"); d.setFontSize(9.5);
+  d.text("GOVERNMENT OF KHYBER PAKHTUNKHWA", mid, 50, { align: "center", charSpace: 1.8 });
+  ink(C.greenDeep); d.setFont("times", "bold"); d.setFontSize(18.5);
   const name = (schoolName || "Government Higher Secondary School Ghallanai").toUpperCase();
   const nameLines: string[] = d.splitTextToSize(name, W - 20);
-  d.text(nameLines, mid, 76, { align: "center" });
-  ink([200, 222, 210]); d.setFont("helvetica", "normal"); d.setFontSize(9.5);
-  d.text("District Mohmand  |  Khyber Pakhtunkhwa, Pakistan", mid, 76 + nameLines.length * 20 + 2, { align: "center" });
+  d.text(nameLines, mid, 74, { align: "center" });
+  ink(C.muted); d.setFont("helvetica", "normal"); d.setFontSize(9.5);
+  d.text("District Mohmand  |  Khyber Pakhtunkhwa, Pakistan", mid, 74 + nameLines.length * 19 + 2, { align: "center" });
 
   // ── title ──
   let y = 176;
@@ -86,8 +87,10 @@ export async function downloadDutyOrderPDF({ details, session, dutyLabel, school
     ["Designation", details.designation],
     ["Institute / Address", details.institute],
     ["Center No", details.centerNo],
-    ["Mobile No", details.mobile],
+    ["Mobile No", formatPkMobile(details.mobile)],
     ["Duty Type", dutyLabel],
+    ["Draw Session", session || "BISE Peshawar"],
+    ["Date of Issue", new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })],
   ];
   const labelW = 150;
   d.setFont("helvetica", "bold"); d.setFontSize(8.5);
@@ -96,7 +99,7 @@ export async function downloadDutyOrderPDF({ details, session, dutyLabel, school
   rows.filter(([, v]) => v).forEach(([label, val], i) => {
     d.setFont("helvetica", "bold"); d.setFontSize(11);
     const lines: string[] = d.splitTextToSize(String(val), W - labelW - 24);
-    const h = Math.max(32, lines.length * 15 + 16);
+    const h = Math.max(28, lines.length * 15 + 13);
     fill(i % 2 ? C.white : C.greenSoft); d.rect(M, y, W, h, "F");
     fill(C.greenSoft); d.rect(M, y, labelW, h, "F");
     line(C.border, 0.6); d.rect(M, y, W, h); d.line(M + labelW, y, M + labelW, y + h);
@@ -127,21 +130,25 @@ export async function downloadDutyOrderPDF({ details, session, dutyLabel, school
     void i;
   });
 
-  // ── signatures ──
-  const sy = A4_H - 128;
+  // ── signatures (appointee, head of institution, board authority) ──
+  const sy = A4_H - 124;
+  const cols = [M + 62, mid, A4_W - M - 62];
+  const labels = [["Signature of Appointee", ""], ["Head of Institution", "(Signature & Stamp)"], ["Controller of Examinations", "BISE Peshawar"]];
   line(C.ink, 0.6);
-  d.line(M + 10, sy, M + 170, sy); d.line(A4_W - M - 170, sy, A4_W - M - 10, sy);
-  ink(C.muted); d.setFont("helvetica", "normal"); d.setFontSize(8.5);
-  d.text("Signature of Appointee", M + 90, sy + 13, { align: "center" });
-  d.text("Head of Institution / Stamp", A4_W - M - 90, sy + 13, { align: "center" });
+  cols.forEach((cx, i) => {
+    d.line(cx - 60, sy, cx + 60, sy);
+    ink(C.text); d.setFont("helvetica", "bold"); d.setFontSize(8.5);
+    d.text(labels[i][0], cx, sy + 13, { align: "center" });
+    if (labels[i][1]) { ink(C.muted); d.setFont("helvetica", "normal"); d.setFontSize(8); d.text(labels[i][1], cx, sy + 24, { align: "center" }); }
+  });
 
-  // ── footer ──
-  fill(C.greenDeep); d.rect(23, A4_H - 23 - 34, A4_W - 46, 34, "F");
-  ink(C.white); d.setFont("helvetica", "normal"); d.setFontSize(8);
-  const stamp = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-  d.text(`Generated from the BISE Peshawar online supervisory draw  |  ${stamp}`, mid, A4_H - 23 - 14, { align: "center" });
-  ink(C.goldLine); d.setFontSize(7.5);
-  d.text("ghssghallanai.dpdns.org/duties", mid, A4_H - 23 - 25, { align: "center" });
+  // ── footer (light) ──
+  fill(C.goldLine); d.rect(23, A4_H - 68, A4_W - 46, 1.2, "F");
+  fill([252, 249, 238]); d.rect(23, A4_H - 66.8, A4_W - 46, 43.8, "F");
+  ink(C.muted); d.setFont("helvetica", "normal"); d.setFontSize(8);
+  d.text("Generated from the BISE Peshawar online supervisory draw result", mid, A4_H - 47, { align: "center" });
+  ink(C.gold); d.setFont("helvetica", "bold"); d.setFontSize(8);
+  d.text("ghssghallanai.dpdns.org/duties", mid, A4_H - 34, { align: "center" });
 
   const safe = (details.name || "Duty").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
   d.save(`Duty-Order-${safe || "Staff"}.pdf`);

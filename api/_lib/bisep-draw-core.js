@@ -61,10 +61,18 @@ export function normaliseQuery(by, value) {
   return { error: "Choose CNIC or Mobile." };
 }
 
+/** Board returns 3459162160 (no leading 0) → 0345 9162160 */
+export function fmtMobile(m) {
+  let d = String(m || "").replace(/\D/g, "");
+  if (d.startsWith("92") && d.length === 12) d = d.slice(2);
+  if (d.length === 10 && d[0] === "3") d = "0" + d;
+  return d.length === 11 ? `${d.slice(0, 4)} ${d.slice(4)}` : String(m || "").trim();
+}
+
 export function maskMobile(m) {
-  const d = String(m || "").replace(/\D/g, "");
-  if (d.length < 7) return "••••";
-  return d.slice(0, 3) + "••••" + d.slice(-3);
+  const d = fmtMobile(m).replace(/\D/g, "");
+  if (d.length < 8) return "••••";
+  return d.slice(0, 4) + " •••• " + d.slice(-3);
 }
 
 // ── HTML helpers ────────────────────────────────────────────────────────────
@@ -117,7 +125,7 @@ export function parseDrawHtml(html, dir) {
   while ((m = rowRe.exec(html))) {
     const k = mapField(text(m[1]).replace(/:$/, ""));
     const v = text(m[2]);
-    if (k && v && !details[k]) details[k] = v;
+    if (k && v && !details[k]) details[k] = k === "mobile" ? fmtMobile(v) : v;
   }
   const letters = findLetters(html);
   const selected = Object.keys(details).length >= 3;
@@ -274,4 +282,4 @@ export async function handleDraw(q) {
   return { status: 200, cache: OK, body };
 }
 
-export const __internals = { normaliseQuery, parseDrawHtml, parseDrawListHtml, maskMobile };
+export const __internals = { fmtMobile, normaliseQuery, parseDrawHtml, parseDrawListHtml, maskMobile };

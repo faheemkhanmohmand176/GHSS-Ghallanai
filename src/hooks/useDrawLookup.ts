@@ -70,3 +70,12 @@ export function useDrawPreview(source: string) {
     retry: 1,
   });
 }
+
+/** Board sends 3459162160 (leading 0 dropped) → 0345 9162160. Safe on already-correct values. */
+export function formatPkMobile(m?: string): string {
+  if (!m) return "";
+  let d = m.replace(/\D/g, "");
+  if (d.startsWith("92") && d.length === 12) d = d.slice(2);
+  if (d.length === 10 && d[0] === "3") d = "0" + d;
+  return d.length === 11 ? `${d.slice(0, 4)} ${d.slice(4)}` : m;
+}
