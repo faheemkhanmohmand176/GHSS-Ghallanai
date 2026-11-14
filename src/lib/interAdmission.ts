@@ -188,7 +188,7 @@ export const ADMISSION_MESSAGES = {
     "You are overage. An age relaxation certificate is required for Inter admission.",
   overageSports: "You are overage and not eligible for the sports quota",
   meritNote:
-    "Applications submitted on all quotas except AFGHAN shall be considered in Open Merit.",
+    "Every applicant competes for the seats of the program on merit, whichever category the application was submitted on.",
   declaration:
     "I declare that the information given in support of the application is accurate and complete. I understand that any misrepresentation will result in disqualification of my application for admission.",
   locked:
