@@ -2,9 +2,11 @@
  * AdminMeritLists — Merit List management for-mirror Inter admission
  * system (migration 20_inter_admission_hed_mirror.sql).
  *
- * • Generate a merit list for one program + quota from the FEE-PAID
- *   applications (inter_admin_merit_generate) — net marks = SSC obtained
- *   + 20 if Hafiz e Quran, sorted descending.
+ * • One-click merit list (inter_admin_merit_auto) — SEAT-BASED: all FEE-PAID
+ *   applications of a program (every quota together) are ranked by net marks
+ *   = SSC obtained + 20 if Hafiz e Quran; the top N (program seats minus seats
+ *   already filled by earlier published lists) are Merit Listed, the rest are
+ *   shown as Not Merit Listed. Quotas never influence selection.
  * • Publish / unpublish (inter_admin_merit_publish) — published lists show
  *   on the public Admission page, and the listed applicants are moved to
  *   "Merit Listed" automatically (unpublishing reverts them).
