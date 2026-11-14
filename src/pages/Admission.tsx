@@ -681,7 +681,7 @@ export default function Admission() {
           )}
           <div className="mt-3.5 flex flex-wrap items-center justify-center gap-1.5">
             {[
-              "All categories except Afghan count in Open Merit",
+              "Every applicant competes for the program's seats on merit, whichever category they applied on",
               "One application per category or program",
               `Processing fee Rs ${fee} per application`,
             ].map((t) => (
