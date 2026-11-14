@@ -1339,72 +1339,72 @@ a.lux-chip:hover { border-color: hsl(38 80% 40% / .6); }
 .card-lift:hover { transform: translateY(-4px); }
 
 /* ═════════════════════════════════════════════════════════════════════════
-   LUXE MIDNIGHT — Home hero: midnight ink + champagne gold (premium).
-   Deep navy-black base, soft aurora glows, gold hairlines. No green.
+   LUXE LIGHT — Home hero: ivory + soft sage green + warm gold (light, fast).
+   Static gradients only: no blur, no filters, no animation = smooth on phones.
    Scoped to .lux-hero-deep so About / Contact keep their own hero.
    ═════════════════════════════════════════════════════════════════════════ */
 .lux-hero-deep {
   isolation: isolate;
   background:
-    radial-gradient(60% 50% at 100% 0%, hsl(42 90% 55% / .26), transparent 62%),
-    radial-gradient(55% 45% at 0% 100%, hsl(250 70% 45% / .30), transparent 68%),
-    radial-gradient(40% 35% at 55% 55%, hsl(215 80% 40% / .10), transparent 70%),
-    linear-gradient(165deg, hsl(226 50% 5%) 0%, hsl(228 42% 9%) 50%, hsl(232 36% 14%) 100%);
+    radial-gradient(55% 45% at 100% 0%, hsl(42 90% 70% / .38), transparent 65%),
+    radial-gradient(60% 50% at 0% 100%, hsl(150 40% 78% / .50), transparent 68%),
+    linear-gradient(170deg, #FFFEFA 0%, #F6F4E6 55%, #EAF2E3 100%);
 }
 .dark .lux-hero-deep {
   background:
-    radial-gradient(60% 50% at 100% 0%, hsl(42 85% 50% / .22), transparent 62%),
-    radial-gradient(55% 45% at 0% 100%, hsl(250 65% 40% / .26), transparent 68%),
-    linear-gradient(165deg, hsl(228 55% 3%) 0%, hsl(228 45% 6%) 55%, hsl(232 38% 10%) 100%);
+    radial-gradient(55% 45% at 100% 0%, hsl(42 70% 45% / .18), transparent 65%),
+    radial-gradient(60% 50% at 0% 100%, hsl(150 25% 30% / .30), transparent 68%),
+    linear-gradient(170deg, hsl(150 10% 11%), hsl(150 12% 8%));
 }
-/* concentric champagne-gold rings — pure CSS decoration */
+/* thin gold rings — static decoration */
 .lux-hero-deep::before, .lux-hero-deep::after {
   content: ""; position: absolute; z-index: -1; border-radius: 9999px; pointer-events: none;
-  border: 1px solid hsl(42 85% 62% / .26);
-  box-shadow: 0 0 0 38px hsl(42 85% 62% / .03), 0 0 0 39px hsl(42 85% 62% / .13), 0 0 0 82px hsl(42 85% 62% / .02), 0 0 120px 10px hsl(42 90% 55% / .08) inset;
+  border: 1px solid hsl(40 75% 50% / .28);
+  box-shadow: 0 0 0 34px hsl(40 75% 55% / .05), 0 0 0 35px hsl(40 75% 50% / .16);
 }
-.lux-hero-deep::before { width: 440px; height: 440px; top: -170px; right: -190px; }
-.lux-hero-deep::after  { width: 300px; height: 300px; bottom: -130px; left: -140px; border-color: hsl(250 80% 75% / .22); box-shadow: 0 0 0 38px hsl(250 80% 75% / .03), 0 0 0 39px hsl(250 80% 75% / .10); }
+.lux-hero-deep::before { width: 400px; height: 400px; top: -170px; right: -190px; }
+.lux-hero-deep::after  { width: 260px; height: 260px; bottom: -110px; left: -120px; border-color: hsl(150 40% 40% / .25); box-shadow: 0 0 0 30px hsl(150 40% 45% / .05), 0 0 0 31px hsl(150 40% 40% / .14); }
 
 .lux-hero-deep .lux-grid {
   background-image:
-    linear-gradient(hsl(42 70% 80% / .05) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(42 70% 80% / .05) 1px, transparent 1px);
+    linear-gradient(hsl(150 25% 35% / .07) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(150 25% 35% / .07) 1px, transparent 1px);
 }
-.lux-hero-deep .lux-ink  { color: #fff; text-shadow: 0 2px 30px hsl(226 60% 4% / .6); }
-.lux-hero-deep .lux-soft { color: hsl(220 25% 92% / .78); }
-
-/* animated champagne-gold shimmer on the gold words */
-@keyframes lux-shimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+/* ink: deep green-charcoal text, readable on light */
+.lux-hero-deep .lux-ink  { color: hsl(158 40% 12%); }
+.lux-hero-deep .lux-soft { color: hsl(158 14% 28%); }
+.dark .lux-hero-deep .lux-ink  { color: #fff; }
+.dark .lux-hero-deep .lux-soft { color: hsl(0 0% 100% / .75); }
+/* gold words: static gradient (no animation) */
 .lux-hero-deep .lux-gold-text {
-  background: linear-gradient(100deg, hsl(40 85% 52%) 0%, hsl(46 100% 82%) 25%, hsl(42 92% 60%) 50%, hsl(46 100% 82%) 75%, hsl(40 85% 52%) 100%);
-  background-size: 200% 100%;
+  background: linear-gradient(135deg, hsl(36 88% 36%), hsl(42 90% 48%) 50%, hsl(34 85% 38%));
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  animation: lux-shimmer 6s linear infinite;
-  filter: drop-shadow(0 4px 22px hsl(42 90% 55% / .28));
 }
-@media (prefers-reduced-motion: reduce) { .lux-hero-deep .lux-gold-text { animation: none; } }
-
-/* glass chip */
+.dark .lux-hero-deep .lux-gold-text {
+  background: linear-gradient(135deg, hsl(42 85% 62%), hsl(46 92% 76%) 50%, hsl(42 85% 60%));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+/* chip: white pill, gold hairline */
 .lux-hero-deep .lux-chip {
-  border-color: hsl(42 85% 66% / .35);
-  background: linear-gradient(135deg, hsl(0 0% 100% / .10), hsl(0 0% 100% / .03));
-  color: hsl(45 50% 94%);
-  box-shadow: 0 12px 30px -14px #000, inset 0 1px 0 hsl(0 0% 100% / .14);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid hsl(40 70% 48% / .35);
+  background: hsl(0 0% 100% / .88);
+  color: hsl(158 35% 16%);
+  box-shadow: 0 8px 20px -12px hsl(40 60% 30% / .4);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
 }
-/* primary: champagne-gold pill with soft glow */
+.dark .lux-hero-deep .lux-chip { background: hsl(0 0% 100% / .08); color: #fff; border-color: hsl(42 70% 60% / .3); }
+/* primary: rich gold pill */
 .lux-hero-deep .lux-btn-ink {
-  color: hsl(226 50% 8%);
-  background: linear-gradient(180deg, hsl(46 98% 74%), hsl(40 90% 54%));
-  box-shadow: 0 14px 34px -10px hsl(42 95% 50% / .55), 0 0 0 1px hsl(46 100% 80% / .35), inset 0 1px 0 hsl(0 0% 100% / .55);
+  color: hsl(158 45% 10%);
+  background: linear-gradient(180deg, hsl(45 95% 68%), hsl(38 88% 50%));
+  box-shadow: 0 10px 22px -10px hsl(38 85% 42% / .6), inset 0 1px 0 hsl(0 0% 100% / .5);
 }
-.lux-hero-deep .lux-btn-ink:hover { filter: brightness(1.07); transform: translateY(-2px); box-shadow: 0 20px 40px -10px hsl(42 95% 50% / .7), 0 0 0 1px hsl(46 100% 80% / .5), inset 0 1px 0 hsl(0 0% 100% / .6); }
-/* secondary: frosted glass with gold hairline */
+.lux-hero-deep .lux-btn-ink:hover { filter: brightness(1.05); box-shadow: 0 14px 26px -10px hsl(38 85% 42% / .75), inset 0 1px 0 hsl(0 0% 100% / .55); }
+/* secondary: white with sage-green border */
 .lux-hero-deep .lux-btn-line {
-  color: #fff; background: hsl(0 0% 100% / .07);
-  border-color: hsl(42 85% 66% / .45);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  box-shadow: inset 0 1px 0 hsl(0 0% 100% / .12);
+  color: hsl(158 45% 18%); background: #fff;
+  border: 1px solid hsl(150 35% 38% / .45);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
 }
-.lux-hero-deep .lux-btn-line:hover { background: hsl(42 90% 60% / .14); border-color: hsl(44 95% 70%); transform: translateY(-2px); }
+.lux-hero-deep .lux-btn-line:hover { background: hsl(150 40% 94%); border-color: hsl(150 40% 32%); }
+.dark .lux-hero-deep .lux-btn-line { color: #fff; background: transparent; border-color: hsl(42 70% 60% / .45); }
