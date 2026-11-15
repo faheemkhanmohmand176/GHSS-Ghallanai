@@ -1532,7 +1532,8 @@ function buildMarksheet(roll, r) {
 export default async function handler(req, res) {
   const startedAt = Date.now();
   try {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Origin", "https://ghssghallanai.dpdns.org");
+    res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader("Access-Control-Max-Age", "86400");
 
