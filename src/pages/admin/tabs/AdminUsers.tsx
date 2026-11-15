@@ -74,7 +74,7 @@ const AdminUsers = () => {
   // accounts that still have an authenticator (MFA) factor enrolled.
   const changePassword = async () => {
     if (!pw.current) return toast.error("Enter your current password");
-    if (pw.next.length < 6) return toast.error("New password must be at least 6 characters");
+    if (pw.next.length < 12) return toast.error("New password must be at least 12 characters");
     if (pw.next !== pw.confirm) return toast.error("Passwords do not match");
     setPwBusy(true);
     try {
@@ -165,8 +165,8 @@ const AdminUsers = () => {
       toast.error("Name, email, and password are required");
       return;
     }
-    if (addForm.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (addForm.password.length < 12) {
+      toast.error("Password must be at least 12 characters");
       return;
     }
 
@@ -427,7 +427,7 @@ const AdminUsers = () => {
               />
             </div>
             <div>
-              <Label className="text-xs">Password * (min 6 characters)</Label>
+              <Label className="text-xs">Password * (min 12 characters, mixed case, number, symbol)</Label>
               <Input
                 className="h-9 text-sm mt-1"
                 type="password"
@@ -465,7 +465,7 @@ const AdminUsers = () => {
           <div className="space-y-3">
             <div><Label className="text-xs">Current password</Label>
               <Input className="mt-1 h-9 text-sm" type={showPw ? "text" : "password"} autoComplete="current-password" value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} placeholder="••••••••" /></div>
-            <div><Label className="text-xs">New password (min 6 characters)</Label>
+            <div><Label className="text-xs">New password (min 12 characters, mixed case, number, symbol)</Label>
               <Input className="mt-1 h-9 text-sm" type={showPw ? "text" : "password"} autoComplete="new-password" value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} placeholder="••••••••" /></div>
             <div><Label className="text-xs">Confirm new password</Label>
               <Input className="mt-1 h-9 text-sm" type={showPw ? "text" : "password"} autoComplete="new-password" value={pw.confirm} onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))} placeholder="••••••••" /></div>
