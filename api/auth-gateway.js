@@ -531,6 +531,33 @@ async function handleAdminChangePassword(req, body, ip, supabase) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ?action=admin-list   (no body)   Header: Authorization: Bearer <admin token>
+// Returns every administrator profile. Read with the service role because the
+// browser-side read is filtered by row-level security: it only returns ALL
+// profiles when the sign-in token carries a custom "user_role" claim, and
+// otherwise returns just the signed-in admin's own row — which is why a newly
+// added admin was saved but never appeared in the list.
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleAdminList(req, supabase) {
+  const token = (hdr(req, "authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return json(401, { ok: false, error: "Please sign in again." });
+  const { data: who, error: whoErr } = await supabase.auth.getUser(token);
+  if (whoErr || !who?.user) return json(401, { ok: false, error: "Session expired. Please sign in again." });
+  const { data: me } = await supabase.from("profiles").select("role,status").eq("id", who.user.id).maybeSingle();
+  if (!me || me.role !== "admin" || (me.status && me.status !== "approved")) {
+    return json(403, { ok: false, error: "Only an administrator can view this list." });
+  }
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("role", "admin")
+    .not("status", "eq", "rejected")
+    .order("created_at", { ascending: false });
+  if (error) return json(200, { ok: false, error: error.message });
+  return json(200, { ok: true, rows: data || [] });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Entry point  (Node runtime: handler(req, res))
 //
 // ROOT-CAUSE FIX for "Network Error" on every Sign In:
@@ -606,6 +633,7 @@ async function handle(req) {
       case "apply":    return await handleApply(body, ip, supabase);
       case "reset":    return await handleReset(body, ip, supabase, req);
       case "signin":   return await handleSignIn(body, ip, supabase);
+      case "admin-list": return await handleAdminList(req, supabase);
       case "admin-create": return await handleAdminCreate(req, body, supabase);
       case "admin-change-password": return await handleAdminChangePassword(req, body, ip, supabase);
       default:         return json(400, { ok: false, error: "Unknown action." });
