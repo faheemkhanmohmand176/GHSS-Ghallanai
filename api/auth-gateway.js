@@ -434,26 +434,100 @@ async function handleAdminCreate(req, body, supabase) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(400, { ok: false, error: "Please enter a valid email address." });
   if (password.length < 6) return json(400, { ok: false, error: "Password must be at least 6 characters." });
 
+  // Writes (or repairs) the profile row with the service role. UPSERT, so it
+  // works whether or not a database trigger already created the row — the
+  // old update-only code touched 0 rows when no profile existed, which is why
+  // the account was created but never became an admin.
+  const promote = async (id) => {
+    let lastErr = "";
+    for (let i = 0; i < 3; i++) {
+      if (i) await new Promise((r) => setTimeout(r, 400));
+      const { error } = await supabase.from("profiles").upsert(
+        { id, full_name: fullName, role: "admin", phone, status: "approved", email_verified: true, updated_at: new Date().toISOString() },
+        { onConflict: "id" },
+      );
+      if (!error) return { ok: true };
+      lastErr = error.message;
+    }
+    return { ok: false, error: lastErr };
+  };
+
   const { data: created, error: cErr } = await supabase.auth.admin.createUser({
     email, password, email_confirm: true, user_metadata: { full_name: fullName },
   });
+
   if (cErr || !created?.user) {
     const m = cErr?.message || "Could not create the account.";
-    return json(200, { ok: false, error: /already|registered|exists/i.test(m) ? "This email is already registered." : m });
+    if (!/already|registered|exists/i.test(m)) return json(200, { ok: false, error: m });
+
+    // The email exists in Auth. Find it so a half-finished earlier attempt
+    // (account created, no admin profile) can be completed instead of blocked.
+    let existing = null;
+    for (let page = 1; page <= 10 && !existing; page++) {
+      const { data: list, error: lErr } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+      if (lErr || !list?.users?.length) break;
+      existing = list.users.find((u) => (u.email || "").toLowerCase() === email) || null;
+      if (list.users.length < 200) break;
+    }
+    if (!existing) return json(200, { ok: false, error: "This email is already registered." });
+
+    const { data: prof } = await supabase.from("profiles").select("role,status").eq("id", existing.id).maybeSingle();
+    if (prof?.role === "admin") return json(200, { ok: false, error: "This email is already an admin." });
+    if (prof) return json(200, { ok: false, error: `This email is already registered as a ${prof.role || "user"}.` });
+
+    // No profile row at all = the leftover of a failed earlier attempt → finish it.
+    const { error: uErr } = await supabase.auth.admin.updateUserById(existing.id, {
+      password, email_confirm: true, user_metadata: { full_name: fullName },
+    });
+    if (uErr) return json(200, { ok: false, error: uErr.message });
+    const r = await promote(existing.id);
+    return json(200, r.ok ? { ok: true, promoted: true, id: existing.id, recovered: true } : { ok: false, error: `Profile could not be saved: ${r.error}` });
   }
 
-  // The DB trigger creates the profile row; promote it (retry briefly if the trigger is a moment late).
-  let promoted = false;
-  for (let i = 0; i < 6 && !promoted; i++) {
-    if (i) await new Promise((r) => setTimeout(r, 400));
-    const { data: rows } = await supabase
-      .from("profiles")
-      .update({ full_name: fullName, role: "admin", phone, status: "approved" })
-      .eq("id", created.user.id)
-      .select("id");
-    if (rows && rows.length) promoted = true;
+  const r = await promote(created.user.id);
+  if (!r.ok) return json(200, { ok: false, error: `Account created but the admin profile could not be saved: ${r.error}` });
+  return json(200, { ok: true, promoted: true, id: created.user.id });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ?action=admin-change-password  body: { current_password, new_password }
+// Header: Authorization: Bearer <the signed-in admin's access token>
+//
+// Fixes "AAL2 session is required to update email or password when MFA is
+// enabled": the account still has an authenticator (MFA) factor enrolled from
+// before MFA was removed from the app, so Supabase refuses a browser-side
+// updateUser(). Here the password is changed with the Auth admin API instead,
+// after the CURRENT password is verified, so it stays safe.
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleAdminChangePassword(req, body, ip, supabase) {
+  const token = (hdr(req, "authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return json(401, { ok: false, error: "Please sign in again." });
+  const { data: who, error: whoErr } = await supabase.auth.getUser(token);
+  if (whoErr || !who?.user?.email) return json(401, { ok: false, error: "Session expired. Please sign in again." });
+
+  const { data: me } = await supabase.from("profiles").select("role,status").eq("id", who.user.id).maybeSingle();
+  if (!me || me.role !== "admin" || (me.status && me.status !== "approved")) {
+    return json(403, { ok: false, error: "Only an administrator can change the password here." });
   }
-  return json(200, { ok: true, promoted, id: created.user.id });
+
+  const current = String(body.current_password || "");
+  const next = String(body.new_password || "");
+  if (!current) return json(400, { ok: false, error: "Enter your current password." });
+  if (next.length < 6) return json(400, { ok: false, error: "New password must be at least 6 characters." });
+  if (next === current) return json(400, { ok: false, error: "New password must be different from the current one." });
+
+  // Generous brake against guessing the current password with a stolen session.
+  const lim = await rateLimit(supabase, "pwchange", await hashKey(who.user.id), 10, 15);
+  if (!lim.allowed) return json(429, { ok: false, error: "Too many attempts. Please try again in a few minutes." }, 15 * 60);
+
+  // Verify the current password with a throwaway client (never the shared one).
+  const probe = serviceClient();
+  const { data: ok, error: vErr } = await probe.auth.signInWithPassword({ email: who.user.email, password: current });
+  if (vErr || !ok?.session) return json(200, { ok: false, error: "Current password is incorrect." });
+
+  const { error: uErr } = await supabase.auth.admin.updateUserById(who.user.id, { password: next });
+  if (uErr) return json(200, { ok: false, error: uErr.message });
+  return json(200, { ok: true });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -533,6 +607,7 @@ async function handle(req) {
       case "reset":    return await handleReset(body, ip, supabase, req);
       case "signin":   return await handleSignIn(body, ip, supabase);
       case "admin-create": return await handleAdminCreate(req, body, supabase);
+      case "admin-change-password": return await handleAdminChangePassword(req, body, ip, supabase);
       default:         return json(400, { ok: false, error: "Unknown action." });
     }
   } catch (e) {
