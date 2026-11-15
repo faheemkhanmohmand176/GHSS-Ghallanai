@@ -257,6 +257,27 @@ interface MeritEntry {
   percentage: number; remarks: string | null; is_listed?: boolean;
 }
 
+// Shown instead of a section while admission is switched off by the admin.
+function LockedSection({ id, kicker, title }: { id?: string; kicker?: string; title: string }) {
+  return (
+    <section id={id}>
+      <div className="text-center mb-5">
+        {kicker && <span className="premium-kicker block">{kicker}</span>}
+        <h2 className="section-title premium-display !text-[1.9rem] sm:!text-4xl mt-1">{title}</h2>
+      </div>
+      <div className="mx-auto flex max-w-md flex-col items-center rounded-2xl border border-dashed border-border bg-muted/40 px-5 py-8 text-center shadow-card">
+        <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-muted-foreground">
+          <Lock className="h-5 w-5" strokeWidth={2} />
+        </span>
+        <p className="font-luxe text-[1.3rem] font-bold leading-tight text-foreground">Locked</p>
+        <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+          Online admission is currently closed. This section will open again when admission starts.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function MeritLists() {
   const [viewId, setViewId] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -585,9 +606,9 @@ export default function Admission() {
     );
   }
 
-  // Admission closed by the admin / date window over: ONLY "Apply Online" is
-  // locked (and the session / days-left / last-date tiles show a dash). Track,
-  // merit lists, programs and instructions stay available.
+  // Admission closed by the admin / date window over: "Apply Online",
+  // "Programs & Seats" and "Merit Lists" are locked (and the session /
+  // days-left / last-date tiles show a dash). Track and instructions stay available.
   const applyOpen = state.open || settingsError;
 
   return (
@@ -642,9 +663,12 @@ export default function Admission() {
         <TrackApplication />
 
         {/* Merit lists */}
-        <MeritLists />
+        {applyOpen ? <MeritLists /> : <LockedSection id="merit-lists" title="Admission Merit Lists" />}
 
         {/* Programs & seats */}
+        {!applyOpen ? (
+          <LockedSection kicker="Offered" title="Programs & Seats" />
+        ) : (
         <section>
           <div className="text-center mb-7">
             <span className="premium-kicker block">Offered</span>
@@ -691,6 +715,7 @@ export default function Admission() {
             ))}
           </div>
         </section>
+        )}
 
         {/* Categories */}
         <section>
