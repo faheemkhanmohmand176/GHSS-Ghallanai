@@ -66,7 +66,11 @@ export function useAdmissionSettings() {
         async () => {
           const { data, error } = await supabase
             .from("admission_settings")
-            .select("*")
+            // SECURITY: anon may only read the public columns (rate-limit and
+            // retention settings are not granted to anon) — never select("*").
+            .select(
+              "id,is_open,session_year,open_date,last_date,banner_message,notes,updated_at,processing_fee,payment_methods,online_payment_enabled",
+            )
             .eq("id", 1)
             .maybeSingle();
           if (error) throw error;
