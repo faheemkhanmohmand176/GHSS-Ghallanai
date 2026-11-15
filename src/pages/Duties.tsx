@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, IdCard, Smartphone, Loader2, Download, CheckCircle2, Info, AlertTriangle,
-  Landmark, X, ArrowRight, FileText, ChevronDown,
+  Landmark, X, ArrowRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import PageLayout from "@/components/layout/PageLayout";
 import { downloadDutyOrderPDF } from "@/lib/dutyOrderPDF";
-import { groupRows, letterFacts, lineText, type LetterLine } from "@/lib/letterModel";
+import { letterFacts } from "@/lib/letterModel";
 import {
   useDrawSources, useDrawLookup, useDrawPreview, formatPkMobile,
   type DrawDetails, type DrawResult,
@@ -87,6 +87,20 @@ const Duties = () => {
   const digits = value.replace(/\D/g, "");
   const ready = by === "cnic" ? digits.length === 13 : digits.length >= 10;
   const result: DrawResult | undefined = lookup.data;
+  // everything shown is exactly what BISE returned: search result fields + the letter's own sentences
+  const tableRows = useMemo(() => {
+    if (!result?.selected) return [] as [string, string][];
+    const rows: [string, string | undefined][] = ROWS.map(({ key, label }) => {
+      const raw = result.details?.[key];
+      return [label, key === "mobile" ? formatPkMobile(raw) : raw];
+    });
+    if (result.letterDoc?.length) {
+      const f = letterFacts(result.letterDoc);
+      rows.push(["Center Name", f.centerName], ["Report Date", f.reportDate], ["Report Time", f.reportTime],
+        ["Ref No", f.ref], ["Dated", f.dated], ["CNIC", f.cnic]);
+    }
+    return rows.filter(([, v]) => !!v) as [string, string][];
+  }, [result]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,14 +188,10 @@ const Duties = () => {
                   </button>
                 )}
               </div>
-              <p className="mx-auto mt-3 max-w-[17rem] text-center text-[12.5px] leading-relaxed text-muted-foreground">
-                {by === "cnic" ? "Enter your 13-digit CNIC. Dashes are added for you." : "Enter the mobile number registered with BISE Peshawar."}
-              </p>
-
               <button
                 type="submit"
                 disabled={!ready || lookup.isPending}
-                className="group relative mt-4 flex h-10 w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-b from-[hsl(46_96%_72%)] to-[hsl(38_88%_50%)] text-[13.5px] font-bold tracking-wide text-[hsl(158_45%_10%)] shadow-[0_14px_26px_-14px_hsl(38_85%_42%/.8),inset_0_1px_0_hsl(0_0%_100%/.55)] transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55"
+                className="group relative mt-5 flex h-10 w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-b from-[hsl(46_96%_72%)] to-[hsl(38_88%_50%)] text-[13.5px] font-bold tracking-wide text-[hsl(158_45%_10%)] shadow-[0_14px_26px_-14px_hsl(38_85%_42%/.8),inset_0_1px_0_hsl(0_0%_100%/.55)] transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55"
               >
                 {lookup.isPending ? (<><Loader2 className="h-4 w-4 animate-spin" /> Checking…</>) : (<><Search className="h-4 w-4" /> Check My Duty <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>)}
               </button>
@@ -217,19 +227,14 @@ const Duties = () => {
                     <div className="px-4 sm:px-6">
                       <table className="w-full border-separate border-spacing-0 overflow-hidden rounded-2xl border border-border text-center">
                         <tbody>
-                          {ROWS.map(({ key, label }) => {
-                            const raw = result.details?.[key];
-                            if (!raw) return null;
-                            const v = key === "mobile" ? formatPkMobile(raw) : raw;
-                            return (
-                              <tr key={key} className="[&:not(:last-child)>td]:border-b [&:not(:last-child)>td]:border-border">
-                                <td className="px-4 py-3.5 even:bg-secondary/40">
-                                  <span className="block text-[10.5px] font-bold uppercase tracking-[0.2em] text-primary">{label}</span>
-                                  <span className="mt-1 block break-words text-[15.5px] font-semibold leading-snug tracking-wide text-foreground">{v}</span>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                          {tableRows.map(([label, v], i) => (
+                            <tr key={label}>
+                              <td className={`px-4 py-3.5 text-center align-middle ${i % 2 ? "" : "bg-secondary/40"} ${i < tableRows.length - 1 ? "border-b border-border" : ""}`}>
+                                <span className="block text-[10.5px] font-bold uppercase tracking-[0.2em] text-primary">{label}</span>
+                                <span className="mt-1 block break-words text-[15.5px] font-semibold leading-snug tracking-wide text-foreground">{v}</span>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -241,7 +246,6 @@ const Duties = () => {
                       </button>
                     </div>
 
-                    {result.letterDoc && result.letterDoc.length > 0 && <LetterPanel lines={result.letterDoc} />}
                   </div>
                 ) : (
                   <Notice tone="info" icon={Info} title="Not selected in this draw">
@@ -291,72 +295,6 @@ const Duties = () => {
     </PageLayout>
   );
 };
-
-/** The board's own letter, verbatim — only the styling is ours. */
-function LetterView({ lines }: { lines: LetterLine[] }) {
-  const rows = useMemo(() => groupRows(lines), [lines]);
-  return (
-    <div className="space-y-1.5 text-[12.5px] leading-relaxed text-foreground">
-      {rows.map((row, ri) => {
-        const dashes = row.cols.length === 1 && /^[-–—_=\s]{12,}$/.test(lineText(row.cols[0].lines[0] || ({} as LetterLine)));
-        if (dashes) return <hr key={row.id} className="border-t border-dashed border-border" />;
-        const stack = row.cols.length >= 3;
-        return (
-          <div key={row.id} className={`flex gap-x-3 ${stack ? "flex-col gap-y-0.5 sm:flex-row" : ""} ${ri === 0 ? "pb-1" : ""}`}>
-            {row.cols.map((c, ci) => (
-              <div key={ci} className="min-w-0 break-words" style={{ flex: row.narrowFirst && ci === 0 ? "0 0 1.6rem" : `${c.weight} 1 0%` }}>
-                {c.lines.map((l, li) =>
-                  l.img ? (
-                    <img key={li} src={l.img} alt="" className={`my-1 h-9 w-auto max-w-full ${l.center ? "mx-auto" : ""}`} />
-                  ) : (
-                    <p key={li} className={`${l.center ? "text-center" : ""} ${ri === 0 ? "font-luxe text-[1.1rem] leading-snug text-primary" : ""}`}>
-                      {(l.runs || []).map((r, k) => (
-                        <span key={k} className={`${r.b ? "font-semibold" : ""} ${r.u ? "underline underline-offset-2" : ""}`}>{r.t}</span>
-                      ))}
-                    </p>
-                  ),
-                )}
-              </div>
-            ))}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function LetterPanel({ lines }: { lines: LetterLine[] }) {
-  const f = useMemo(() => letterFacts(lines), [lines]);
-  const facts: [string, string | undefined][] = [
-    ["Center Name", f.centerName],
-    ["Report On", f.reportDate && (f.reportTime ? `${f.reportDate} at ${f.reportTime}` : f.reportDate)],
-    ["Ref No", f.ref],
-    ["Dated", f.dated],
-    ["CNIC", f.cnic],
-  ];
-  const shown = facts.filter(([, v]) => v) as [string, string][];
-  return (
-    <div className="border-t border-border">
-      {shown.length > 0 && (
-        <div className="grid grid-cols-2 divide-x divide-y divide-border border-b border-border text-center">
-          {shown.map(([k, v], i) => (
-            <div key={k} className={`px-3 py-3 ${shown.length % 2 && i === shown.length - 1 ? "col-span-2" : ""}`}>
-              <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-primary">{k}</span>
-              <span className="mt-0.5 block break-words text-[14px] font-semibold text-foreground">{v}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      <details className="group">
-        <summary className="flex cursor-pointer list-none items-center justify-center gap-2 px-4 py-3 text-[13px] font-semibold text-primary [&::-webkit-details-marker]:hidden">
-          <FileText className="h-4 w-4" /> Read the full duty letter
-          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="mx-3 mb-4 rounded-2xl border border-border bg-background p-4 sm:mx-5"><LetterView lines={lines} /></div>
-      </details>
-    </div>
-  );
-}
 
 const Notice = ({ tone, icon: Icon, title, children }: { tone: "info" | "warn"; icon: typeof Info; title: string; children: React.ReactNode }) => (
   <div className={`rounded-[28px] border p-6 text-center ${tone === "warn" ? "border-amber-400/50 bg-amber-50 dark:bg-amber-500/10" : "border-border bg-card"}`}>
