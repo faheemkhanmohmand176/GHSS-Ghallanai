@@ -390,39 +390,27 @@ function MegaRow({ link, active, onNavigate }: {
   active: boolean;
   onNavigate: () => void;
 }) {
-  const Icon = link.icon;
   return (
     <Link
       to={link.to}
       onClick={onNavigate}
-      className={`mega-row group relative flex items-center gap-3 rounded-xl px-3 py-2.5 no-underline transition-colors duration-150 ${
-        active ? "bg-gold-soft/60 dark:bg-gold/10" : "hover:bg-secondary"
+      className={`mega-row group relative block px-5 py-3 no-underline transition-colors duration-200 ${
+        active ? "bg-gold-soft/40 dark:bg-gold/10" : "hover:bg-secondary/70"
       }`}
     >
-      {active && (
-        <span
-          className="absolute left-0 top-1/2 h-6 w-[3px] rounded-full bg-gold"
-          aria-hidden="true"
-        />
-      )}
+      {/* thin gold marker: always on for the current page, fades in on hover */}
       <span
-        className={`w-10 h-10 shrink-0 rounded-xl ${link.tint} flex items-center justify-center`}
-        aria-hidden="true"
-      >
-        <Icon className="w-[18px] h-[18px]" />
-      </span>
-      <span className="flex-1 min-w-0">
-        <span className={`block text-[14px] font-semibold leading-tight ${active ? "text-primary dark:text-gold" : "text-foreground"}`}>
-          {link.label}
-        </span>
-        <span className="block text-[12px] text-muted-foreground leading-snug mt-0.5 truncate">
-          {link.desc}
-        </span>
-      </span>
-      <ArrowRight
-        className="mega-row-arrow w-4 h-4 shrink-0 text-gold"
+        className={`absolute left-0 top-3 bottom-3 w-[2px] rounded-full bg-gold transition-opacity duration-200 ${
+          active ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        }`}
         aria-hidden="true"
       />
+      <span className={`block text-[13.5px] font-medium leading-tight tracking-[0.005em] ${active ? "text-primary dark:text-gold" : "text-foreground"}`}>
+        {link.label}
+      </span>
+      <span className="mt-1 block truncate text-[11.5px] font-normal leading-snug text-muted-foreground">
+        {link.desc}
+      </span>
     </Link>
   );
 }
@@ -1141,7 +1129,6 @@ const Navbar = () => {
 
           {/* Grouped sections with mega panels */}
           {NAV_SECTIONS.map((section) => {
-            const SectionIcon = section.icon;
             const sectionActive =
               section.links.some((l) => l.to === location.pathname) ||
               (section.id === "results" && location.pathname === "/roll-no-slip");
@@ -1169,9 +1156,9 @@ const Navbar = () => {
                   <span className="nav-underline" aria-hidden="true" />
                 </button>
 
-                {/* Panel — premium dropdown: caret notch, icon + title header,
-                    roomy rows. Opens with one quick fade (no scale / per-row
-                    animation) so it feels instant. */}
+                {/* Panel — slim, text-only premium dropdown: hairline border,
+                    gold top rule, small-caps title, thin rows with a quiet
+                    gold marker. One quick fade (no per-row animation). */}
                 <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 z-50">
                   <AnimatePresence>
                     {isOpen && (
@@ -1180,69 +1167,55 @@ const Navbar = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 4 }}
                         transition={{ duration: 0.16, ease: "easeOut" }}
-                        className="w-[344px] max-w-[calc(100vw-2rem)]"
+                        className="w-[290px] max-w-[calc(100vw-2rem)]"
                       >
-                        <div className="relative rounded-2xl border border-border bg-card shadow-[0_22px_50px_-14px_rgba(8,32,18,0.30)] dark:shadow-[0_22px_50px_-14px_rgba(0,0,0,0.65)]">
-                          {/* caret notch pointing at the trigger — positioned
-                              without Tailwind translate (the global Android
-                              transform fix would neutralise it here) */}
-                          <span
-                            className="absolute top-[6px] left-[calc(50%-6px)] w-3 h-3 rotate-45 bg-card border-l border-t border-border"
-                            aria-hidden="true"
-                          />
-                          <div className="relative overflow-hidden rounded-2xl">
-                            {/* gold top accent */}
-                            <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-gold/0 via-gold to-gold/0" aria-hidden="true" />
+                        <div className="relative overflow-hidden rounded-xl border border-border/70 bg-card shadow-[0_18px_40px_-16px_rgba(8,32,18,0.22)] dark:shadow-[0_18px_40px_-16px_rgba(0,0,0,0.6)]">
+                          {/* thin gold top rule */}
+                          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-gold/0 via-gold to-gold/0" aria-hidden="true" />
 
-                            {/* header: icon chip + section title + tagline */}
-                            <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border/70 bg-secondary/40">
-                              <span className={`w-9 h-9 shrink-0 rounded-xl ${section.tint} flex items-center justify-center`} aria-hidden="true">
-                                <SectionIcon className="w-[18px] h-[18px]" />
-                              </span>
-                              <div className="min-w-0">
-                                <p className="font-display text-[15px] font-semibold leading-tight text-foreground truncate">
-                                  {section.label}
-                                </p>
-                                <p className="text-[11.5px] leading-snug text-muted-foreground mt-0.5 truncate">
-                                  {section.tagline}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* link rows */}
-                            <div className="p-2 space-y-0.5">
-                              {section.links.map((link) => (
-                                <MegaRow
-                                  key={link.to}
-                                  link={link}
-                                  active={location.pathname === link.to}
-                                  onNavigate={() => setOpenSection(null)}
-                                />
-                              ))}
-                            </div>
-
-                            {/* Results panel: Roll No. Slip spotlight card with
-                                the live countdown badge */}
-                            {section.id === "results" && (
-                              <div className="px-2 pb-2">
-                                <Link
-                                  to={rollSlipItem.to}
-                                  onClick={() => setOpenSection(null)}
-                                  className="group relative flex items-center gap-3 overflow-hidden rounded-xl bg-gold-soft/50 hover:bg-gold-soft dark:bg-gold/10 dark:hover:bg-gold/15 text-foreground px-3 py-2.5 no-underline border border-gold/30 transition-colors duration-150"
-                                >
-                                  <span className={`relative w-10 h-10 rounded-xl ${rollSlipItem.tint} flex items-center justify-center shrink-0`} aria-hidden="true">
-                                    <Hash className="w-[18px] h-[18px]" />
-                                  </span>
-                                  <span className="relative flex-1 min-w-0">
-                                    <span className="block text-[14px] font-semibold leading-tight text-foreground">{rollSlipItem.label}</span>
-                                    <span className="block text-[12px] text-muted-foreground leading-snug mt-0.5 truncate">{rollSlipItem.desc}</span>
-                                  </span>
-                                  <RollSlipCountdown variant="menu-badge" />
-                                  <ArrowRight className="mega-row-arrow w-4 h-4 shrink-0 text-gold" aria-hidden="true" />
-                                </Link>
-                              </div>
-                            )}
+                          {/* header: small-caps title + tagline, no icon */}
+                          <div className="px-5 pt-4 pb-3">
+                            <p className="text-[10.5px] font-semibold uppercase tracking-[0.22em] text-gold-strong dark:text-gold">
+                              {section.label}
+                            </p>
+                            <p className="mt-1 truncate font-display text-[13px] italic leading-snug text-muted-foreground">
+                              {section.tagline}
+                            </p>
                           </div>
+                          <div className="mx-5 h-px bg-border/70" aria-hidden="true" />
+
+                          {/* link rows */}
+                          <div className="py-1.5 divide-y divide-border/40">
+                            {section.links.map((link) => (
+                              <MegaRow
+                                key={link.to}
+                                link={link}
+                                active={location.pathname === link.to}
+                                onNavigate={() => setOpenSection(null)}
+                              />
+                            ))}
+                          </div>
+
+                          {/* Results panel: Roll No. Slip row with the live countdown badge */}
+                          {section.id === "results" && (
+                            <Link
+                              to={rollSlipItem.to}
+                              onClick={() => setOpenSection(null)}
+                              className={`mega-row group relative flex items-center gap-3 border-t border-border/60 bg-gold-soft/30 px-5 py-3 no-underline transition-colors duration-200 hover:bg-gold-soft/60 dark:bg-gold/5 dark:hover:bg-gold/10`}
+                            >
+                              <span
+                                className={`absolute left-0 top-3 bottom-3 w-[2px] rounded-full bg-gold transition-opacity duration-200 ${
+                                  location.pathname === rollSlipItem.to ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                }`}
+                                aria-hidden="true"
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-[13.5px] font-medium leading-tight tracking-[0.005em] text-foreground">{rollSlipItem.label}</span>
+                                <span className="mt-1 block truncate text-[11.5px] font-normal leading-snug text-muted-foreground">{rollSlipItem.desc}</span>
+                              </span>
+                              <RollSlipCountdown variant="menu-badge" />
+                            </Link>
+                          )}
                         </div>
                       </motion.div>
                     )}
