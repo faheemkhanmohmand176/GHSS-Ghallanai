@@ -142,10 +142,27 @@ function corsHeadersFor(req) {
 }
 
 // ── IP extraction (Vercel puts the client IP in x-forwarded-for or x-real-ip)
+// SECURITY: prefer headers set by the platform edge (Vercel overwrites them,
+// the client cannot forge them). x-forwarded-for is only a last resort.
 function clientIp(req) {
+  const vercel = hdr(req, "x-vercel-forwarded-for");
+  if (vercel) return String(vercel).split(",")[0].trim();
+  const real = hdr(req, "x-real-ip");
+  if (real) return String(real).trim();
   const xff = hdr(req, "x-forwarded-for");
   if (xff) return String(xff).split(",")[0].trim();
-  return hdr(req, "x-real-ip") || hdr(req, "cf-connecting-ip") || "0.0.0.0";
+  return hdr(req, "cf-connecting-ip") || "0.0.0.0";
+}
+
+// ── Password policy for admin accounts: 12+ chars, upper + lower + digit + symbol
+function passwordPolicyError(pw) {
+  const p = String(pw || "");
+  if (p.length < 12) return "Password must be at least 12 characters.";
+  if (p.length > 128) return "Password is too long (max 128 characters).";
+  if (!/[a-z]/.test(p) || !/[A-Z]/.test(p) || !/[0-9]/.test(p) || !/[^A-Za-z0-9]/.test(p)) {
+    return "Password must include an uppercase letter, a lowercase letter, a number and a symbol.";
+  }
+  return null;
 }
 
 // Lightweight hash so we don't store raw IPs / login ids in security_attempts
@@ -158,7 +175,13 @@ async function hashKey(s) {
 // ── Turnstile verification (server-side, never trusts the browser)
 async function verifyTurnstile(token, ip) {
   if (!TURNSTILE_SECRET) {
-    // Fail-safe: not configured → allow but flag it
+    // SECURITY: fail CLOSED in production when the secret is missing, so bots
+    // cannot slip through silently. To deliberately run without Turnstile
+    // set TURNSTILE_ALLOW_UNCONFIGURED=1 in Vercel (not recommended).
+    const isProd = process.env.VERCEL_ENV === "production";
+    if (isProd && process.env.TURNSTILE_ALLOW_UNCONFIGURED !== "1") {
+      return { ok: false, error: "Captcha is not configured on the server. Please contact the school office." };
+    }
     return { ok: true, unconfigured: true };
   }
   if (!token) return { ok: false, error: "Captcha token missing." };
@@ -335,8 +358,8 @@ async function handleReset(body, ip, supabase, req) {
 
   // Use the service-role admin API so the reset email is sent server-side.
   // redirectTo must be an allowed URL in Supabase Auth settings.
-  const origin = hdr(req, "origin") || originOf(req);
-  const redirectTo = `${origin}/auth/reset-password`;
+  // SECURITY: never build the reset link from a request header (spoofable).
+  const redirectTo = `${SITE_ORIGIN}/auth/reset-password`;
   const { error } = await supabase.auth.admin.generateLink({
     type: "recovery",
     email: body.email,
@@ -432,7 +455,8 @@ async function handleAdminCreate(req, body, supabase) {
   const phone = String(body.phone || "").trim().slice(0, 30) || null;
   if (!fullName || !email || !password) return json(400, { ok: false, error: "Name, email, and password are required." });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(400, { ok: false, error: "Please enter a valid email address." });
-  if (password.length < 6) return json(400, { ok: false, error: "Password must be at least 6 characters." });
+  const pwErr = passwordPolicyError(password);
+  if (pwErr) return json(400, { ok: false, error: pwErr });
 
   // Writes (or repairs) the profile row with the service role. UPSERT, so it
   // works whether or not a database trigger already created the row — the
@@ -513,7 +537,8 @@ async function handleAdminChangePassword(req, body, ip, supabase) {
   const current = String(body.current_password || "");
   const next = String(body.new_password || "");
   if (!current) return json(400, { ok: false, error: "Enter your current password." });
-  if (next.length < 6) return json(400, { ok: false, error: "New password must be at least 6 characters." });
+  const pwErr = passwordPolicyError(next);
+  if (pwErr) return json(400, { ok: false, error: pwErr });
   if (next === current) return json(400, { ok: false, error: "New password must be different from the current one." });
 
   // Generous brake against guessing the current password with a stolen session.
