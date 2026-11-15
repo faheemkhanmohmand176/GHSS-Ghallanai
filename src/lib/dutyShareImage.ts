@@ -3,8 +3,8 @@
 // Privacy: CNIC, mobile number and ref no are intentionally NOT drawn on the card.
 import { type DrawDetails } from "@/hooks/useDrawLookup";
 
-export const SITE_URL = "https://ghssghallanai.dpdns.org";
-const SITE_LABEL = "ghssghallanai.dpdns.org";
+export const SITE_URL = "https://ghssghallanai.dpdns.org/duties";
+const SITE_LABEL = "ghssghallanai.dpdns.org/duties";
 
 const SERIF = `"Playfair Display", "Playfair Fallback", Georgia, "Times New Roman", serif`;
 const SANS = `"Inter", "Inter Fallback", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif`;
@@ -191,7 +191,7 @@ export async function buildDutyShareBlob(inp: ShareInput): Promise<Blob> {
   ctx.fillRect(W / 2 - 230, fy - 1, 190, 2); ctx.fillRect(W / 2 + 40, fy - 1, 190, 2);
   ctx.fillStyle = "#4d5f56"; ctx.font = `500 24px ${SANS}`;
   ctx.fillText("Check your own duty & download your duty order at", W / 2, fy + 52);
-  const lw = 640;
+  const lw = 760;
   rr(ctx, W / 2 - lw / 2, fy + 82, lw, 82, 41);
   const bgp = ctx.createLinearGradient(0, fy + 82, W, fy + 164);
   bgp.addColorStop(0, GREEN_D); bgp.addColorStop(1, GREEN);
@@ -225,5 +225,4 @@ export async function shareDuty(inp: ShareInput): Promise<"shared" | "downloaded
   setTimeout(() => URL.revokeObjectURL(url), 4000);
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
   return "downloaded";
-    }
-                   
+}
