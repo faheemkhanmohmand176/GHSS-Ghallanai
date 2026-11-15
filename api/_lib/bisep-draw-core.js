@@ -159,12 +159,14 @@ export function parseDrawListHtml(html, dir) {
 }
 
 // ── Transport ladder ────────────────────────────────────────────────────────
-const isChallenge = (status, body) =>
-  status === 403 || status === 429 || status === 503 || /enable javascript and cookies|just a moment|cf-chl/i.test(body.slice(0, 4000));
+const isChallenge = (status, buf) => {
+  const head = buf.subarray(0, 4000).toString("utf8");
+  return status === 403 || status === 429 || status === 503 || /enable javascript and cookies|just a moment|cf-chl/i.test(head);
+};
 
 async function viaFetch(url, method, body, headers, signal) {
   const r = await fetch(url, { method, headers, body, signal, redirect: "follow" });
-  return { status: r.status, body: await r.text() };
+  return { status: r.status, buf: Buffer.from(await r.arrayBuffer()) };
 }
 function viaHttp2(url, method, body, headers, signal) {
   return new Promise((resolve, reject) => {
@@ -176,7 +178,7 @@ function viaHttp2(url, method, body, headers, signal) {
     let status = 0; const chunks = [];
     req.on("response", (h) => { status = h[":status"]; });
     req.on("data", (d) => chunks.push(d));
-    req.on("end", () => done(resolve, { status, body: Buffer.concat(chunks).toString("utf8") }));
+    req.on("end", () => done(resolve, { status, buf: Buffer.concat(chunks) }));
     req.on("error", (e) => done(reject, e));
     signal?.addEventListener("abort", () => { try { req.close(); } catch {} done(reject, new Error("timeout")); });
     if (body) req.write(body);
@@ -188,7 +190,7 @@ function viaHttps(url, method, body, headers, signal) {
     const r = https.request(url, { method, headers }, (res) => {
       const chunks = [];
       res.on("data", (d) => chunks.push(d));
-      res.on("end", () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString("utf8") }));
+      res.on("end", () => resolve({ status: res.statusCode, buf: Buffer.concat(chunks) }));
     });
     r.on("error", reject);
     signal?.addEventListener("abort", () => { r.destroy(); reject(new Error("timeout")); });
@@ -198,31 +200,180 @@ function viaHttps(url, method, body, headers, signal) {
 }
 const LADDER = [viaFetch, viaHttp2, viaHttps];
 
-async function boardRequest(dir, method, form) {
-  const url = `${HOST}/${dir}/SearchDraw.php`;
+/** Generic board request → { buf } | { fail }. Binary-safe (letters, signature image). */
+async function boardFetch(url, { method = "GET", form, referer, attempts = 3, perTry = 3200, minLen = 200 } = {}) {
   const body = form ? new URLSearchParams(form).toString() : undefined;
   let lastDetail = "unreachable";
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     if (attempt) await sleep(jitter(400, 750) * attempt);
     const headers = {
       "user-agent": UA,
-      accept: "text/html,application/xhtml+xml,*/*;q=0.8",
+      accept: "text/html,application/xhtml+xml,image/*,*/*;q=0.8",
       "accept-language": "en-US,en;q=0.9",
-      referer: `${HOST}/${dir}/`,
+      referer: referer || `${HOST}/`,
       ...(body ? { "content-type": "application/x-www-form-urlencoded", origin: HOST } : {}),
     };
     const ac = new AbortController();
-    const t = setTimeout(() => ac.abort(), 3200);
+    const t = setTimeout(() => ac.abort(), perTry);
     try {
-      const { status, body: html } = await LADDER[attempt % LADDER.length](url, method, body, headers, ac.signal);
-      if (isChallenge(status, html)) { lastDetail = "cloudflare-challenge"; continue; }
-      if (status >= 200 && status < 300 && html.length > 200) return { html };
+      const { status, buf } = await LADDER[attempt % LADDER.length](url, method, body, headers, ac.signal);
+      if (isChallenge(status, buf)) { lastDetail = "cloudflare-challenge"; continue; }
+      if (status >= 200 && status < 300 && buf.length >= minLen) return { buf };
       lastDetail = `http-${status}`;
     } catch (e) {
       lastDetail = String(e?.message || "network").slice(0, 60);
     } finally { clearTimeout(t); }
   }
   return { fail: lastDetail };
+}
+
+async function boardRequest(dir, method, form) {
+  const r = await boardFetch(`${HOST}/${dir}/SearchDraw.php`, { method, form, referer: `${HOST}/${dir}/` });
+  return r.fail ? r : { html: r.buf.toString("utf8") };
+}
+
+// ── Official duty letter → structured lines (verbatim text, nothing invented) ──
+const LETTER_RE = /^https:\/\/bisep\.edu\.pk\/[A-Za-z0-9_]{3,40}\/PrintLetter(?:Sup|DSup|Invg)\.php\?ID=\d+&key=[0-9a-f]{40}$/;
+
+function classSets(html) {
+  const sets = { b: new Set(), u: new Set(), c: new Set() };
+  const styleRe = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+  let m;
+  while ((m = styleRe.exec(html))) {
+    const ruleRe = /([^{}]+)\{([^}]*)\}/g;
+    let r;
+    while ((r = ruleRe.exec(m[1]))) {
+      const cls = [...r[1].matchAll(/\.([A-Za-z0-9_-]+)/g)].map((x) => x[1]);
+      const css = r[2];
+      if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(css)) cls.forEach((c) => sets.b.add(c));
+      if (/text-decoration[^;]*underline/i.test(css)) cls.forEach((c) => sets.u.add(c));
+      if (/text-align\s*:\s*center/i.test(css)) cls.forEach((c) => sets.c.add(c));
+    }
+  }
+  return sets;
+}
+
+/** HTML → [{ row, col, runs:[{t,b?,u?}], center?, img? }] in reading order. */
+export function parseLetterHtml(html) {
+  const bodyAt = html.search(/<body/i);
+  let src = (bodyAt >= 0 ? html.slice(bodyAt) : html).replace(/<!--[\s\S]*?-->/g, "").replace(/<script[\s\S]*?<\/script>/gi, "");
+  const cls = classSets(html);
+  const VOID = new Set(["br", "img", "hr", "input", "meta", "link"]);
+  const BLOCK = new Set(["p", "div", "tr", "li", "table", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "center", "hr", "br", "tbody", "thead", "form"]);
+  const stack = [];
+  const lines = [];
+  let rowCounter = 0, rowId = 0, colIdx = 0, inRow = 0;
+  let cur = null;
+  const olCount = [];
+  let pendingList = null;
+  let liOpen = 0;
+
+  const flags = () => ({
+    b: stack.some((e) => e.b), u: stack.some((e) => e.u), center: stack.some((e) => e.c),
+  });
+  const flush = () => {
+    if (cur && cur.runs.length && cur.runs.some((r) => r.t.trim())) {
+      // trim edges
+      cur.runs[0].t = cur.runs[0].t.replace(/^\s+/, "");
+      cur.runs[cur.runs.length - 1].t = cur.runs[cur.runs.length - 1].t.replace(/\s+$/, "");
+      lines.push(cur);
+    }
+    cur = null;
+  };
+  const start = () => {
+    if (cur) return cur;
+    if (!inRow) rowId = ++rowCounter;
+    const f = flags();
+    cur = { row: rowId, col: inRow ? colIdx : 0, runs: [], ...(f.center ? { center: 1 } : {}) };
+    return cur;
+  };
+  const addText = (raw) => {
+    const t = decode(raw).replace(/\s+/g, " ");
+    if (!t.trim() && !cur) return;
+    if (pendingList) { const l = start(); l.runs.push({ t: pendingList, b: 1 }); pendingList = null; flush(); colIdx++; }
+    const l = start();
+    const f = flags();
+    l.runs.push({ t, ...(f.b ? { b: 1 } : {}), ...(f.u ? { u: 1 } : {}) });
+  };
+
+  const tokRe = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*)>|([^<]+)/g;
+  let m;
+  while ((m = tokRe.exec(src))) {
+    if (m[4] !== undefined) { addText(m[4]); continue; }
+    const closing = !!m[1];
+    const tag = m[2].toLowerCase();
+    const attrs = m[3] || "";
+    if (closing) {
+      if (tag === "td" || tag === "th") { flush(); }
+      else if (BLOCK.has(tag)) flush();
+      if (tag === "tr") { inRow = Math.max(0, inRow - 1); colIdx = 0; }
+      if (tag === "li" && liOpen > 0) { liOpen -= 1; inRow = Math.max(0, inRow - 1); colIdx = 0; }
+      if (tag === "ol") olCount.pop();
+      const i = stack.map((e) => e.tag).lastIndexOf(tag);
+      if (i >= 0) stack.length = i;
+      continue;
+    }
+    if (BLOCK.has(tag) && tag !== "tr") flush();
+    if (tag === "img") {
+      flush();
+      const sm = attrs.match(/src\s*=\s*["']([^"']+)["']/i);
+      if (sm) { if (!inRow) rowId = ++rowCounter; lines.push({ row: rowId, col: inRow ? colIdx : 0, img: decode(sm[1]), ...(flags().center ? { center: 1 } : {}) }); }
+      continue;
+    }
+    if (tag === "br" || tag === "hr") continue;
+    if (tag === "tr") { flush(); inRow += 1; rowId = ++rowCounter; colIdx = -1; }
+    if (tag === "td" || tag === "th") { flush(); colIdx += 1; if (colIdx < 0) colIdx = 0; }
+    if (tag === "ol") olCount.push(0);
+    if (tag === "li" && olCount.length) {
+      olCount[olCount.length - 1] += 1;
+      pendingList = olCount[olCount.length - 1] + ".";
+      rowId = ++rowCounter; inRow += 1; colIdx = 0; liOpen += 1;
+    }
+    if (!VOID.has(tag)) {
+      const style = (attrs.match(/style\s*=\s*["']([^"']*)["']/i) || [])[1] || "";
+      const classes = ((attrs.match(/class\s*=\s*["']([^"']*)["']/i) || [])[1] || "").split(/\s+/).filter(Boolean);
+      stack.push({
+        tag,
+        b: tag === "b" || tag === "strong" || tag === "th" || /h[1-6]/.test(tag) || /font-weight\s*:\s*(bold|[6-9]00)/i.test(style) || classes.some((c) => cls.b.has(c)),
+        u: tag === "u" || /text-decoration[^;]*underline/i.test(style) || classes.some((c) => cls.u.has(c)),
+        c: tag === "center" || /align\s*=\s*["']?center/i.test(attrs) || /text-align\s*:\s*center/i.test(style) || classes.some((c) => cls.c.has(c)),
+      });
+    }
+  }
+  flush();
+  return lines;
+}
+
+const sniffImage = (buf) => {
+  if (buf.length > 4 && buf[0] === 0x89 && buf[1] === 0x50) return "image/png";
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8) return "image/jpeg";
+  if (buf.length > 3 && buf.toString("ascii", 0, 3) === "GIF") return "image/gif";
+  return null;
+};
+
+/** Fetch + parse the board's own letter. Returns { lines } | { fail, pdf? }. */
+async function fetchLetterDoc(url, opts = {}) {
+  if (!LETTER_RE.test(url)) return { fail: "bad-letter-url" };
+  const r = await boardFetch(url, { referer: url.replace(/PrintLetter.*$/, ""), attempts: opts.attempts ?? 2, perTry: opts.perTry ?? 2600, minLen: 100 });
+  if (r.fail) return { fail: r.fail };
+  if (r.buf.subarray(0, 4).toString("ascii") === "%PDF") return { fail: "letter-is-pdf" };
+  const html = r.buf.toString("utf8");
+  const lines = parseLetterHtml(html);
+  if (lines.length < 5) return { fail: "letter-unreadable" };
+  // inline images (signature) as data URIs — same host only, size-capped
+  for (const l of lines) {
+    if (!l.img) continue;
+    if (/^data:image\//i.test(l.img)) continue;
+    try {
+      const abs = new URL(l.img, url);
+      if (abs.hostname !== "bisep.edu.pk") { delete l.img; continue; }
+      const ir = await boardFetch(abs.href, { referer: url, attempts: 2, perTry: 2200, minLen: 50 });
+      const mime = ir.buf && sniffImage(ir.buf);
+      if (ir.fail || !mime || ir.buf.length > 400_000) { delete l.img; continue; }
+      l.img = `data:${mime};base64,${ir.buf.toString("base64")}`;
+    } catch { delete l.img; }
+  }
+  return { lines: lines.filter((l) => l.runs || l.img) };
 }
 
 // ── Caches (per warm lambda) + in-flight de-dupe ────────────────────────────
@@ -237,7 +388,6 @@ async function once(key, fn) {
   return p;
 }
 
-const officialPage = (dir) => `${HOST}/${dir}/`;
 
 /** Returns { status, cache, body } — the caller (public-data.js) writes headers. */
 export async function handleDraw(q) {
@@ -248,7 +398,7 @@ export async function handleDraw(q) {
 
   if (mode === "sources") {
     return { status: 200, cache: "public, max-age=0, s-maxage=300, stale-while-revalidate=600",
-      body: { ok: true, sources: Object.entries(SRC).map(([id, s]) => ({ id, label: s.label, session: s.session, official_page: officialPage(s.dir) })) } };
+      body: { ok: true, sources: Object.entries(SRC).map(([id, s]) => ({ id, label: s.label, session: s.session })) } };
   }
 
   const sid = q.get("source") || "theory";
@@ -260,10 +410,22 @@ export async function handleDraw(q) {
     const hit = memGet(key);
     if (hit) return { status: 200, cache: "public, max-age=0, s-maxage=900, stale-while-revalidate=300", body: { ...hit, cached: true } };
     const r = await once(key, () => boardRequest(src.dir, "GET"));
-    if (r.fail) return { status: 200, cache: NO, body: { ok: false, error: "The board is busy right now.", detail: r.fail, official_page: officialPage(src.dir) } };
-    const body = { ok: true, source: sid, entries: parseDrawListHtml(r.html, src.dir), fetched_at: new Date().toISOString(), official_page: officialPage(src.dir) };
+    if (r.fail) return { status: 200, cache: NO, body: { ok: false, error: "The board is busy right now.", detail: r.fail } };
+    const body = { ok: true, source: sid, entries: parseDrawListHtml(r.html, src.dir), fetched_at: new Date().toISOString() };
     memSet(key, body, 30 * 60 * 1000);
     return { status: 200, cache: "public, max-age=0, s-maxage=900, stale-while-revalidate=300", body };
+  }
+
+  if (mode === "letter") {
+    const ref = String(q.get("ref") || "");
+    const url = `${HOST}/${ref}`;
+    const lk = `lt:${ref}`;
+    const hit = memGet(lk);
+    if (hit) return { status: 200, cache: NO, body: { ok: true, letterDoc: hit } };
+    const ld = await fetchLetterDoc(url, { attempts: 3, perTry: 3000 });
+    if (!ld.lines) return { status: 200, cache: NO, body: { ok: false, error: "letter-unavailable", detail: ld.fail } };
+    memSet(lk, ld.lines, 10 * 60 * 1000);
+    return { status: 200, cache: NO, body: { ok: true, letterDoc: ld.lines } };
   }
 
   const n = normaliseQuery(q.get("by"), q.get("value"));
@@ -272,14 +434,25 @@ export async function handleDraw(q) {
   const key = `lk:${sid}:${n.by}:${n.search}`;
   const hit = memGet(key);
   if (hit) return { status: 200, cache: OK, body: { ...hit, cached: true } };
+  const t0 = Date.now();
   const r = await once(key, () => boardRequest(src.dir, "POST", { Search: n.search, by: n.by }));
   if (r.fail) {
-    return { status: 200, cache: NO, body: { ok: false, error: "BISE Peshawar's server did not respond. Please try again in a moment, or check on the official page.", detail: r.fail, official_page: officialPage(src.dir) } };
+    return { status: 200, cache: NO, body: { ok: false, error: "BISE Peshawar's server did not respond. Please try again in a moment.", detail: r.fail } };
   }
   const parsed = parseDrawHtml(r.html, src.dir);
-  const body = { ok: true, source: sid, session: src.session, ...parsed, fetched_at: new Date().toISOString(), official_page: officialPage(src.dir) };
-  memSet(key, body, 10 * 60 * 1000);
-  return { status: 200, cache: OK, body };
+  const letterUrl = parsed.letter;
+  delete parsed.letter;
+  const body = { ok: true, source: sid, session: src.session, ...parsed, fetched_at: new Date().toISOString() };
+  if (parsed.selected && letterUrl) {
+    // Fetch the board's own letter in the same call when there is time left; otherwise hand the
+    // browser a reference so it can ask once more (keeps us inside the function time limit).
+    if (Date.now() - t0 < 4500) {
+      const ld = await fetchLetterDoc(letterUrl);
+      if (ld.lines) body.letterDoc = ld.lines; else body.letterRef = letterUrl.replace(`${HOST}/`, "");
+    } else body.letterRef = letterUrl.replace(`${HOST}/`, "");
+  }
+  if (!body.letterRef) memSet(key, body, 10 * 60 * 1000);
+  return { status: 200, cache: body.letterRef ? NO : OK, body };
 }
 
-export const __internals = { fmtMobile, normaliseQuery, parseDrawHtml, parseDrawListHtml, maskMobile };
+export const __internals = { parseLetterHtml, fmtMobile, normaliseQuery, parseDrawHtml, parseDrawListHtml, maskMobile };
