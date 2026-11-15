@@ -101,13 +101,26 @@ const AdminUsers = () => {
   const { data: users = [], isLoading } = useQuery<UserProfile[]>({
     queryKey: ["admin-users"],
     queryFn: async () => {
+      // Primary: read through the server (service role) so every admin shows
+      // up regardless of row-level-security claims on this browser's token.
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess.session?.access_token;
+        if (token) {
+          const res = await fetch("/api/auth-gateway?action=admin-list", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: "{}",
+          });
+          const out = await res.json();
+          if (res.ok && out?.ok && Array.isArray(out.rows)) return out.rows as UserProfile[];
+        }
+      } catch { /* fall back to the direct read below */ }
+
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("role", ADMIN_ROLE)
-        // CRITICAL FIX: Exclude 'rejected' status users from main view!
-        // Rejected users should have their auth account deleted via Pending Requests tab.
-        // If they still exist (fallback case), hide them here.
         .not("status", "eq", "rejected")
         .order("created_at", { ascending: false });
       if (error) throw error;
