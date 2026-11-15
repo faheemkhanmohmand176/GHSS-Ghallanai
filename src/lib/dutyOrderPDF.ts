@@ -1,155 +1,179 @@
-// src/lib/dutyOrderPDF.ts — premium A4 "Duty Order" (jsPDF, lazy-loaded).
-// A4 portrait 595.28 × 841.89 pt, identical left/right margins so everything
-// is mathematically centred. Palette matches the site: deep green + gold.
+// src/lib/dutyOrderPDF.ts — A4 duty order built ONLY from what BISE Peshawar returns.
+// Every word, number, date and the signature image come from the board's own letter.
+// This file adds styling (type, spacing, gold hairlines) — never content.
 import { formatPkMobile, type DrawDetails } from "@/hooks/useDrawLookup";
+import { groupRows, lineText, type LetterLine, type LetterRow, type LetterRun } from "@/lib/letterModel";
 
 type RGB = [number, number, number];
-const A4_W = 595.28;
-const A4_H = 841.89;
-const M = 40;
+const A4_W = 595.28, A4_H = 841.89, M = 42;
 const W = A4_W - M * 2;
-const C = {
-  greenDeep: [12, 58, 40] as RGB,
-  green: [22, 101, 72] as RGB,
-  greenSoft: [236, 246, 240] as RGB,
-  gold: [184, 134, 11] as RGB,
-  goldLine: [212, 175, 55] as RGB,
-  goldSoft: [251, 243, 214] as RGB,
-  ink: [15, 23, 42] as RGB,
-  text: [30, 41, 59] as RGB,
-  muted: [100, 116, 139] as RGB,
-  border: [205, 218, 210] as RGB,
-  white: [255, 255, 255] as RGB,
-};
+const GOLD: RGB = [196, 150, 40];
+const GREEN: RGB = [20, 88, 62];
+const INK: RGB = [24, 32, 40];
+const MUTED: RGB = [110, 120, 128];
 
-export interface DutyOrderInput {
-  details: DrawDetails;
-  session?: string;
-  dutyLabel: string;
-  schoolName?: string;
-}
+export interface DutyOrderInput { letter?: LetterLine[] | null; details: DrawDetails; dutyLabel?: string; session?: string }
 
-export async function downloadDutyOrderPDF({ details, session, dutyLabel, schoolName }: DutyOrderInput) {
+export async function downloadDutyOrderPDF({ letter, details, dutyLabel, session }: DutyOrderInput) {
   const { jsPDF } = await import("jspdf");
   const d = new jsPDF({ unit: "pt", format: "a4", compress: true });
-  const fill = (c: RGB) => d.setFillColor(c[0], c[1], c[2]);
-  const line = (c: RGB, w = 0.6) => { d.setDrawColor(c[0], c[1], c[2]); d.setLineWidth(w); };
   const ink = (c: RGB) => d.setTextColor(c[0], c[1], c[2]);
+  const stroke = (c: RGB, w = 0.6) => { d.setDrawColor(c[0], c[1], c[2]); d.setLineWidth(w); };
   const mid = A4_W / 2;
 
-  // ── page frame ──
-  line(C.goldLine, 1.2); d.rect(18, 18, A4_W - 36, A4_H - 36);
-  line(C.border, 0.5); d.rect(23, 23, A4_W - 46, A4_H - 46);
+  const frame = () => {
+    stroke(GOLD, 1); d.rect(20, 20, A4_W - 40, A4_H - 40);
+    stroke([225, 210, 160], 0.5); d.rect(25, 25, A4_W - 50, A4_H - 50);
+  };
 
-  // ── header (light ivory — no heavy fills) ──
-  fill([252, 249, 238]); d.rect(23, 23, A4_W - 46, 104, "F");
-  fill(C.goldLine); d.rect(23, 127, A4_W - 46, 2, "F");
-  fill(C.goldLine); d.rect(23, 131, A4_W - 46, 0.8, "F");
-  ink(C.gold); d.setFont("times", "bold"); d.setFontSize(9.5);
-  d.text("GOVERNMENT OF KHYBER PAKHTUNKHWA", mid, 50, { align: "center", charSpace: 1.8 });
-  ink(C.greenDeep); d.setFont("times", "bold"); d.setFontSize(18.5);
-  const name = (schoolName || "Government Higher Secondary School Ghallanai").toUpperCase();
-  const nameLines: string[] = d.splitTextToSize(name, W - 20);
-  d.text(nameLines, mid, 74, { align: "center" });
-  ink(C.muted); d.setFont("helvetica", "normal"); d.setFontSize(9.5);
-  d.text("District Mohmand  |  Khyber Pakhtunkhwa, Pakistan", mid, 74 + nameLines.length * 19 + 2, { align: "center" });
+  // ───────────────────────── fallback: verified fields only ─────────────────────────
+  if (!letter || letter.length < 5) {
+    frame();
+    ink(GREEN); d.setFont("times", "bold"); d.setFontSize(15);
+    d.text("BOARD OF INTERMEDIATE AND SECONDARY EDUCATION PESHAWAR", mid, 74, { align: "center", maxWidth: W });
+    stroke(GOLD, 1); d.line(mid - 50, 90, mid + 50, 90);
+    ink(MUTED); d.setFont("helvetica", "normal"); d.setFontSize(10);
+    d.text([session, dutyLabel].filter(Boolean).join("  -  "), mid, 108, { align: "center" });
+    const rows: [string, string | undefined][] = [
+      ["Name", details.name], ["Designation", details.designation], ["Address", details.institute],
+      ["Center No", details.centerNo], ["Contact", formatPkMobile(details.mobile)], ["Appointed As", details.appointedAs],
+    ];
+    let y = 140;
+    rows.filter(([, v]) => v).forEach(([k, v]) => {
+      const ls: string[] = d.splitTextToSize(String(v), W - 150);
+      const h = Math.max(30, ls.length * 14 + 14);
+      stroke([215, 222, 216], 0.6); d.rect(M, y, W, h); d.line(M + 130, y, M + 130, y + h);
+      ink(GREEN); d.setFont("helvetica", "bold"); d.setFontSize(9); d.text(k.toUpperCase(), M + 12, y + h / 2 + 3);
+      ink(INK); d.setFontSize(11); d.text(ls, M + 142, y + h / 2 - (ls.length - 1) * 7 + 4);
+      y += h;
+    });
+    save(d, details.name);
+    return;
+  }
 
-  // ── title ──
-  let y = 176;
-  ink(C.greenDeep); d.setFont("times", "bold"); d.setFontSize(27);
-  d.text("DUTY ORDER", mid, y, { align: "center", charSpace: 3 });
-  y += 14;
-  line(C.goldLine, 1); d.line(mid - 70, y, mid - 8, y); d.line(mid + 8, y, mid + 70, y);
-  fill(C.goldLine); d.rect(mid - 3, y - 3, 6, 6, "F");
-  y += 22;
-  ink(C.green); d.setFont("times", "italic"); d.setFontSize(13);
-  d.text(`${session || "BISE Peshawar"}  -  ${dutyLabel}`, mid, y, { align: "center" });
-  y += 16;
-  ink(C.muted); d.setFont("helvetica", "normal"); d.setFontSize(9);
-  d.text("Online Computerized Supervisory Draw  |  Board of Intermediate & Secondary Education Peshawar", mid, y, { align: "center" });
+  // ───────────────────────── the board's letter, verbatim ─────────────────────────
+  const rows: LetterRow[] = groupRows(letter);
 
-  // ── appointment highlight ──
-  y += 24;
-  const appt = details.appointedAs || "Appointed";
-  fill(C.goldSoft); line(C.goldLine, 0.9);
-  d.roundedRect(M + 60, y, W - 120, 64, 8, 8, "FD");
-  ink(C.gold); d.setFont("helvetica", "bold"); d.setFontSize(8.5);
-  d.text("APPOINTED AS", mid, y + 19, { align: "center", charSpace: 2.2 });
-  ink(C.greenDeep); d.setFont("times", "bold");
-  let fs = 22; d.setFontSize(fs);
-  while (d.getTextWidth(appt) > W - 150 && fs > 12) { fs -= 1; d.setFontSize(fs); }
-  d.text(appt, mid, y + 46, { align: "center" });
-  y += 90;
+  type Word = { w: number; t: string; b: boolean; u: boolean; space: number };
+  const wrap = (runs: LetterRun[], width: number, fs: number, font: string): Word[][] => {
+    const lines: Word[][] = [[]]; let x = 0;
+    d.setFontSize(fs);
+    runs.forEach((r) => {
+      d.setFont(font, r.b ? "bold" : "normal");
+      const sp = d.getTextWidth(" ");
+      r.t.split(/(\s+)/).forEach((tok) => {
+        if (!tok) return;
+        if (/^\s+$/.test(tok)) { if (x > 0) x += sp; return; }
+        const w = d.getTextWidth(tok);
+        if (x > 0 && x + w > width + 0.5) { lines.push([]); x = 0; }
+        const cur = lines[lines.length - 1];
+        cur.push({ w, t: tok, b: !!r.b, u: !!r.u, space: sp });
+        x += w;
+      });
+    });
+    return lines.filter((l) => l.length);
+  };
+  type Seg = { t: string; b: boolean; u: boolean; sp: boolean };
+  const toSegs = (ws: Word[]): Seg[] => {
+    const segs: Seg[] = [];
+    ws.forEach((w, i) => {
+      const last = segs[segs.length - 1];
+      if (last && last.b === w.b && last.u === w.u) last.t += " " + w.t;
+      else segs.push({ t: w.t, b: w.b, u: w.u, sp: i > 0 });
+    });
+    return segs;
+  };
+  // a style change keeps its word-space: measured explicitly (never as a trailing char)
+  const spaceW = () => d.getTextWidth("a a") - d.getTextWidth("aa");
+  const segW = (segs: Seg[], font: string, fs: number) => {
+    d.setFontSize(fs);
+    return segs.reduce((a, g) => {
+      d.setFont(font, g.b ? "bold" : "normal");
+      return a + (g.sp ? spaceW() : 0) + d.getTextWidth(g.t);
+    }, 0);
+  };
 
-  // ── details table ──
-  const rows: [string, string | undefined][] = [
-    ["Name", details.name],
-    ["Designation", details.designation],
-    ["Institute / Address", details.institute],
-    ["Center No", details.centerNo],
-    ["Mobile No", formatPkMobile(details.mobile)],
-    ["Duty Type", dutyLabel],
-    ["Draw Session", session || "BISE Peshawar"],
-    ["Date of Issue", new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })],
-  ];
-  const labelW = 150;
-  d.setFont("helvetica", "bold"); d.setFontSize(8.5);
-  ink(C.green); d.text("DUTY DETAILS", M, y, { charSpace: 1.8 });
-  y += 8;
-  rows.filter(([, v]) => v).forEach(([label, val], i) => {
-    d.setFont("helvetica", "bold"); d.setFontSize(11);
-    const lines: string[] = d.splitTextToSize(String(val), W - labelW - 24);
-    const h = Math.max(28, lines.length * 15 + 13);
-    fill(i % 2 ? C.white : C.greenSoft); d.rect(M, y, W, h, "F");
-    fill(C.greenSoft); d.rect(M, y, labelW, h, "F");
-    line(C.border, 0.6); d.rect(M, y, W, h); d.line(M + labelW, y, M + labelW, y + h);
-    ink(C.green); d.setFont("helvetica", "bold"); d.setFontSize(9);
-    d.text(label.toUpperCase(), M + 14, y + h / 2 + 3, { charSpace: 0.6 });
-    ink(C.ink); d.setFont("helvetica", "bold"); d.setFontSize(11);
-    d.text(lines, M + labelW + 14, y + h / 2 - (lines.length - 1) * 7.5 + 4);
-    y += h;
-  });
+  const layout = (fs: number, draw: boolean) => {
+    const lh = fs * 1.36;
+    const top = 44, bottom = A4_H - 44;
+    let y = top; let page = 1;
+    const ensure = (h: number) => { if (draw && y + h > bottom) { d.addPage(); frame(); page += 1; y = top; } else if (!draw && y + h > bottom) { page += 1; y = top; } };
+    rows.forEach((row, ri) => {
+      const isTitle = ri === 0;
+      const rfs = isTitle ? fs + 3.5 : fs;
+      const rlh = rfs * 1.36;
+      const font = isTitle ? "times" : "helvetica";
+      const gap = row.narrowFirst ? 2 : fs * 0.38;
+      const total = row.cols.reduce((a, c) => a + c.weight, 0);
+      const colW = row.narrowFirst
+        ? [28, ...row.cols.slice(1).map((c) => (c.weight / (total - row.cols[0].weight)) * (W - 28))]
+        : row.cols.map((c) => (c.weight / total) * W);
+      const colX = colW.map((_, i) => M + colW.slice(0, i).reduce((a, b) => a + b, 0));
+      // measure each column
+      const built = row.cols.map((c, i) => {
+        const items = c.lines.map((l) => {
+          if (l.img) return { kind: "img" as const, l, h: 38 };
+          const ws = wrap(l.runs || [], colW[i] - (i < row.cols.length - 1 ? 8 : 0), rfs, font);
+          return { kind: "txt" as const, l, ws, h: ws.length * rlh };
+        });
+        return { items, h: items.reduce((a, it) => a + it.h, 0) };
+      });
+      const rowH = Math.max(...built.map((b) => b.h), 0);
+      const onlyDashes = row.cols.length === 1 && /^[-–—_=\s]{12,}$/.test(lineText(row.cols[0].lines[0] || ({} as LetterLine)));
+      const h = onlyDashes ? rlh : rowH;
+      ensure(h + gap);
+      if (draw) {
+        if (onlyDashes) {
+          stroke([190, 190, 190], 0.6); d.setLineDashPattern([3, 3], 0); d.line(M, y + rlh / 2, M + W, y + rlh / 2); d.setLineDashPattern([], 0);
+        } else {
+          built.forEach((b, i) => {
+            let yy = y;
+            b.items.forEach((it) => {
+              if (it.kind === "img") {
+                try {
+                  const p = d.getImageProperties(it.l.img!);
+                  const ih = 36, iw = Math.min(colW[i] - 8, (p.width / p.height) * ih);
+                  const ix = it.l.center ? colX[i] + (colW[i] - iw) / 2 : colX[i];
+                  d.addImage(it.l.img!, p.fileType, ix, yy + 1, iw, ih);
+                } catch { /* unreadable image → skipped, never replaced */ }
+                yy += it.h; return;
+              }
+              it.ws.forEach((ws) => {
+                const segs = toSegs(ws);
+                const lw = segW(segs, font, rfs);
+                let x = it.l.center ? colX[i] + (colW[i] - lw) / 2 : colX[i];
+                const base = yy + rfs;
+                segs.forEach((g) => {
+                  d.setFont(font, g.b ? "bold" : "normal"); d.setFontSize(rfs);
+                  if (g.sp) x += spaceW();
+                  ink(isTitle ? GREEN : INK);
+                  d.text(g.t, x, base);
+                  const gw = d.getTextWidth(g.t);
+                  if (g.u) { stroke(isTitle ? GREEN : INK, 0.6); d.line(x, base + 1.6, x + gw, base + 1.6); }
+                  x += gw;
+                });
+                yy += rlh;
+              });
+            });
+          });
+        }
+        if (isTitle) { stroke(GOLD, 1.1); d.line(mid - 60, y + h + 3, mid + 60, y + h + 3); }
+      }
+      y += h + gap + (isTitle ? 10 : 0);
+    });
+    void lh;
+    return { y, page };
+  };
 
-  // ── instructions ──
-  y += 26;
-  ink(C.green); d.setFont("helvetica", "bold"); d.setFontSize(8.5);
-  d.text("IMPORTANT NOTES", M, y, { charSpace: 1.8 });
-  y += 8; line(C.goldLine, 0.8); d.line(M, y, M + 52, y);
-  y += 16;
-  const notes = [
-    "Report to the allotted examination center in good time, carrying your original CNIC and this duty order.",
-    "Follow all instructions issued by the Board of Intermediate & Secondary Education Peshawar for conduct of the examination.",
-    "Verify this duty against the Board's official draw record before joining; the Board's decision is final.",
-  ];
-  d.setFont("helvetica", "normal"); d.setFontSize(10); ink(C.text);
-  notes.forEach((n, i) => {
-    const ls: string[] = d.splitTextToSize(n, W - 26);
-    fill(C.gold); d.circle(M + 6, y - 3, 2.2, "F");
-    d.text(ls, M + 20, y);
-    y += ls.length * 13.5 + 5;
-    void i;
-  });
+  // choose the largest size that keeps the whole letter on a single A4 page
+  let fs = 10.5;
+  for (; fs > 8; fs -= 0.25) { if (layout(fs, false).page === 1) break; }
+  frame();
+  layout(fs, true);
+  save(d, details.name);
+}
 
-  // ── signatures (appointee, head of institution, board authority) ──
-  const sy = A4_H - 124;
-  const cols = [M + 62, mid, A4_W - M - 62];
-  const labels = [["Signature of Appointee", ""], ["Head of Institution", "(Signature & Stamp)"], ["Controller of Examinations", "BISE Peshawar"]];
-  line(C.ink, 0.6);
-  cols.forEach((cx, i) => {
-    d.line(cx - 60, sy, cx + 60, sy);
-    ink(C.text); d.setFont("helvetica", "bold"); d.setFontSize(8.5);
-    d.text(labels[i][0], cx, sy + 13, { align: "center" });
-    if (labels[i][1]) { ink(C.muted); d.setFont("helvetica", "normal"); d.setFontSize(8); d.text(labels[i][1], cx, sy + 24, { align: "center" }); }
-  });
-
-  // ── footer (light) ──
-  fill(C.goldLine); d.rect(23, A4_H - 68, A4_W - 46, 1.2, "F");
-  fill([252, 249, 238]); d.rect(23, A4_H - 66.8, A4_W - 46, 43.8, "F");
-  ink(C.muted); d.setFont("helvetica", "normal"); d.setFontSize(8);
-  d.text("Generated from the BISE Peshawar online supervisory draw result", mid, A4_H - 47, { align: "center" });
-  ink(C.gold); d.setFont("helvetica", "bold"); d.setFontSize(8);
-  d.text("ghssghallanai.dpdns.org/duties", mid, A4_H - 34, { align: "center" });
-
-  const safe = (details.name || "Duty").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+function save(d: import("jspdf").jsPDF, name?: string) {
+  const safe = (name || "Duty").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
   d.save(`Duty-Order-${safe || "Staff"}.pdf`);
 }
