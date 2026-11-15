@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Plus, Trash2, Loader2, Users, ShieldCheck, Phone, UserCog } from "lucide-react";
+import { Search, Plus, Trash2, Loader2, Users, ShieldCheck, Phone, UserCog, KeyRound, Mail, LogOut } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 
@@ -43,7 +43,8 @@ const ADMIN_ROLE = "admin";
 
 const AdminUsers = () => {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
   // Add user modal
@@ -55,6 +56,47 @@ const AdminUsers = () => {
     phone: "",
   });
   const [adding, setAdding] = useState(false);
+
+  // My-account dialogs (change password / change email / sign out)
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pw, setPw] = useState({ next: "", confirm: "" });
+  const [pwBusy, setPwBusy] = useState(false);
+  const [mailOpen, setMailOpen] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [mailBusy, setMailBusy] = useState(false);
+  const [outOpen, setOutOpen] = useState(false);
+
+  const friendly = (msg?: string) =>
+    /rate limit/i.test(msg || "") ? "Too many email requests right now. Please wait a few minutes and try again." : (msg || "Something went wrong");
+
+  const changePassword = async () => {
+    if (pw.next.length < 6) return toast.error("Password must be at least 6 characters");
+    if (pw.next !== pw.confirm) return toast.error("Passwords do not match");
+    setPwBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: pw.next });
+      if (error) throw error;
+      toast.success("Password changed successfully");
+      setPwOpen(false); setPw({ next: "", confirm: "" });
+    } catch (e: any) { toast.error(friendly(e?.message)); }
+    finally { setPwBusy(false); }
+  };
+
+  const changeEmail = async () => {
+    const em = newEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return toast.error("Enter a valid email address");
+    if (em.toLowerCase() === (user?.email || "").toLowerCase()) return toast.error("That is already your email");
+    setMailBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ email: em });
+      if (error) throw error;
+      toast.success("Confirmation link sent — open it to finish changing your email", { duration: 7000 });
+      setMailOpen(false); setNewEmail("");
+    } catch (e: any) { toast.error(friendly(e?.message)); }
+    finally { setMailBusy(false); }
+  };
+
+  const doSignOut = async () => { await signOut(); navigate("/"); };
 
   // ── Fetch administrators only (rejected accounts excluded) ──
   const { data: users = [], isLoading } = useQuery<UserProfile[]>({
@@ -118,59 +160,26 @@ const AdminUsers = () => {
 
     setAdding(true);
     try {
-      const url = import.meta.env.VITE_SUPABASE_URL as string;
-      const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-      const tempClient = createClient(url, anon, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-          storageKey: `ghss-admin-create-${Date.now()}`,
-        },
-      });
+      // Created on the server with the Auth admin API (email pre-confirmed):
+      // no confirmation e-mail is sent, so Supabase's e-mail rate limit can
+      // never block adding an admin, and your own session is untouched.
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) { toast.error("Session expired. Please sign in again."); return; }
 
-      const { data, error } = await tempClient.auth.signUp({
-        email,
-        password: addForm.password,
-        options: { data: { full_name: fullName } },
+      const res = await fetch("/api/auth-gateway?action=admin-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ full_name: fullName, email, password: addForm.password, phone: addForm.phone.trim() }),
       });
-
-      if (error) {
-        toast.error(`Failed: ${error.message}`);
+      let out: any = null;
+      try { out = await res.json(); } catch { /* non-JSON */ }
+      if (!res.ok || !out?.ok) {
+        toast.error(`Failed: ${friendly(out?.error) || "server error"}`);
         return;
       }
-      // Supabase returns a user with no identities (instead of an error)
-      // when the email is already registered.
-      if (!data.user || (data.user.identities && data.user.identities.length === 0)) {
-        toast.error("This email is already registered");
-        return;
-      }
-
-      // Wait for the profile row (created by the DB trigger), then promote it
-      // to an approved admin using the CURRENT admin's session.
-      let promoted = false;
-      let lastMsg = "";
-      for (let attempt = 0; attempt < 6 && !promoted; attempt++) {
-        await new Promise(r => setTimeout(r, attempt === 0 ? 700 : 600));
-        const { data: rows, error: updateError } = await supabase
-          .from("profiles")
-          .update({
-            full_name: fullName,
-            role: ADMIN_ROLE,
-            phone: addForm.phone.trim() || null,
-            status: "approved",
-          })
-          .eq("id", data.user.id)
-          .select("id");
-        if (updateError) lastMsg = updateError.message;
-        else if (rows && rows.length > 0) promoted = true;
-      }
-
-      if (!promoted) {
-        toast.error(
-          `Account created, but it could not be made an admin${lastMsg ? `: ${lastMsg}` : ""}. Refresh and check the list.`,
-          { duration: 7000 }
-        );
+      if (!out.promoted) {
+        toast.error("Account created, but it could not be made an admin yet. Refresh and check the list.", { duration: 7000 });
       } else {
         toast.success(`✅ Admin "${fullName}" added — you are still logged in as yourself`);
         setAddOpen(false);
@@ -245,6 +254,20 @@ const AdminUsers = () => {
             <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground sm:text-sm">
               <span className="font-semibold text-foreground">{users.length}</span> administrator{users.length === 1 ? "" : "s"} · add or remove admin accounts
             </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5 self-start">
+            <button type="button" onClick={() => setPwOpen(true)} title="Change Password" aria-label="Change Password"
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-gold/50 bg-gradient-to-b from-white to-[hsl(45_80%_95%)] px-2.5 text-[11px] font-semibold text-[hsl(158_45%_14%)] shadow-[0_6px_14px_-10px_hsl(38_70%_40%/.7)] transition-all active:scale-95 dark:from-card dark:to-gold/10 dark:text-foreground sm:px-3">
+              <KeyRound className="h-3.5 w-3.5 text-[hsl(36_75%_36%)]" /><span className="hidden sm:inline">Password</span>
+            </button>
+            <button type="button" onClick={() => setMailOpen(true)} title="Change Email" aria-label="Change Email"
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-gold/50 bg-gradient-to-b from-white to-[hsl(45_80%_95%)] px-2.5 text-[11px] font-semibold text-[hsl(158_45%_14%)] shadow-[0_6px_14px_-10px_hsl(38_70%_40%/.7)] transition-all active:scale-95 dark:from-card dark:to-gold/10 dark:text-foreground sm:px-3">
+              <Mail className="h-3.5 w-3.5 text-[hsl(36_75%_36%)]" /><span className="hidden sm:inline">Email</span>
+            </button>
+            <button type="button" onClick={() => setOutOpen(true)} title="Sign out" aria-label="Sign out"
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 text-[11px] font-semibold text-destructive transition-all active:scale-95 sm:px-3">
+              <LogOut className="h-3.5 w-3.5" /><span className="hidden sm:inline">Sign out</span>
+            </button>
           </div>
         </div>
         <div className="relative mt-3 grid grid-cols-2 gap-2 border-t border-border/60 pt-3 sm:flex sm:flex-wrap">
@@ -405,6 +428,57 @@ const AdminUsers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Change Password */}
+      <Dialog open={pwOpen} onOpenChange={setPwOpen}>
+        <DialogContent className="max-w-sm rounded-2xl p-5 gap-3">
+          <DialogHeader><DialogTitle className="text-base">Change Password</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-xs">New password (min 6 characters)</Label>
+              <Input className="mt-1 h-9 text-sm" type="password" autoComplete="new-password" value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} placeholder="••••••••" /></div>
+            <div><Label className="text-xs">Confirm new password</Label>
+              <Input className="mt-1 h-9 text-sm" type="password" autoComplete="new-password" value={pw.confirm} onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))} placeholder="••••••••" /></div>
+          </div>
+          <DialogFooter className="flex-row gap-2 sm:justify-end">
+            <Button variant="outline" className="h-9 flex-1 rounded-full px-4 text-xs font-semibold shadow-none sm:flex-none" onClick={() => setPwOpen(false)}>Cancel</Button>
+            <Button onClick={changePassword} disabled={pwBusy} className="h-9 flex-1 gap-1.5 rounded-full px-4 text-xs font-semibold shadow-none sm:flex-none">
+              {pwBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{pwBusy ? "Saving..." : "Update Password"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Email */}
+      <Dialog open={mailOpen} onOpenChange={setMailOpen}>
+        <DialogContent className="max-w-sm rounded-2xl p-5 gap-3">
+          <DialogHeader><DialogTitle className="text-base">Change Email</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">Current: <strong className="text-foreground break-all">{user?.email}</strong></p>
+            <div><Label className="text-xs">New email</Label>
+              <Input className="mt-1 h-9 text-sm" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="new@gmail.com" /></div>
+            <p className="text-[11px] leading-relaxed text-muted-foreground">A confirmation link will be emailed. Your email changes after you open it.</p>
+          </div>
+          <DialogFooter className="flex-row gap-2 sm:justify-end">
+            <Button variant="outline" className="h-9 flex-1 rounded-full px-4 text-xs font-semibold shadow-none sm:flex-none" onClick={() => setMailOpen(false)}>Cancel</Button>
+            <Button onClick={changeEmail} disabled={mailBusy} className="h-9 flex-1 gap-1.5 rounded-full px-4 text-xs font-semibold shadow-none sm:flex-none">
+              {mailBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{mailBusy ? "Sending..." : "Update Email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sign out */}
+      <AlertDialog open={outOpen} onOpenChange={setOutOpen}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out?</AlertDialogTitle>
+            <AlertDialogDescription>You will be signed out of the admin dashboard on this device.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-9 flex-1 rounded-full px-4 text-xs font-semibold shadow-none sm:flex-none">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={doSignOut} className="h-9 flex-1 rounded-full bg-destructive px-4 text-xs font-semibold text-destructive-foreground shadow-none hover:bg-destructive/90 sm:flex-none">Sign out</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
