@@ -76,9 +76,12 @@ export function maskMobile(m) {
 }
 
 // ── HTML helpers ────────────────────────────────────────────────────────────
-const decode = (s) => s
-  .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-  .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n));
+const NAMED = { nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", ldquo: "\u201c", rdquo: "\u201d", lsquo: "\u2018", rsquo: "\u2019", ndash: "\u2013", mdash: "\u2014", hellip: "\u2026", bull: "\u2022", middot: "\u00b7", copy: "\u00a9", reg: "\u00ae", laquo: "\u00ab", raquo: "\u00bb" };
+const decodeOnce = (s) => s
+  .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n))
+  .replace(/&([a-z]+);/gi, (m, n) => (NAMED[n.toLowerCase()] ?? m));
+const decode = (s) => decodeOnce(decodeOnce(s)); // twice: the board sometimes double-encodes (&amp;ldquo;)
 const text = (h) => decode(h.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 
 const FIELD_MAP = [
@@ -243,7 +246,9 @@ function classSets(html) {
     const ruleRe = /([^{}]+)\{([^}]*)\}/g;
     let r;
     while ((r = ruleRe.exec(m[1]))) {
-      const cls = [...r[1].matchAll(/\.([A-Za-z0-9_-]+)/g)].map((x) => x[1]);
+      // only bare ".class" selectors — "table.gridtable td" etc. must NOT style every element with that class
+      const cls = r[1].split(",").map((x) => x.trim()).filter((x) => /^\.[A-Za-z0-9_-]+$/.test(x)).map((x) => x.slice(1));
+      if (!cls.length) continue;
       const css = r[2];
       if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(css)) cls.forEach((c) => sets.b.add(c));
       if (/text-decoration[^;]*underline/i.test(css)) cls.forEach((c) => sets.u.add(c));
@@ -255,9 +260,11 @@ function classSets(html) {
 
 /** HTML → [{ row, col, runs:[{t,b?,u?}], center?, img? }] in reading order. */
 export function parseLetterHtml(html) {
-  const bodyAt = html.search(/<body/i);
-  let src = (bodyAt >= 0 ? html.slice(bodyAt) : html).replace(/<!--[\s\S]*?-->/g, "").replace(/<script[\s\S]*?<\/script>/gi, "");
   const cls = classSets(html);
+  const bodyAt = html.search(/<body/i);
+  let src = (bodyAt >= 0 ? html.slice(bodyAt) : html)
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<(script|style|title|noscript|head)\b[\s\S]*?<\/\1>/gi, "");
   const VOID = new Set(["br", "img", "hr", "input", "meta", "link"]);
   const BLOCK = new Set(["p", "div", "tr", "li", "table", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "center", "hr", "br", "tbody", "thead", "form"]);
   const stack = [];
@@ -267,9 +274,11 @@ export function parseLetterHtml(html) {
   const olCount = [];
   let pendingList = null;
   let liOpen = 0;
+  const tblStack = [];
+  let tblCounter = 0;
 
   const flags = () => ({
-    b: stack.some((e) => e.b), u: stack.some((e) => e.u), center: stack.some((e) => e.c),
+    b: stack.some((e) => e.b), u: stack.some((e) => e.u), center: stack.some((e) => e.c), skip: stack.some((e) => e.skip),
   });
   const flush = () => {
     if (cur && cur.runs.length && cur.runs.some((r) => r.t.trim())) {
@@ -284,10 +293,11 @@ export function parseLetterHtml(html) {
     if (cur) return cur;
     if (!inRow) rowId = ++rowCounter;
     const f = flags();
-    cur = { row: rowId, col: inRow ? colIdx : 0, runs: [], ...(f.center ? { center: 1 } : {}) };
+    cur = { row: rowId, col: inRow ? colIdx : 0, tbl: tblStack.length ? tblStack[tblStack.length - 1] : 0, runs: [], ...(f.center ? { center: 1 } : {}) };
     return cur;
   };
   const addText = (raw) => {
+    if (flags().skip) return;
     const t = decode(raw).replace(/\s+/g, " ");
     if (!t.trim() && !cur) return;
     if (pendingList) { const l = start(); l.runs.push({ t: pendingList, b: 1 }); pendingList = null; flush(); colIdx++; }
@@ -309,6 +319,7 @@ export function parseLetterHtml(html) {
       if (tag === "tr") { inRow = Math.max(0, inRow - 1); colIdx = 0; }
       if (tag === "li" && liOpen > 0) { liOpen -= 1; inRow = Math.max(0, inRow - 1); colIdx = 0; }
       if (tag === "ol") olCount.pop();
+      if (tag === "table" || tag === "ol") tblStack.pop();
       const i = stack.map((e) => e.tag).lastIndexOf(tag);
       if (i >= 0) stack.length = i;
       continue;
@@ -317,13 +328,14 @@ export function parseLetterHtml(html) {
     if (tag === "img") {
       flush();
       const sm = attrs.match(/src\s*=\s*["']([^"']+)["']/i);
-      if (sm) { if (!inRow) rowId = ++rowCounter; lines.push({ row: rowId, col: inRow ? colIdx : 0, img: decode(sm[1]), ...(flags().center ? { center: 1 } : {}) }); }
+      if (sm) { if (!inRow) rowId = ++rowCounter; if (!flags().skip) lines.push({ row: rowId, col: inRow ? colIdx : 0, tbl: tblStack.length ? tblStack[tblStack.length - 1] : 0, img: decode(sm[1]), ...(flags().center ? { center: 1 } : {}) }); }
       continue;
     }
     if (tag === "br" || tag === "hr") continue;
     if (tag === "tr") { flush(); inRow += 1; rowId = ++rowCounter; colIdx = -1; }
     if (tag === "td" || tag === "th") { flush(); colIdx += 1; if (colIdx < 0) colIdx = 0; }
     if (tag === "ol") olCount.push(0);
+    if (tag === "table" || tag === "ol") tblStack.push(++tblCounter);
     if (tag === "li" && olCount.length) {
       olCount[olCount.length - 1] += 1;
       pendingList = olCount[olCount.length - 1] + ".";
@@ -336,6 +348,7 @@ export function parseLetterHtml(html) {
         tag,
         b: tag === "b" || tag === "strong" || tag === "th" || /h[1-6]/.test(tag) || /font-weight\s*:\s*(bold|[6-9]00)/i.test(style) || classes.some((c) => cls.b.has(c)),
         u: tag === "u" || /text-decoration[^;]*underline/i.test(style) || classes.some((c) => cls.u.has(c)),
+        skip: /display\s*:\s*none|visibility\s*:\s*hidden/i.test(style) || classes.some((c) => /^(report-heading|no-?print|hidden|d-none)$/i.test(c)),
         c: tag === "center" || /align\s*=\s*["']?center/i.test(attrs) || /text-align\s*:\s*center/i.test(style) || classes.some((c) => cls.c.has(c)),
       });
     }
