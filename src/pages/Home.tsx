@@ -9,7 +9,7 @@ import {
   Star, Award, MapPin, Phone, Mail,
   Shield, Zap, Globe, Lightbulb, RefreshCw,
   Volume2, BookMarked, X as XIcon, Clock, ExternalLink,
-  UserPlus, Search, Lock,
+  UserPlus, Search, Lock, ClipboardCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import PageLayout from "@/components/layout/PageLayout";
@@ -1095,6 +1095,7 @@ const ExploreSection = ({ settings, admissionCfg, notices, schedules }: ExploreS
     { to: "/results",      icon: BarChart3,  title: "Exam Results",   desc: resDesc,  badge: resBadge },
     { to: "/merit-list",   icon: Trophy,     title: "Merit List",     desc: "Official rankings & position holders" },
     { to: "/roll-no-slip", icon: BookMarked, title: "Roll No. Slip",  desc: "View & download your slip with QR code" },
+    { to: "/duties",       icon: ClipboardCheck, title: "Exam Duties", desc: "Check your BISE supervisory duty & download the duty order" },
     { to: "/notices",      icon: Bell,       title: "Notices",        desc: noticeDesc, badge: noticeBadge },
     { to: "/teachers",     icon: Users,      title: "Our Teachers",   desc: `${staff} · subjects & qualifications` },
     { to: "/about",        icon: BookOpen,   title: "About Us",       desc: aboutDesc },
@@ -1529,12 +1530,7 @@ const Home = () => {
                   Intermediate <span className="italic lux-gold-text">Admissions</span>
                 </h2>
                 <div className="luxe-orn my-4 lg:justify-start lg:[&::before]:hidden"><i /></div>
-                <p className="mx-auto lg:mx-0 mb-6 max-w-xl text-[13.5px] sm:text-[15px] leading-relaxed text-muted-foreground">
-                  Apply for 1st Year and 2nd Year in Arts, Pre-Medical, Pre-Engineering and ICS through our
-                  online admission system. Fill in your personal and matric details, submit your
-                  application and pay the {admissionFee ? <>Rs&nbsp;{admissionFee} </> : null}processing fee online with Easypaisa or a wallet.
-                </p>
-                <div className="grid grid-cols-2 gap-2.5 sm:flex sm:justify-center lg:justify-start">
+                <div className="mt-6 grid grid-cols-2 gap-2.5 sm:flex sm:justify-center lg:justify-start">
                   {applyClosed ? (
                     <button type="button" disabled aria-disabled="true" title="Online admission is currently closed" className="inline-flex h-11 cursor-not-allowed items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-muted px-5 text-[13px] font-bold tracking-wide text-muted-foreground opacity-80">
                       <Lock className="w-4 h-4" strokeWidth={2} /> Apply Online
@@ -1548,9 +1544,6 @@ const Home = () => {
                     <Search className="w-4 h-4 text-gold" strokeWidth={2} /> Track Application
                   </Link>
                 </div>
-                <p className="mt-4 text-[11.5px] leading-relaxed text-muted-foreground">
-                  Online applications only. Submit a separate application for each quota or program.
-                </p>
               </div>
 
               {/* Right: how it works (5 steps) */}
