@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Plus, Trash2, Loader2, Users, ShieldCheck, Phone, UserCog, KeyRound, Mail, LogOut } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search, Plus, Trash2, Loader2, Users, ShieldCheck, Phone, UserCog, KeyRound, LogOut, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 
@@ -57,43 +58,41 @@ const AdminUsers = () => {
   });
   const [adding, setAdding] = useState(false);
 
-  // My-account dialogs (change password / change email / sign out)
+  // My-account menu (change password / sign out)
   const [pwOpen, setPwOpen] = useState(false);
-  const [pw, setPw] = useState({ next: "", confirm: "" });
+  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [pwBusy, setPwBusy] = useState(false);
-  const [mailOpen, setMailOpen] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
-  const [mailBusy, setMailBusy] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [outOpen, setOutOpen] = useState(false);
 
   const friendly = (msg?: string) =>
     /rate limit/i.test(msg || "") ? "Too many email requests right now. Please wait a few minutes and try again." : (msg || "Something went wrong");
 
+  // Changed on the server (after verifying the current password) because the
+  // browser-side updateUser() fails with "AAL2 session is required" on
+  // accounts that still have an authenticator (MFA) factor enrolled.
   const changePassword = async () => {
-    if (pw.next.length < 6) return toast.error("Password must be at least 6 characters");
+    if (!pw.current) return toast.error("Enter your current password");
+    if (pw.next.length < 6) return toast.error("New password must be at least 6 characters");
     if (pw.next !== pw.confirm) return toast.error("Passwords do not match");
     setPwBusy(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: pw.next });
-      if (error) throw error;
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) { toast.error("Session expired. Please sign in again."); return; }
+      const res = await fetch("/api/auth-gateway?action=admin-change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ current_password: pw.current, new_password: pw.next }),
+      });
+      let out: any = null;
+      try { out = await res.json(); } catch { /* non-JSON */ }
+      if (!res.ok || !out?.ok) { toast.error(out?.error || "Could not change the password"); return; }
       toast.success("Password changed successfully");
-      setPwOpen(false); setPw({ next: "", confirm: "" });
-    } catch (e: any) { toast.error(friendly(e?.message)); }
+      setPwOpen(false); setPw({ current: "", next: "", confirm: "" });
+    } catch (e: any) { toast.error(e?.message || "Something went wrong"); }
     finally { setPwBusy(false); }
-  };
-
-  const changeEmail = async () => {
-    const em = newEmail.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return toast.error("Enter a valid email address");
-    if (em.toLowerCase() === (user?.email || "").toLowerCase()) return toast.error("That is already your email");
-    setMailBusy(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ email: em });
-      if (error) throw error;
-      toast.success("Confirmation link sent — open it to finish changing your email", { duration: 7000 });
-      setMailOpen(false); setNewEmail("");
-    } catch (e: any) { toast.error(friendly(e?.message)); }
-    finally { setMailBusy(false); }
   };
 
   const doSignOut = async () => { await signOut(); navigate("/"); };
@@ -255,19 +254,37 @@ const AdminUsers = () => {
               <span className="font-semibold text-foreground">{users.length}</span> administrator{users.length === 1 ? "" : "s"} · add or remove admin accounts
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5 self-start">
-            <button type="button" onClick={() => setPwOpen(true)} title="Change Password" aria-label="Change Password"
-              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-gold/50 bg-gradient-to-b from-white to-[hsl(45_80%_95%)] px-2.5 text-[11px] font-semibold text-[hsl(158_45%_14%)] shadow-[0_6px_14px_-10px_hsl(38_70%_40%/.7)] transition-all active:scale-95 dark:from-card dark:to-gold/10 dark:text-foreground sm:px-3">
-              <KeyRound className="h-3.5 w-3.5 text-[hsl(36_75%_36%)]" /><span className="hidden sm:inline">Password</span>
-            </button>
-            <button type="button" onClick={() => setMailOpen(true)} title="Change Email" aria-label="Change Email"
-              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-gold/50 bg-gradient-to-b from-white to-[hsl(45_80%_95%)] px-2.5 text-[11px] font-semibold text-[hsl(158_45%_14%)] shadow-[0_6px_14px_-10px_hsl(38_70%_40%/.7)] transition-all active:scale-95 dark:from-card dark:to-gold/10 dark:text-foreground sm:px-3">
-              <Mail className="h-3.5 w-3.5 text-[hsl(36_75%_36%)]" /><span className="hidden sm:inline">Email</span>
-            </button>
-            <button type="button" onClick={() => setOutOpen(true)} title="Sign out" aria-label="Sign out"
-              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 text-[11px] font-semibold text-destructive transition-all active:scale-95 sm:px-3">
-              <LogOut className="h-3.5 w-3.5" /><span className="hidden sm:inline">Sign out</span>
-            </button>
+          <div className="shrink-0 self-start">
+            <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+              <PopoverTrigger asChild>
+                <button type="button" aria-label="Account menu"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-gold/50 bg-gradient-to-b from-white to-[hsl(45_80%_95%)] py-1 pl-1 pr-2.5 text-[12px] font-semibold text-[hsl(158_45%_14%)] shadow-[0_6px_14px_-10px_hsl(38_70%_40%/.7)] transition-all active:scale-95 dark:from-card dark:to-gold/10 dark:text-foreground">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 text-[11px] font-bold text-primary-foreground">
+                    {(users.find(u => u.id === user?.id)?.full_name || user?.email || "A").charAt(0).toUpperCase()}
+                  </span>
+                  <span className="hidden sm:inline">Account</span>
+                  <ChevronDown className={`h-3.5 w-3.5 text-[hsl(36_75%_36%)] transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={8} className="w-60 overflow-hidden rounded-2xl border border-gold/40 p-0 shadow-[0_24px_50px_-24px_hsl(var(--primary)/.55)]">
+                <div className="border-b border-border/60 bg-gradient-to-b from-[hsl(45_90%_95%)] to-card px-3.5 py-3 dark:from-gold/10">
+                  <p className="truncate text-[13px] font-bold text-foreground">{users.find(u => u.id === user?.id)?.full_name || "Administrator"}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">{user?.email}</p>
+                </div>
+                <div className="p-1.5">
+                  <button type="button" onClick={() => { setMenuOpen(false); setPwOpen(true); }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] font-semibold text-foreground transition-colors hover:bg-secondary">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full border border-gold/35 bg-gradient-to-b from-[hsl(46_96%_91%)] to-[hsl(42_85%_82%)] text-[hsl(36_75%_32%)]"><KeyRound className="h-3.5 w-3.5" /></span>
+                    Change Password
+                  </button>
+                  <button type="button" onClick={() => { setMenuOpen(false); setOutOpen(true); }}
+                    className="mt-0.5 flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[13px] font-semibold text-destructive transition-colors hover:bg-destructive/10">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-destructive/10"><LogOut className="h-3.5 w-3.5" /></span>
+                    Sign out
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
         <div className="relative mt-3 grid grid-cols-2 gap-2 border-t border-border/60 pt-3 sm:flex sm:flex-wrap">
@@ -429,38 +446,24 @@ const AdminUsers = () => {
         </DialogContent>
       </Dialog>
       {/* Change Password */}
-      <Dialog open={pwOpen} onOpenChange={setPwOpen}>
+      <Dialog open={pwOpen} onOpenChange={(o) => { setPwOpen(o); if (!o) { setPw({ current: "", next: "", confirm: "" }); setShowPw(false); } }}>
         <DialogContent className="max-w-sm rounded-2xl p-5 gap-3">
           <DialogHeader><DialogTitle className="text-base">Change Password</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            <div><Label className="text-xs">Current password</Label>
+              <Input className="mt-1 h-9 text-sm" type={showPw ? "text" : "password"} autoComplete="current-password" value={pw.current} onChange={e => setPw(p => ({ ...p, current: e.target.value }))} placeholder="••••••••" /></div>
             <div><Label className="text-xs">New password (min 6 characters)</Label>
-              <Input className="mt-1 h-9 text-sm" type="password" autoComplete="new-password" value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} placeholder="••••••••" /></div>
+              <Input className="mt-1 h-9 text-sm" type={showPw ? "text" : "password"} autoComplete="new-password" value={pw.next} onChange={e => setPw(p => ({ ...p, next: e.target.value }))} placeholder="••••••••" /></div>
             <div><Label className="text-xs">Confirm new password</Label>
-              <Input className="mt-1 h-9 text-sm" type="password" autoComplete="new-password" value={pw.confirm} onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))} placeholder="••••••••" /></div>
+              <Input className="mt-1 h-9 text-sm" type={showPw ? "text" : "password"} autoComplete="new-password" value={pw.confirm} onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))} placeholder="••••••••" /></div>
+            <button type="button" onClick={() => setShowPw(v => !v)} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground hover:text-foreground">
+              {showPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}{showPw ? "Hide passwords" : "Show passwords"}
+            </button>
           </div>
           <DialogFooter className="flex-row gap-2 sm:justify-end">
             <Button variant="outline" className="h-9 flex-1 rounded-full px-4 text-xs font-semibold shadow-none sm:flex-none" onClick={() => setPwOpen(false)}>Cancel</Button>
             <Button onClick={changePassword} disabled={pwBusy} className="h-9 flex-1 gap-1.5 rounded-full px-4 text-xs font-semibold shadow-none sm:flex-none">
               {pwBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{pwBusy ? "Saving..." : "Update Password"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Change Email */}
-      <Dialog open={mailOpen} onOpenChange={setMailOpen}>
-        <DialogContent className="max-w-sm rounded-2xl p-5 gap-3">
-          <DialogHeader><DialogTitle className="text-base">Change Email</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <p className="rounded-xl border border-border bg-secondary/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">Current: <strong className="text-foreground break-all">{user?.email}</strong></p>
-            <div><Label className="text-xs">New email</Label>
-              <Input className="mt-1 h-9 text-sm" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="new@gmail.com" /></div>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">A confirmation link will be emailed. Your email changes after you open it.</p>
-          </div>
-          <DialogFooter className="flex-row gap-2 sm:justify-end">
-            <Button variant="outline" className="h-9 flex-1 rounded-full px-4 text-xs font-semibold shadow-none sm:flex-none" onClick={() => setMailOpen(false)}>Cancel</Button>
-            <Button onClick={changeEmail} disabled={mailBusy} className="h-9 flex-1 gap-1.5 rounded-full px-4 text-xs font-semibold shadow-none sm:flex-none">
-              {mailBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{mailBusy ? "Sending..." : "Update Email"}
             </Button>
           </DialogFooter>
         </DialogContent>
