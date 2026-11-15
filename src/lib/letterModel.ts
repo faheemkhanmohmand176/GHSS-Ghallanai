@@ -2,7 +2,7 @@
 // The server returns the letter's text VERBATIM as positioned lines. This file only
 // groups them into rows/columns for display; it never adds or rewrites any wording.
 export interface LetterRun { t: string; b?: 1; u?: 1 }
-export interface LetterLine { row: number; col: number; runs?: LetterRun[]; center?: 1; img?: string }
+export interface LetterLine { row: number; col: number; tbl?: number; runs?: LetterRun[]; center?: 1; img?: string }
 export interface LetterCol { lines: LetterLine[]; weight: number }
 export interface LetterRow { id: number; cols: LetterCol[]; narrowFirst: boolean }
 
@@ -15,16 +15,30 @@ export function groupRows(lines: LetterLine[]): LetterRow[] {
     if (!byRow.has(l.row)) { byRow.set(l.row, []); order.push(l.row); }
     byRow.get(l.row)!.push(l);
   }
+  // column geometry is shared by every row of the same table, so columns line up
+  const tblLens = new Map<number, number[]>();
+  const len = (l: LetterLine) => (l.img ? 24 : lineText(l).length);
+  for (const l of lines) {
+    if (!l.tbl) continue;
+    const a = tblLens.get(l.tbl) ?? [];
+    while (a.length <= l.col) a.push(0);
+    a[l.col] = Math.max(a[l.col], len(l));
+    tblLens.set(l.tbl, a);
+  }
   return order.map((id) => {
     const ls = byRow.get(id)!;
-    const n = Math.max(...ls.map((l) => l.col)) + 1;
+    const tbl = ls[0].tbl || 0;
+    const rowN = Math.max(...ls.map((l) => l.col)) + 1;
+    const tl = tbl ? tblLens.get(tbl)! : null;
+    // a lone cell inside a multi-column table is a colspan row → full width
+    const n = tl && rowN > 1 ? tl.length : rowN;
+    const lens = tl && rowN > 1 ? tl : Array.from({ length: n }, (_, i) => Math.max(0, ...ls.filter((l) => l.col === i).map(len)));
     const cols: LetterCol[] = Array.from({ length: n }, () => ({ lines: [], weight: 0 }));
     ls.forEach((l) => cols[l.col].lines.push(l));
-    const lens = cols.map((c) => Math.max(0, ...c.lines.map((l) => lineText(l).length), c.lines.some((l) => l.img) ? 24 : 0));
     const narrowFirst = n > 1 && lens[0] > 0 && lens[0] <= 4;
     const maxLen = Math.max(...lens, 1);
     cols.forEach((c, i) => {
-      c.weight = narrowFirst && i === 0 ? 0.06 : lens[i] === 0 ? Math.max(8, Math.min(maxLen, 50)) : Math.max(8, Math.min(lens[i], 50));
+      c.weight = narrowFirst && i === 0 ? 0.06 : Math.max(8, Math.min(lens[i] || maxLen, 28));
     });
     return { id, cols, narrowFirst };
   });
