@@ -74,8 +74,8 @@ const ResetPassword = () => {
       toast.error("Passwords do not match");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (password.length < 12) {
+      toast.error("Password must be at least 12 characters");
       return;
     }
     setLoading(true);
@@ -159,7 +159,7 @@ const ResetPassword = () => {
                   placeholder="••••••••"
                   className="w-full rounded-xl border border-input bg-background pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-ring outline-none"
                   required
-                  minLength={6}
+                  minLength={12}
                 />
               </div>
             </div>
