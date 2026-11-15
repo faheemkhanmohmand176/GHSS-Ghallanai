@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, IdCard, Smartphone, Loader2, Download, CheckCircle2, Info, AlertTriangle,
   X, ArrowRight, Briefcase, Building2, Hash, MapPin, CalendarCheck, Clock,
-  CalendarDays, GraduationCap, FileText, Share2,
+  CalendarDays, GraduationCap, FileText, Share2, ChevronDown,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import PageLayout from "@/components/layout/PageLayout";
@@ -188,16 +188,10 @@ const Duties = () => {
                 <span className="h-1.5 w-1.5 rotate-45 bg-gold" />
                 <span className="h-px w-9 bg-gradient-to-l from-transparent to-gold" />
               </div>
-              <p className="font-luxe text-[1.05rem] font-semibold italic tracking-wide text-primary sm:text-xl">Online Computerized Supervisory Draw</p>
             </div>
 
             <form onSubmit={submit} noValidate>
-              <Segmented<By>
-                id="by" label="Search by" value={by} onChange={switchBy}
-                options={[{ value: "cnic", label: "CNIC", icon: IdCard }, { value: "mobile", label: "Mobile No", icon: Smartphone }]}
-              />
-
-              <label htmlFor="draw-value" className="mb-1.5 mt-4 block text-center text-[10.5px] font-bold uppercase tracking-[0.2em] text-primary">
+              <label htmlFor="draw-value" className="mb-1.5 block text-center text-[10.5px] font-bold uppercase tracking-[0.2em] text-primary">
                 {by === "cnic" ? "CNIC Number" : "Mobile Number"}
               </label>
               <div className="group relative">
@@ -219,13 +213,31 @@ const Duties = () => {
                   </button>
                 )}
               </div>
-              <button
-                type="submit"
-                disabled={!ready || lookup.isPending}
-                className="group relative mt-5 flex h-10 w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-b from-[hsl(46_96%_72%)] to-[hsl(38_88%_50%)] text-[13.5px] font-bold tracking-wide text-[hsl(158_45%_10%)] shadow-[0_14px_26px_-14px_hsl(38_85%_42%/.8),inset_0_1px_0_hsl(0_0%_100%/.55)] transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                {lookup.isPending ? (<><Loader2 className="h-4 w-4 animate-spin" /> Checking…</>) : (<><Search className="h-4 w-4" /> Check My Duty <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>)}
-              </button>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <div className="relative h-10 min-w-0 flex-1 sm:max-w-[190px]">
+                  <span className="pointer-events-none absolute inset-0 flex items-center gap-2 rounded-full border border-gold/55 bg-gradient-to-b from-white to-[hsl(45_80%_95%)] pl-3.5 pr-9 text-[13px] font-bold text-[hsl(158_45%_14%)] shadow-[0_8px_18px_-12px_hsl(38_70%_40%/.6),inset_0_1px_0_hsl(0_0%_100%/.8)] dark:from-card dark:to-gold/10 dark:text-foreground">
+                    {by === "cnic" ? <IdCard className="h-4 w-4 shrink-0 text-[hsl(36_75%_36%)]" /> : <Smartphone className="h-4 w-4 shrink-0 text-[hsl(36_75%_36%)]" />}
+                    <span className="truncate">{by === "cnic" ? "CNIC" : "Mobile No"}</span>
+                  </span>
+                  <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(36_75%_36%)]" />
+                  <select
+                    aria-label="Search by"
+                    value={by}
+                    onChange={(e) => switchBy(e.target.value as By)}
+                    className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-full opacity-0"
+                  >
+                    <option value="cnic">CNIC</option>
+                    <option value="mobile">Mobile No</option>
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  disabled={!ready || lookup.isPending}
+                  className="group relative flex h-10 shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-b from-[hsl(46_96%_72%)] to-[hsl(38_88%_50%)] px-5 text-[12.5px] font-bold tracking-wide text-[hsl(158_45%_10%)] shadow-[0_12px_22px_-14px_hsl(38_85%_42%/.8),inset_0_1px_0_hsl(0_0%_100%/.55)] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  {lookup.isPending ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking…</>) : (<><Search className="h-3.5 w-3.5" /> Check My Duty <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" /></>)}
+                </button>
+              </div>
             </form>
           </div>
 
@@ -266,31 +278,37 @@ const Duties = () => {
                       <div className="overflow-hidden rounded-2xl border border-gold/40 bg-card shadow-[0_14px_30px_-22px_hsl(var(--gold)/.8)]">
                         <table className="w-full table-fixed border-collapse text-center">
                           <tbody>
-                            {tableRows.map(([label, v], i) => {
-                              const Icon = FIELD_ICON[label] ?? FileText;
-                              return (
-                                <tr key={label} className={i > 0 ? "border-t border-gold/25" : ""}>
-                                  <th scope="row" className="w-[40%] border-r border-gold/25 bg-secondary/50 px-2 py-2.5 align-middle font-body dark:bg-secondary/30">
-                                    <span className="flex flex-col items-center justify-center gap-1">
-                                      <span className="flex h-6 w-6 items-center justify-center rounded-full border border-gold/35 bg-gradient-to-b from-[hsl(46_96%_91%)] to-[hsl(42_85%_82%)] text-[hsl(36_75%_32%)] dark:border-gold/25 dark:from-gold/20 dark:to-gold/5 dark:text-gold"><Icon className="h-3 w-3" /></span>
-                                      <span className="text-[9.5px] font-bold uppercase leading-tight tracking-[0.14em] text-primary/90">{label}</span>
-                                    </span>
-                                  </th>
-                                  <td className="break-words px-2.5 py-2.5 align-middle font-body text-[13.5px] font-bold leading-snug tracking-tight text-foreground [overflow-wrap:anywhere]">{v}</td>
-                                </tr>
-                              );
-                            })}
+                            {Array.from({ length: Math.ceil(tableRows.length / 2) }, (_, r) => tableRows.slice(r * 2, r * 2 + 2)).map((pair, r) => (
+                              <tr key={r} className={r > 0 ? "border-t border-gold/25" : ""}>
+                                {pair.map(([label, v], c) => {
+                                  const Icon = FIELD_ICON[label] ?? FileText;
+                                  return (
+                                    <td
+                                      key={label}
+                                      colSpan={pair.length === 1 ? 2 : 1}
+                                      className={`w-1/2 px-2 py-3 align-middle ${c === 0 && pair.length > 1 ? "border-r border-gold/25" : ""} ${r % 2 === 0 ? "bg-secondary/40 dark:bg-secondary/20" : "bg-card"}`}
+                                    >
+                                      <span className="flex flex-col items-center justify-center">
+                                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-gold/35 bg-gradient-to-b from-[hsl(46_96%_91%)] to-[hsl(42_85%_82%)] text-[hsl(36_75%_32%)] shadow-[inset_0_1px_0_hsl(0_0%_100%/.65)] dark:border-gold/25 dark:from-gold/20 dark:to-gold/5 dark:text-gold"><Icon className="h-3.5 w-3.5" /></span>
+                                        <span className="mt-1.5 text-[9px] font-bold uppercase leading-tight tracking-[0.15em] text-primary/90">{label}</span>
+                                        <span className="mt-0.5 w-full break-words text-[13px] font-bold leading-snug text-foreground [overflow-wrap:anywhere]">{v}</span>
+                                      </span>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
                           </tbody>
                         </table>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-2.5 px-4 pb-6 pt-4">
-                      <button type="button" onClick={downloadOrder} disabled={pdfBusy} className={`${slimBtn} border border-primary/20 bg-primary text-primary-foreground shadow-[0_10px_20px_-14px_hsl(var(--primary)/.8)]`}>
+                    <div className="mx-auto grid w-full max-w-[300px] grid-cols-2 gap-3 px-4 pb-6 pt-4">
+                      <button type="button" onClick={downloadOrder} disabled={pdfBusy} className={`${slimBtn} w-full border border-primary/20 bg-primary text-primary-foreground shadow-[0_10px_20px_-14px_hsl(var(--primary)/.8)]`}>
                         {pdfBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                         {pdfBusy ? "Preparing…" : "Download"}
                       </button>
-                      <button type="button" onClick={shareOrder} disabled={shareBusy} className={`${slimBtn} border border-gold/60 bg-gradient-to-b from-[hsl(46_96%_72%)] to-[hsl(38_88%_52%)] text-[hsl(158_45%_10%)] shadow-[0_10px_20px_-14px_hsl(38_85%_42%/.8)]`}>
+                      <button type="button" onClick={shareOrder} disabled={shareBusy} className={`${slimBtn} w-full border border-gold/60 bg-gradient-to-b from-[hsl(46_96%_72%)] to-[hsl(38_88%_52%)] text-[hsl(158_45%_10%)] shadow-[0_10px_20px_-14px_hsl(38_85%_42%/.8)]`}>
                         {shareBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
                         {shareBusy ? "Preparing…" : "Share"}
                       </button>
