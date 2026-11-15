@@ -118,6 +118,17 @@ function findNotes(html) {
   return out;
 }
 
+// Session title read LIVE off the board's own draw page, e.g.
+//   "Supervisory Staff Draw - SSC Annual-II Examination 2026"  (theory)
+//   "Practical Staff Draw - SSC Annual-II Examination 2026"     (practical)
+// → returns "SSC Annual-II Examination 2026". The board switches wording between
+// theory/practical pages, so both prefixes are matched.
+const TITLE_RE = /(?:Supervisory|Practical)\s+Staff\s+Draw\s*[-\u2013\u2014]\s*([^<]{5,90})/i;
+export function findSession(html) {
+  const m = String(html || "").match(TITLE_RE);
+  return m ? m[1].replace(/\s+/g, " ").trim() : null;
+}
+
 /** Personal lookup response → { selected, details, letter?, notes } */
 export function parseDrawHtml(html, dir) {
   const plain = text(html);
@@ -143,22 +154,31 @@ export function parseDrawHtml(html, dir) {
 /** Bare GET preview → up to 5 staff with masked mobiles */
 export function parseDrawListHtml(html, dir) {
   const letters = findLetters(html);
-  const blocks = html.split(/(?=Center\s*No)/i).slice(1);
+  // Scan label/value cell PAIRS in document order; every "Center No" label cell
+  // starts a new staff record. (The previous version split the HTML right before
+  // the text "Center No", which cut that label's own <td> in half — the pair
+  // regex then matched nothing and the preview table came back empty.)
+  const cells = [...html.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((m) => text(m[1]));
   const out = [];
-  blocks.forEach((b, i) => {
-    const rec = {};
-    const rowRe = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>\s*<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
-    let m;
-    while ((m = rowRe.exec(b))) {
-      const k = mapField(text(m[1]).replace(/:$/, ""));
-      if (k && !rec[k]) rec[k] = text(m[2]);
+  let rec = null;
+  for (let i = 0; i < cells.length; i++) {
+    const label = cells[i].replace(/:\s*$/, "").trim();
+    if (/^center\s*no$/i.test(label)) {
+      rec = {}; out.push(rec);
+      const v = (cells[i + 1] || "").trim();
+      if (v) { rec.centerNo = v; i += 1; }
+      continue;
     }
-    if (!rec.centerNo && !rec.name) return;
-    if (rec.mobile) rec.mobile = maskMobile(rec.mobile);
-    if (letters[i]) rec.letter = absLetter(dir, letters[i]);
-    out.push(rec);
-  });
-  return out.slice(0, 5);
+    if (!rec) continue;
+    const k = mapField(label);
+    if (!k || rec[k]) continue;
+    const v = (cells[i + 1] || "").trim();
+    if (!v) continue;
+    rec[k] = k === "mobile" ? maskMobile(v) : v;
+    i += 1; // the value cell is consumed
+  }
+  out.forEach((r, idx) => { if (letters[idx]) r.letter = absLetter(dir, letters[idx]); });
+  return out.filter((r) => r.centerNo || r.name).slice(0, 5);
 }
 
 // ── Transport ladder ────────────────────────────────────────────────────────
@@ -230,8 +250,12 @@ async function boardFetch(url, { method = "GET", form, referer, attempts = 3, pe
   return { fail: lastDetail };
 }
 
-async function boardRequest(dir, method, form) {
-  const r = await boardFetch(`${HOST}/${dir}/SearchDraw.php`, { method, form, referer: `${HOST}/${dir}/` });
+async function boardRequest(dir, method, form, opts = {}) {
+  const r = await boardFetch(`${HOST}/${dir}/SearchDraw.php`, {
+    method, form, referer: `${HOST}/${dir}/`,
+    ...(opts.attempts ? { attempts: opts.attempts } : {}),
+    ...(opts.perTry ? { perTry: opts.perTry } : {}),
+  });
   return r.fail ? r : { html: r.buf.toString("utf8") };
 }
 
@@ -270,6 +294,8 @@ export function parseLetterHtml(html) {
   const stack = [];
   const lines = [];
   let rowCounter = 0, rowId = 0, colIdx = 0, inRow = 0;
+  let gridOff = 0;      // grid column where the current <td> starts (colspan-aware)
+  let cellMeta = null;  // { g, span, w } of the currently open <td>
   let cur = null;
   const olCount = [];
   let pendingList = null;
@@ -278,7 +304,15 @@ export function parseLetterHtml(html) {
   let tblCounter = 0;
 
   const flags = () => ({
-    b: stack.some((e) => e.b), u: stack.some((e) => e.u), center: stack.some((e) => e.c), skip: stack.some((e) => e.skip),
+    b: stack.some((e) => e.b),
+    u: stack.some((e) => e.u),
+    // The board's letter table carries align="center", but its paragraphs are
+    // align="justify" divs — justify wins over center so prose reads flush-left
+    // exactly like the board's own printed letter.
+    center: stack.some((e) => e.c) && !stack.some((e) => e.j),
+    right: stack.some((e) => e.r) && !stack.some((e) => e.j),
+    box: stack.some((e) => e.bx),
+    skip: stack.some((e) => e.skip),
   });
   const flush = () => {
     if (cur && cur.runs.length && cur.runs.some((r) => r.t.trim())) {
@@ -293,7 +327,18 @@ export function parseLetterHtml(html) {
     if (cur) return cur;
     if (!inRow) rowId = ++rowCounter;
     const f = flags();
-    cur = { row: rowId, col: inRow ? colIdx : 0, tbl: tblStack.length ? tblStack[tblStack.length - 1] : 0, runs: [], ...(f.center ? { center: 1 } : {}) };
+    const meta = inRow ? cellMeta : null;
+    cur = {
+      row: rowId,
+      col: meta ? meta.g : inRow ? colIdx : 0,
+      tbl: tblStack.length ? tblStack[tblStack.length - 1] : 0,
+      runs: [],
+      ...(meta && meta.span > 1 ? { span: meta.span } : {}),
+      ...(meta && meta.w ? { w: meta.w } : {}),
+      ...(f.center ? { center: 1 } : {}),
+      ...(f.right ? { right: 1 } : {}),
+      ...(f.box ? { box: 1 } : {}),
+    };
     return cur;
   };
   const addText = (raw) => {
@@ -314,9 +359,9 @@ export function parseLetterHtml(html) {
     const tag = m[2].toLowerCase();
     const attrs = m[3] || "";
     if (closing) {
-      if (tag === "td" || tag === "th") { flush(); }
+      if (tag === "td" || tag === "th") { flush(); cellMeta = null; }
       else if (BLOCK.has(tag)) flush();
-      if (tag === "tr") { inRow = Math.max(0, inRow - 1); colIdx = 0; }
+      if (tag === "tr") { inRow = Math.max(0, inRow - 1); colIdx = 0; gridOff = 0; cellMeta = null; }
       if (tag === "li" && liOpen > 0) { liOpen -= 1; inRow = Math.max(0, inRow - 1); colIdx = 0; }
       if (tag === "ol") olCount.pop();
       if (tag === "table" || tag === "ol") tblStack.pop();
@@ -328,12 +373,38 @@ export function parseLetterHtml(html) {
     if (tag === "img") {
       flush();
       const sm = attrs.match(/src\s*=\s*["']([^"']+)["']/i);
-      if (sm) { if (!inRow) rowId = ++rowCounter; if (!flags().skip) lines.push({ row: rowId, col: inRow ? colIdx : 0, tbl: tblStack.length ? tblStack[tblStack.length - 1] : 0, img: decode(sm[1]), ...(flags().center ? { center: 1 } : {}) }); }
+      if (sm) {
+        if (!inRow) rowId = ++rowCounter;
+        if (!flags().skip) {
+          const meta = inRow ? cellMeta : null;
+          const f = flags();
+          lines.push({
+            row: rowId,
+            col: meta ? meta.g : inRow ? colIdx : 0,
+            tbl: tblStack.length ? tblStack[tblStack.length - 1] : 0,
+            img: decode(sm[1]),
+            ...(meta && meta.span > 1 ? { span: meta.span } : {}),
+            ...(meta && meta.w ? { w: meta.w } : {}),
+            ...(f.center ? { center: 1 } : {}),
+            ...(f.right ? { right: 1 } : {}),
+            ...(f.box ? { box: 1 } : {}),
+          });
+        }
+      }
       continue;
     }
     if (tag === "br" || tag === "hr") continue;
-    if (tag === "tr") { flush(); inRow += 1; rowId = ++rowCounter; colIdx = -1; }
-    if (tag === "td" || tag === "th") { flush(); colIdx += 1; if (colIdx < 0) colIdx = 0; }
+    if (tag === "tr") { flush(); inRow += 1; rowId = ++rowCounter; colIdx = -1; gridOff = 0; cellMeta = null; }
+    if (tag === "td" || tag === "th") {
+      flush();
+      colIdx += 1; if (colIdx < 0) colIdx = 0;
+      // colspan → which grid tracks the cell merges; width="27%" → the board's own
+      // column geometry. Both are needed to reproduce the letter's real layout.
+      const span = Math.min(12, Math.max(1, parseInt((attrs.match(/colspan\s*=\s*["']?(\d+)/i) || [])[1] || "1", 10) || 1));
+      const wm = attrs.match(/width\s*=\s*["']?([\d.]+)\s*%/i);
+      cellMeta = { g: gridOff, span, w: wm ? Math.min(100, parseFloat(wm[1]) || 0) : 0 };
+      gridOff += span;
+    }
     if (tag === "ol") olCount.push(0);
     if (tag === "table" || tag === "ol") tblStack.push(++tblCounter);
     if (tag === "li" && olCount.length) {
@@ -349,7 +420,12 @@ export function parseLetterHtml(html) {
         b: tag === "b" || tag === "strong" || tag === "th" || /h[1-6]/.test(tag) || /font-weight\s*:\s*(bold|[6-9]00)/i.test(style) || classes.some((c) => cls.b.has(c)),
         u: tag === "u" || /text-decoration[^;]*underline/i.test(style) || classes.some((c) => cls.u.has(c)),
         skip: /display\s*:\s*none|visibility\s*:\s*hidden/i.test(style) || classes.some((c) => /^(report-heading|no-?print|hidden|d-none)$/i.test(c)),
-        c: tag === "center" || /align\s*=\s*["']?center/i.test(attrs) || /text-align\s*:\s*center/i.test(style) || classes.some((c) => cls.c.has(c)),
+        // align="center" on <table> centers the TABLE itself, not the cells' text —
+        // browsers do not let it center every line, so neither do we.
+        c: tag !== "table" && (tag === "center" || /align\s*=\s*["']?center/i.test(attrs) || /text-align\s*:\s*center/i.test(style) || classes.some((c) => cls.c.has(c))),
+        j: /align\s*=\s*["']?justify/i.test(attrs) || /text-align\s*:\s*justify/i.test(style),
+        r: /align\s*=\s*["']?right/i.test(attrs) || /text-align\s*:\s*right/i.test(style),
+        bx: /border[^:;]*:\s*(?!none|0\b)["']?[\d.]/i.test(style),
       });
     }
   }
@@ -392,6 +468,10 @@ async function fetchLetterDoc(url, opts = {}) {
 // ── Caches (per warm lambda) + in-flight de-dupe ────────────────────────────
 const MEM = new Map();
 const INFLIGHT = new Map();
+// Last session title the board itself reported, per source (warm-lambda memory
+// used when the board is briefly unreachable, so the site never shows a stale
+// hardcoded title as long as the lambda has ever seen the real one).
+const LAST_TITLE = {};
 const memGet = (k) => { const e = MEM.get(k); if (e && e.exp > Date.now()) return e.v; MEM.delete(k); return null; };
 const memSet = (k, v, ttl) => { if (MEM.size > 300) MEM.clear(); MEM.set(k, { v, exp: Date.now() + ttl }); };
 async function once(key, fn) {
@@ -410,8 +490,23 @@ export async function handleDraw(q) {
   const OK = "public, max-age=0, s-maxage=600, stale-while-revalidate=120";
 
   if (mode === "sources") {
+    // Session titles are fetched LIVE from the board's own draw pages (cached 6 h
+    // per warm lambda + edge-cached 5 min). The static strings in DEFAULT_SOURCES
+    // are only the documented last-resort when the board cannot be reached at all.
+    const list = await Promise.all(Object.entries(SRC).map(async ([id, s]) => {
+      let session = memGet(`ti:${id}`) || LAST_TITLE[id] || null;
+      if (!session) {
+        // shares the in-flight de-dupe key with preview mode (same board page)
+        const r = await once(`pv:${id}`, () => boardRequest(s.dir, "GET", undefined, { attempts: 2, perTry: 2600 }));
+        if (!r.fail) {
+          const t = findSession(r.html);
+          if (t) { LAST_TITLE[id] = t; memSet(`ti:${id}`, t, 6 * 60 * 60 * 1000); session = t; }
+        }
+      }
+      return { id, label: s.label, session: session || s.session, official_page: `${HOST}/${s.dir}/` };
+    }));
     return { status: 200, cache: "public, max-age=0, s-maxage=300, stale-while-revalidate=600",
-      body: { ok: true, sources: Object.entries(SRC).map(([id, s]) => ({ id, label: s.label, session: s.session })) } };
+      body: { ok: true, sources: list } };
   }
 
   const sid = q.get("source") || "theory";
@@ -424,6 +519,8 @@ export async function handleDraw(q) {
     if (hit) return { status: 200, cache: "public, max-age=0, s-maxage=900, stale-while-revalidate=300", body: { ...hit, cached: true } };
     const r = await once(key, () => boardRequest(src.dir, "GET"));
     if (r.fail) return { status: 200, cache: NO, body: { ok: false, error: "The board is busy right now.", detail: r.fail } };
+    const title = findSession(r.html);
+    if (title) { LAST_TITLE[sid] = title; memSet(`ti:${sid}`, title, 6 * 60 * 60 * 1000); }
     const body = { ok: true, source: sid, entries: parseDrawListHtml(r.html, src.dir), fetched_at: new Date().toISOString() };
     memSet(key, body, 30 * 60 * 1000);
     return { status: 200, cache: "public, max-age=0, s-maxage=900, stale-while-revalidate=300", body };
@@ -468,4 +565,4 @@ export async function handleDraw(q) {
   return { status: 200, cache: body.letterRef ? NO : OK, body };
 }
 
-export const __internals = { parseLetterHtml, fmtMobile, normaliseQuery, parseDrawHtml, parseDrawListHtml, maskMobile };
+export const __internals = { parseLetterHtml, fmtMobile, normaliseQuery, parseDrawHtml, parseDrawListHtml, maskMobile, findSession };

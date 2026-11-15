@@ -97,6 +97,7 @@ const Duties = () => {
     if (result.letterDoc?.length) {
       const f = letterFacts(result.letterDoc);
       rows.push(["Center Name", f.centerName], ["Report Date", f.reportDate], ["Report Time", f.reportTime],
+        ["Draw Held On", f.drawDate], ["Exam Starts", f.commencing],
         ["Ref No", f.ref], ["Dated", f.dated], ["CNIC", f.cnic]);
     }
     return rows.filter(([, v]) => !!v) as [string, string][];
@@ -221,6 +222,9 @@ const Duties = () => {
                         </span>
                       )}
                       <p className="mt-3 text-[12px] font-medium text-muted-foreground">{source.session} · {source.label}</p>
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/60">
+                        Verified live from BISE Peshawar{result.fetched_at ? ` · ${new Date(result.fetched_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
+                      </p>
                     </div>
 
                     {/* Centered duty table */}
