@@ -405,6 +405,58 @@ async function handleSignIn(body, ip, supabase) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ?action=admin-create  body: { full_name, email, password, phone }
+// Header: Authorization: Bearer <the signed-in admin's access token>
+//
+// Creates a new ADMINISTRATOR with the Supabase Auth admin API and
+// email_confirm:true, so Supabase sends NO email at all. That is what removes
+// the "email rate limit exceeded" failure: the browser-side signUp() always
+// asked Supabase to e-mail a confirmation, and Supabase's e-mail quota is tiny.
+// Only an already-approved admin may call it (checked server-side).
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleAdminCreate(req, body, supabase) {
+  const token = (hdr(req, "authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return json(401, { ok: false, error: "Please sign in again." });
+
+  const { data: who, error: whoErr } = await supabase.auth.getUser(token);
+  if (whoErr || !who?.user) return json(401, { ok: false, error: "Session expired. Please sign in again." });
+
+  const { data: me } = await supabase.from("profiles").select("role,status").eq("id", who.user.id).maybeSingle();
+  if (!me || me.role !== "admin" || (me.status && me.status !== "approved")) {
+    return json(403, { ok: false, error: "Only an administrator can add admins." });
+  }
+
+  const fullName = String(body.full_name || "").trim().slice(0, 120);
+  const email = String(body.email || "").trim().toLowerCase();
+  const password = String(body.password || "");
+  const phone = String(body.phone || "").trim().slice(0, 30) || null;
+  if (!fullName || !email || !password) return json(400, { ok: false, error: "Name, email, and password are required." });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(400, { ok: false, error: "Please enter a valid email address." });
+  if (password.length < 6) return json(400, { ok: false, error: "Password must be at least 6 characters." });
+
+  const { data: created, error: cErr } = await supabase.auth.admin.createUser({
+    email, password, email_confirm: true, user_metadata: { full_name: fullName },
+  });
+  if (cErr || !created?.user) {
+    const m = cErr?.message || "Could not create the account.";
+    return json(200, { ok: false, error: /already|registered|exists/i.test(m) ? "This email is already registered." : m });
+  }
+
+  // The DB trigger creates the profile row; promote it (retry briefly if the trigger is a moment late).
+  let promoted = false;
+  for (let i = 0; i < 6 && !promoted; i++) {
+    if (i) await new Promise((r) => setTimeout(r, 400));
+    const { data: rows } = await supabase
+      .from("profiles")
+      .update({ full_name: fullName, role: "admin", phone, status: "approved" })
+      .eq("id", created.user.id)
+      .select("id");
+    if (rows && rows.length) promoted = true;
+  }
+  return json(200, { ok: true, promoted, id: created.user.id });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Entry point  (Node runtime: handler(req, res))
 //
 // ROOT-CAUSE FIX for "Network Error" on every Sign In:
@@ -480,6 +532,7 @@ async function handle(req) {
       case "apply":    return await handleApply(body, ip, supabase);
       case "reset":    return await handleReset(body, ip, supabase, req);
       case "signin":   return await handleSignIn(body, ip, supabase);
+      case "admin-create": return await handleAdminCreate(req, body, supabase);
       default:         return json(400, { ok: false, error: "Unknown action." });
     }
   } catch (e) {
