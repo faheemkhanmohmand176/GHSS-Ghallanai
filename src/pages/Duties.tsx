@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, IdCard, Smartphone, Loader2, Download, CheckCircle2, Info, AlertTriangle,
   X, ArrowRight, Briefcase, Building2, Hash, MapPin, CalendarCheck, Clock,
-  CalendarDays, GraduationCap, FileText,
+  CalendarDays, GraduationCap, FileText, Share2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import PageLayout from "@/components/layout/PageLayout";
 import { downloadDutyOrderPDF } from "@/lib/dutyOrderPDF";
 import { letterFacts } from "@/lib/letterModel";
+import { shareDuty } from "@/lib/dutyShareImage";
 import {
   useDrawSources, useDrawLookup, formatPkMobile,
   type DrawDetails, type DrawResult,
@@ -52,7 +53,7 @@ const FIELD_ICON: Record<string, typeof IdCard> = {
 };
 
 const slimBtn =
-  "inline-flex h-9 items-center justify-center gap-2 rounded-full px-5 text-[13px] font-semibold tracking-wide transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-4 text-[12px] font-semibold tracking-wide transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60";
 
 /** Sliding-pill segmented control (shared by duty-type tabs and CNIC/Mobile toggle) */
 function Segmented<T extends string>({
@@ -97,6 +98,7 @@ const Duties = () => {
   const [by, setBy] = useState<By>("cnic");
   const [value, setValue] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
   const lookup = useDrawLookup();
 
   const source = useMemo(() => sources.find((s) => s.id === sourceId) ?? sources[0], [sources, sourceId]);
@@ -135,6 +137,18 @@ const Duties = () => {
     } catch {
       toast.error("Could not create the PDF. Please try again.");
     } finally { setPdfBusy(false); }
+  };
+
+  const shareOrder = async () => {
+    if (!result?.details || shareBusy) return;
+    setShareBusy(true);
+    try {
+      const f = result.letterDoc?.length ? letterFacts(result.letterDoc) : undefined;
+      const r = await shareDuty({ details: result.details, session: source.session, dutyLabel: source.label, facts: f });
+      if (r === "downloaded") toast.success("Image saved — attach it in WhatsApp");
+    } catch {
+      toast.error("Could not create the share image. Please try again.");
+    } finally { setShareBusy(false); }
   };
 
   return (
@@ -249,29 +263,36 @@ const Duties = () => {
                         <span className="h-1.5 w-1.5 rotate-45 bg-gold" />
                         <span className="h-px w-10 bg-gradient-to-l from-transparent to-gold/70" />
                       </div>
-                      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                        {tableRows.map(([label, v]) => {
-                          const Icon = FIELD_ICON[label] ?? FileText;
-                          return (
-                            <div
-                              key={label}
-                              className="flex min-w-0 flex-col items-center justify-center rounded-2xl border border-border/80 bg-gradient-to-b from-secondary/50 to-secondary/10 px-3 py-4 text-center transition-all hover:border-gold/50 hover:shadow-[0_12px_26px_-18px_hsl(var(--gold)/.8)] dark:from-secondary/40 dark:to-transparent"
-                            >
-                              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/35 bg-gradient-to-b from-[hsl(46_96%_91%)] to-[hsl(42_85%_82%)] text-[hsl(36_75%_32%)] shadow-[inset_0_1px_0_hsl(0_0%_100%/.65),0_6px_14px_-8px_hsl(38_80%_40%/.55)] dark:border-gold/25 dark:from-gold/20 dark:to-gold/5 dark:text-gold">
-                                <Icon className="h-4 w-4" />
-                              </span>
-                              <span className="mt-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-primary/85">{label}</span>
-                              <span className="mt-1 w-full break-words text-[14.5px] font-bold leading-snug text-foreground">{v}</span>
-                            </div>
-                          );
-                        })}
+                      <div className="overflow-hidden rounded-2xl border border-gold/40 bg-card shadow-[0_14px_30px_-22px_hsl(var(--gold)/.8)]">
+                        <table className="w-full table-fixed border-collapse text-center">
+                          <tbody>
+                            {tableRows.map(([label, v], i) => {
+                              const Icon = FIELD_ICON[label] ?? FileText;
+                              return (
+                                <tr key={label} className={i > 0 ? "border-t border-gold/25" : ""}>
+                                  <th scope="row" className="w-[40%] border-r border-gold/25 bg-secondary/50 px-2 py-2.5 align-middle font-body dark:bg-secondary/30">
+                                    <span className="flex flex-col items-center justify-center gap-1">
+                                      <span className="flex h-6 w-6 items-center justify-center rounded-full border border-gold/35 bg-gradient-to-b from-[hsl(46_96%_91%)] to-[hsl(42_85%_82%)] text-[hsl(36_75%_32%)] dark:border-gold/25 dark:from-gold/20 dark:to-gold/5 dark:text-gold"><Icon className="h-3 w-3" /></span>
+                                      <span className="text-[9.5px] font-bold uppercase leading-tight tracking-[0.14em] text-primary/90">{label}</span>
+                                    </span>
+                                  </th>
+                                  <td className="break-words px-2.5 py-2.5 align-middle font-body text-[13.5px] font-bold leading-snug tracking-tight text-foreground [overflow-wrap:anywhere]">{v}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
 
-                    <div className="flex justify-center px-4 pb-6 pt-4">
-                      <button type="button" onClick={downloadOrder} disabled={pdfBusy} className={`${slimBtn} border border-primary/20 bg-primary text-primary-foreground shadow-[0_12px_24px_-14px_hsl(var(--primary)/.8)]`}>
-                        {pdfBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                        {pdfBusy ? "Preparing…" : "Download Duty Order"}
+                    <div className="flex flex-wrap items-center justify-center gap-2.5 px-4 pb-6 pt-4">
+                      <button type="button" onClick={downloadOrder} disabled={pdfBusy} className={`${slimBtn} border border-primary/20 bg-primary text-primary-foreground shadow-[0_10px_20px_-14px_hsl(var(--primary)/.8)]`}>
+                        {pdfBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                        {pdfBusy ? "Preparing…" : "Download"}
+                      </button>
+                      <button type="button" onClick={shareOrder} disabled={shareBusy} className={`${slimBtn} border border-gold/60 bg-gradient-to-b from-[hsl(46_96%_72%)] to-[hsl(38_88%_52%)] text-[hsl(158_45%_10%)] shadow-[0_10px_20px_-14px_hsl(38_85%_42%/.8)]`}>
+                        {shareBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
+                        {shareBusy ? "Preparing…" : "Share"}
                       </button>
                     </div>
 
