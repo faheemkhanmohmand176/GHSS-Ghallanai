@@ -1,19 +1,22 @@
 // src/hooks/useDrawLookup.ts — BISE Peshawar Exam Duties (Supervisory Draw)
 // Talks to /api/bisep-draw (served by api/public-data.js?kind=draw).
 import { useMutation, useQuery } from "@tanstack/react-query";
+import type { LetterLine } from "@/lib/letterModel";
 
-export interface DrawSource { id: string; label: string; session: string; official_page: string }
+export interface DrawSource { id: string; label: string; session: string; official_page?: string }
 export interface DrawDetails {
   centerNo?: string; name?: string; designation?: string;
   institute?: string; mobile?: string; appointedAs?: string;
 }
 export interface DrawResult {
   ok: boolean; error?: string; detail?: string;
-  selected?: boolean; details?: DrawDetails; letter?: string | null;
-  notes?: string[]; session?: string; source?: string;
-  fetched_at?: string; official_page?: string; cached?: boolean;
+  selected?: boolean; details?: DrawDetails;
+  letterDoc?: LetterLine[]; letterRef?: string;
+  session?: string; source?: string;
+  fetched_at?: string; cached?: boolean;
 }
 export interface DrawPreviewEntry extends DrawDetails { letter?: string }
+export type { LetterLine };
 export interface DrawPreview {
   ok: boolean; entries?: DrawPreviewEntry[]; fetched_at?: string;
   official_page?: string; error?: string;
@@ -56,6 +59,11 @@ export function useDrawLookup() {
       if (!res.ok && res.detail) {
         await new Promise((r) => setTimeout(r, 900));
         res = await getJson<DrawResult>(qs);
+      }
+      // the board's own letter, if the first call ran out of time to fetch it
+      if (res.ok && res.selected && !res.letterDoc && res.letterRef) {
+        const lr = await getJson<{ ok: boolean; letterDoc?: LetterLine[] }>(`mode=letter&ref=${encodeURIComponent(res.letterRef)}`);
+        if (lr.ok && lr.letterDoc) res = { ...res, letterDoc: lr.letterDoc };
       }
       return res;
     },
