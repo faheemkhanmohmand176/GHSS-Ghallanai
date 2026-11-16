@@ -147,10 +147,22 @@ function probeCandidates() {
   return out;
 }
 
-// ── Source discovery (with LKG cache + in-flight de-dupe) ───────────────────
-const SOURCES_TTL = 10 * 60 * 1000; // 10 minutes — board publishes a new draw at most a few times per year
-let LKG_SOURCES = null;              // { sources, at } — warm-lambda memory
-let SOURCES_PROMISE = null;          // in-flight de-dupe
+// ── Source discovery (with LKG cache + in-flight de-dupe + sticky fallback) ──
+// Permanent-connection design (mirrors the v2 pattern in useBisepCurrentExam):
+//   • Fresh LKG (within TTL)      → serve instantly, no network.
+//   • LKG stale, discovery OK     → refresh LKG, serve fresh.
+//   • LKG stale, discovery FAILS  → serve STICKY LKG (the last draw the board
+//     actually published) + retry every FAIL_BACKOFF seconds. The page keeps
+//     showing the real draw title throughout a board outage instead of
+//     dropping to the neutral "BISE Peshawar" label. The moment the board is
+//     reachable again — or publishes a NEW draw — the next retry picks it up.
+//   • No LKG at all (first-ever visit while board unreachable) → legacy
+//     fallback with neutral label. Retry every FAIL_BACKOFF seconds.
+const SOURCES_TTL = 10 * 60 * 1000;   // 10 min — board publishes a few draws per year
+const FAIL_BACKOFF = 30 * 1000;       // 30 s between retries after a failed discovery
+let LKG_SOURCES = null;               // { sources, at } — warm-lambda memory
+let SOURCES_PROMISE = null;           // in-flight de-dupe
+let LAST_FAIL_AT = 0;                 // ms timestamp of last failed discovery
 
 // Probe a candidate dir. Returns { dir, session } if it's a real "Staff Draw"
 // page, else null. (boardFetch + findSession are defined further down in this
@@ -186,9 +198,16 @@ async function discoverSources() {
   const env = readEnvSources();
   if (env) return env;
 
-  // 2. LKG cache (warm lambda).
+  // 2. Fresh LKG cache (within TTL) → serve instantly, no network.
   if (LKG_SOURCES && Date.now() - LKG_SOURCES.at < SOURCES_TTL) {
     return LKG_SOURCES.sources;
+  }
+
+  // 2b. Backoff — if the last discovery failed recently, serve sticky LKG (or
+  // legacy fallback) without re-attempting. Prevents hammering the board
+  // during an outage while keeping recovery fast (30 s).
+  if (Date.now() - LAST_FAIL_AT < FAIL_BACKOFF) {
+    return LKG_SOURCES ? LKG_SOURCES.sources : { ...LEGACY_FALLBACK };
   }
 
   // De-dupe concurrent discovery runs.
@@ -218,12 +237,25 @@ async function discoverSources() {
 
       let sources;
       if (theory) {
+        // Fresh discovery succeeded — update LKG, clear fail state.
         sources = practical ? { theory, practical } : { theory };
-        // Cache LKG only on a real discovery — never cache the legacy fallback,
-        // so the next request retries the board immediately.
         LKG_SOURCES = { sources, at: Date.now() };
+        LAST_FAIL_AT = 0;
+      } else if (LKG_SOURCES) {
+        // 5. STICKY LKG — discovery failed but we have a known-good dir from a
+        // previous successful run. Keep serving it (the real draw title stays
+        // on the page) and back off for 30 s before the next retry. The board's
+        // actual lookup endpoint is still tried on each user search — if the
+        // board is reachable for lookups but not for the homepage scan, the
+        // user still gets their result; if the board is fully down, the lookup
+        // fails gracefully with "board did not respond".
+        LAST_FAIL_AT = Date.now();
+        sources = LKG_SOURCES.sources;
       } else {
-        // 5. Legacy fallback — neutral session label, no caching.
+        // 6. True legacy fallback — first-ever visit while the board is fully
+        // unreachable AND no LKG cache exists. Neutral session label so the
+        // page never lies about which exam is current.
+        LAST_FAIL_AT = Date.now();
         sources = { ...LEGACY_FALLBACK };
       }
       return sources;
