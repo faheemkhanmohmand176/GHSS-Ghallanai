@@ -218,7 +218,7 @@ async function buildLiveData(): Promise<string> {
     safe(`results?select=class,exam_type,year,publish_at&is_published=eq.false&publish_at=not.is.null&publish_at=gt.${now.toISOString()}&order=publish_at.asc&limit=60`),
     safe(`results?select=class,exam_type,year,created_at&is_published=eq.true&order=created_at.desc&limit=300`),
     safe(`exam_schedule?select=class,exam_type,year,subject,paper_name,exam_date,start_time,end_time&is_published=eq.true&exam_date=gte.${todayIso}&order=exam_date.asc&limit=40`),
-    safe(`exam_roll_sessions?select=*&or=(is_published.eq.true,publish_at.not.is.null)&order=created_at.desc&limit=6`),
+    safe(`exam_roll_sessions?select=id,title,is_published,publish_at&or=(is_published.eq.true,publish_at.not.is.null)&order=created_at.desc&limit=6`),
     safe(`merit_lists?select=title,scope,class,exam_type,year,is_published,publish_at&or=(is_published.eq.true,publish_at.gt.${now.toISOString()})&order=created_at.desc&limit=6`),
   ]);
 
