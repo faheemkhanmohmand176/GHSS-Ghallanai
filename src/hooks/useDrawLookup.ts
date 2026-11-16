@@ -23,12 +23,14 @@ export interface DrawPreview {
 }
 
 // Used instantly (no network) and as fallback if the sources call fails.
-// The session title shown on the page is fetched LIVE from BISE Peshawar by the
-// API; this offline fallback deliberately stays generic so it can never show
-// a stale or invented exam session.
+// The session title shown on the page is fetched LIVE from BISE Peshawar by
+// the API (which auto-discovers the latest published draw from the board's own
+// homepage — see api/_lib/bisep-draw-core.js); this offline fallback stays
+// generic so it can never show a stale or invented exam session, and the
+// official_page link points at the board's homepage (always reachable) rather
+// than any specific draw dir (which the board removes once the cycle closes).
 export const FALLBACK_SOURCES: DrawSource[] = [
-  { id: "theory", label: "Theory Duties", session: "BISE Peshawar", official_page: "https://bisep.edu.pk/DrawSSC2026A2/" },
-  { id: "practical", label: "Practical Duties", session: "BISE Peshawar", official_page: "https://bisep.edu.pk/DrawSSC2026A2Pract/" },
+  { id: "theory", label: "Theory Duties", session: "BISE Peshawar", official_page: "https://bisep.edu.pk/" },
 ];
 
 async function getJson<T>(qs: string, timeoutMs = 15000): Promise<T> {
