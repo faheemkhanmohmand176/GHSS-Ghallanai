@@ -83,7 +83,7 @@ export function useRollSlipCountdown() {
       cachedOrDirect<RollSlipSession[]>("roll-sessions", {}, async () => {
         const { data, error } = await supabase
           .from("exam_roll_sessions")
-          .select("*")
+          .select("id,title,exam_year,exam_term,classes,class_order,starting_number,is_published,publish_at,countdown_label,created_at")
           .or("is_published.eq.true,publish_at.not.is.null")
           .order("created_at", { ascending: false });
         if (error) throw error;
