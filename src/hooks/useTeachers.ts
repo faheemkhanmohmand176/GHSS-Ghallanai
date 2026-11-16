@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { cachedOrDirect } from "@/lib/publicData";
 
 export interface Teacher {
   id: string;
@@ -14,6 +15,18 @@ export interface Teacher {
   is_active: boolean;
   display_order: number;
   created_at: string;
+}
+
+async function fetchTeachersDirect(limit: number | undefined, includeInactive: boolean): Promise<Teacher[]> {
+  let query = supabase
+    .from("teachers")
+    .select("id, full_name, subject, qualification, experience, phone, email, photo_url, bio, is_active, display_order, created_at")
+    .order("display_order", { ascending: true });
+  if (!includeInactive) query = query.eq("is_active", true);
+  if (limit) query = query.limit(limit);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as Teacher[];
 }
 
 /**
@@ -33,17 +46,13 @@ export function useTeachers(limit?: number, includeInactive: boolean = false) {
   return useQuery<Teacher[]>({
     queryKey: ["teachers", limit, includeInactive],
     queryFn: async () => {
-      let query = supabase
-        .from("teachers")
-        .select("id, full_name, subject, qualification, experience, phone, email, photo_url, bio, is_active, display_order, created_at")
-        .order("display_order", { ascending: true });
+      // Public (active-only) list → shared CDN cache (/api/public-data?kind=teachers),
+      // so 150 visitors cost the database ONE read per cache window. The admin /
+      // timetable view (includeInactive) always reads directly.
       if (!includeInactive) {
-        query = query.eq("is_active", true);
+        return cachedOrDirect<Teacher[]>("teachers", { limit }, () => fetchTeachersDirect(limit, false));
       }
-      if (limit) query = query.limit(limit);
-      const { data, error } = await query;
-      if (error) throw error;
-      return data ?? [];
+      return fetchTeachersDirect(limit, true);
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
