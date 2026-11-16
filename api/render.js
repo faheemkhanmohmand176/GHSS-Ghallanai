@@ -69,7 +69,7 @@
 //   • Strict route allow-list; unknown paths → 404 (no open proxy).
 //   • UUID validation before any id-based query.
 //   • Public tables only — NO student records, NO marks, NO application data.
-//   • Edge-cached (HTML 120 s / JSON 60 s, stale-while-revalidate) → fast + DB-safe.
+//   • Edge-cached (HTML 600 s / JSON 60 s, stale-while-revalidate) → fast + DB-safe.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from "@supabase/supabase-js";
@@ -1488,7 +1488,7 @@ ${nav ? `<nav>${nav}</nav>` : ""}
 </html>`;
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=86400, max-age=0");
+  res.setHeader("Cache-Control", "public, s-maxage=600, stale-while-revalidate=86400, max-age=0");
   res.setHeader("X-GHSS-Render", `live; generated=${new Date().toISOString()}`);
   return res.status(200).send(html);
 }
